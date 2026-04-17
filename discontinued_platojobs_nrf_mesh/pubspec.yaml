@@ -1,0 +1,11 @@
+name: platojobs_nrf_mesh
+description: Discontinued. Please migrate to nrf_mesh_flutter.
+version: 1.0.1
+homepage: https://github.com/platojobs/nrf_mesh_flutter
+
+environment:
+  sdk: ^3.11.4
+
+dependencies:
+  nrf_mesh_flutter: ^1.0.1
+
