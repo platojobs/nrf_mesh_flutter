@@ -64,6 +64,19 @@ void main() async {
 }
 ```
 
+## Provisioning Flow (High Level)
+
+```mermaid
+flowchart TD
+  A[initialize()] --> B[loadNetwork()]
+  B -->|null / empty| C[createNetwork()]
+  B -->|exists| D[scanForDevices()]
+  C --> D
+  D --> E[provisionDevice()]
+  E --> F[sendMessage()]
+  F --> G[messageStream]
+```
+
 ## Usage
 
 ### Network Management
@@ -286,15 +299,27 @@ The plugin follows a layered architecture:
 
 ## Error Handling
 
-The plugin uses standard Flutter platform exception handling. All async methods may throw `PlatformException` on error.
+All async methods may throw `PlatoJobsMeshException` (a readable wrapper over platform errors, timeouts, and common BLE failures).
 
 ```dart
 try {
   await PlatoJobsNrfMeshManager.instance.initialize();
-} on PlatformException catch (e) {
-  print('Error: ${e.code} - ${e.message}');
+} on PlatoJobsMeshException catch (e) {
+  // e.g. permission / connection / timeout / invalid state
+  print('Mesh error: $e');
 }
 ```
+
+## Android 12+ / 14+ Notes
+
+- Android 12+ 需要运行时申请 `BLUETOOTH_SCAN` / `BLUETOOTH_CONNECT`。
+- Android 13+ 如果要在通知中提示连接状态，可能需要 `POST_NOTIFICATIONS`（由你的 App 决定是否需要）。
+- Android 14+ 后台扫描/连接限制更严格：建议在前台流程（用户可见）中完成 provisioning 与 proxy 连接，并做好失败重试与超时处理。
+
+## iOS 13+ / 17+ Notes
+
+- iOS 上建议在 `Info.plist` 中提供蓝牙用途说明（如 `NSBluetoothAlwaysUsageDescription`）。
+- iOS 17+ 对后台能力更敏感：尽量将 mesh 操作放在前台可见流程，避免长时间后台扫描。
 
 ## Examples
 
