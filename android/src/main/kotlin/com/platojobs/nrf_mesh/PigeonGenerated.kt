@@ -949,7 +949,7 @@ interface MeshApi {
     fun setUp(binaryMessenger: BinaryMessenger, api: MeshApi?, messageChannelSuffix: String = "") {
       val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.createNetwork$separatedMessageChannelSuffix", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.createNetwork$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { message, reply ->
             val args = message as List<Any?>
@@ -966,7 +966,7 @@ interface MeshApi {
         }
       }
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.loadNetwork$separatedMessageChannelSuffix", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.loadNetwork$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { _, reply ->
             val wrapped: List<Any?> = try {
@@ -981,7 +981,7 @@ interface MeshApi {
         }
       }
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.saveNetwork$separatedMessageChannelSuffix", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.saveNetwork$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { _, reply ->
             val wrapped: List<Any?> = try {
@@ -996,7 +996,7 @@ interface MeshApi {
         }
       }
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.exportNetwork$separatedMessageChannelSuffix", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.exportNetwork$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { message, reply ->
             val args = message as List<Any?>
@@ -1013,7 +1013,7 @@ interface MeshApi {
         }
       }
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.importNetwork$separatedMessageChannelSuffix", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.importNetwork$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { message, reply ->
             val args = message as List<Any?>
@@ -1030,7 +1030,7 @@ interface MeshApi {
         }
       }
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.startScan$separatedMessageChannelSuffix", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.startScan$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { _, reply ->
             val wrapped: List<Any?> = try {
@@ -1046,7 +1046,7 @@ interface MeshApi {
         }
       }
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.stopScan$separatedMessageChannelSuffix", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.stopScan$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { _, reply ->
             val wrapped: List<Any?> = try {
@@ -1062,7 +1062,7 @@ interface MeshApi {
         }
       }
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.provisionDevice$separatedMessageChannelSuffix", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.provisionDevice$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { message, reply ->
             val args = message as List<Any?>
@@ -1080,7 +1080,7 @@ interface MeshApi {
         }
       }
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.sendMessage$separatedMessageChannelSuffix", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.sendMessage$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { message, reply ->
             val args = message as List<Any?>
@@ -1098,7 +1098,7 @@ interface MeshApi {
         }
       }
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.getNodes$separatedMessageChannelSuffix", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.getNodes$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { _, reply ->
             val wrapped: List<Any?> = try {
@@ -1113,7 +1113,7 @@ interface MeshApi {
         }
       }
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.removeNode$separatedMessageChannelSuffix", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeNode$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { message, reply ->
             val args = message as List<Any?>
@@ -1131,7 +1131,7 @@ interface MeshApi {
         }
       }
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.createGroup$separatedMessageChannelSuffix", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.createGroup$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { message, reply ->
             val args = message as List<Any?>
@@ -1148,7 +1148,7 @@ interface MeshApi {
         }
       }
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.getGroups$separatedMessageChannelSuffix", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.getGroups$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { _, reply ->
             val wrapped: List<Any?> = try {
@@ -1163,7 +1163,7 @@ interface MeshApi {
         }
       }
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.addNodeToGroup$separatedMessageChannelSuffix", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.addNodeToGroup$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { message, reply ->
             val args = message as List<Any?>
@@ -1195,7 +1195,7 @@ class MeshFlutterApi(private val binaryMessenger: BinaryMessenger, private val m
   fun onDeviceDiscovered(deviceArg: UnprovisionedDevice, callback: (Result<Unit>) -> Unit)
 {
     val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
-    val channelName = "dev.flutter.pigeon.platojobs_nrf_mesh.MeshFlutterApi.onDeviceDiscovered$separatedMessageChannelSuffix"
+    val channelName = "dev.flutter.pigeon.nrf_mesh_flutter.MeshFlutterApi.onDeviceDiscovered$separatedMessageChannelSuffix"
     val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
     channel.send(listOf(deviceArg)) {
       if (it is List<*>) {
@@ -1212,7 +1212,7 @@ class MeshFlutterApi(private val binaryMessenger: BinaryMessenger, private val m
   fun onMessageReceived(messageArg: MeshMessage, callback: (Result<Unit>) -> Unit)
 {
     val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
-    val channelName = "dev.flutter.pigeon.platojobs_nrf_mesh.MeshFlutterApi.onMessageReceived$separatedMessageChannelSuffix"
+    val channelName = "dev.flutter.pigeon.nrf_mesh_flutter.MeshFlutterApi.onMessageReceived$separatedMessageChannelSuffix"
     val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
     channel.send(listOf(messageArg)) {
       if (it is List<*>) {

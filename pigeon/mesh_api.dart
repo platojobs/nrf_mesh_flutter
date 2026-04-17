@@ -9,7 +9,7 @@ import 'package:pigeon/pigeon.dart';
   swiftOut: 'ios/Classes/PigeonGenerated.swift',
   kotlinOut: 'android/src/main/kotlin/com/platojobs/nrf_mesh/PigeonGenerated.kt',
   kotlinOptions: KotlinOptions(package: 'com.platojobs.nrf_mesh'),
-  dartPackageName: 'platojobs_nrf_mesh',
+  dartPackageName: 'nrf_mesh_flutter',
 ))
 @HostApi()
 abstract class MeshApi {

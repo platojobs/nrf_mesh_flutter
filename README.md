@@ -1,4 +1,4 @@
-# PlatoJobs nRF Mesh Flutter Plugin
+# nRF Mesh Flutter Plugin
 
 A Flutter plugin for Bluetooth Mesh networking, based on Nordic Semiconductor's nRF Mesh libraries ([iOS](https://github.com/NordicSemiconductor/IOS-nRF-Mesh-Library) / [Android](https://github.com/NordicSemiconductor/Android-nRF-Mesh-Library)).
 
@@ -19,13 +19,13 @@ A Flutter plugin for Bluetooth Mesh networking, based on Nordic Semiconductor's 
 
 ## Installation
 
-Add `platojobs_nrf_mesh` to your `pubspec.yaml`:
+Add `nrf_mesh_flutter` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
   flutter:
     sdk: flutter
-  platojobs_nrf_mesh: ^0.3.0
+  nrf_mesh_flutter: ^1.0.1
 ```
 
 ### iOS Configuration
@@ -52,7 +52,7 @@ Add Bluetooth permissions to your `android/app/src/main/AndroidManifest.xml`:
 ## Quick Start
 
 ```dart
-import 'package:platojobs_nrf_mesh/platojobs_nrf_mesh.dart';
+import 'package:nrf_mesh_flutter/nrf_mesh_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -275,7 +275,6 @@ The plugin follows a layered architecture:
 ### Flutter Dependencies
 
 - `plugin_platform_interface: ^2.0.2` - Platform interface support
-- `flutter_reactive_ble: ^5.0.0` - BLE communication
 - `convert: ^3.1.1` - JSON conversion
 - `crypto: ^3.0.3` - Cryptographic functions
 - `meta: ^1.10.0` - Annotations
