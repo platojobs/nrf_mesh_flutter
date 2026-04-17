@@ -19,8 +19,14 @@ abstract class PlatoJobsMeshBridge {
     return _instance!;
   }
 
+  static bool get isInitialized => _instance != null;
+
   static set instance(PlatoJobsMeshBridge instance) {
     _instance = instance;
+  }
+
+  static void resetForTesting() {
+    _instance = null;
   }
 
   Future<void> initialize();

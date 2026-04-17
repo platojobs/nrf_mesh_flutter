@@ -1,3 +1,11 @@
+## 1.1.0
+
+### Developer Experience
+- Add a mockable bridge (`FakePlatoJobsMeshBridge`) for UI development without Mesh hardware.
+- Add unit tests covering the fake bridge and stream behavior.
+- Update example app manifests for Android 12+/14+ and iOS Bluetooth usage descriptions.
+- Expand README with provisioning flow + mocking + permission/background notes.
+
 ## 1.0.4
 
 ### Docs
