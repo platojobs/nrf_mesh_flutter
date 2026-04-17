@@ -1,3 +1,18 @@
+## 1.0.2
+
+### Docs
+- 更新 README：补充更明确的错误处理方式（统一异常类型）与更完整的权限说明。
+
+## 1.0.3
+
+### Docs
+- 修正 `CHANGELOG.md` 版本顺序与格式（按版本号从新到旧）。
+
+## 1.0.1
+
+### Fixes
+- 移除对 `flutter_reactive_ble` 的强依赖，避免与项目中其他 BLE 插件（如 `flutter_blue_plus`）产生依赖冲突。
+
 ## 1.0.0
 
 ### Breaking Changes
@@ -6,16 +21,6 @@
 ### Features
 - 统一错误映射：将平台 `PlatformException` 转换为可读的 `PlatoJobsMeshException`。
 - 增加应用层 Command Queue（串行发送 + 超时 + 背压），提升高频指令稳定性。
-
-## 1.0.1
-
-### Fixes
-- 移除对 `flutter_reactive_ble` 的强依赖，避免与项目中其他 BLE 插件（如 `flutter_blue_plus`）产生依赖冲突。
-
-## 1.0.2
-
-### Docs
-- 更新 README：补充更明确的错误处理方式（统一异常类型）与更完整的权限说明。
 
 ## 0.4.0
 
@@ -27,9 +32,9 @@
 - Updated build.gradle.kts with correct package configuration
 
 ## 0.3.0
-- Renamed core class from `NrfMeshManager` to `PlatoJobsNrfMeshManager`
-- Updated platform interface to `PlatoJobsMeshBridge`
-- Updated iOS and Android native implementation class names
+- Renamed core class from `NrfMeshManager` to `PlatoJobsNrfMeshManager`.
+- Updated platform interface to `PlatoJobsMeshBridge`.
+- Updated iOS and Android native implementation class names.
 
 ### Features
 - Unified naming convention with `PlatoJobs` prefix
