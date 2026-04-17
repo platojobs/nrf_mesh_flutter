@@ -81,14 +81,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.0.1"
-  fixnum:
-    dependency: transitive
-    description:
-      name: fixnum
-      sha256: b6dc7065e46c974bc7c5f143080a6764ec7a4be6da1285ececdc37be96de53be
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.1.1"
   flutter:
     dependency: "direct main"
     description: flutter
@@ -107,14 +99,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.0.0"
-  flutter_reactive_ble:
-    dependency: transitive
-    description:
-      name: flutter_reactive_ble
-      sha256: "10022aed17fa1797678a4d848cf25484a4cfd10c46061ce61687f071585fe036"
-      url: "https://pub.dev"
-    source: hosted
-    version: "5.4.2"
   flutter_test:
     dependency: "direct dev"
     description: flutter
@@ -125,14 +109,6 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
-  functional_data:
-    dependency: transitive
-    description:
-      name: functional_data
-      sha256: "76d17dc707c40e552014f5a49c0afcc3f1e3f05e800cd6b7872940bfe41a5039"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.2.0"
   integration_test:
     dependency: "direct dev"
     description: flutter
@@ -194,6 +170,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.17.0"
+  nrf_mesh_flutter:
+    dependency: "direct main"
+    description:
+      path: ".."
+      relative: true
+    source: path
+    version: "1.0.1"
   path:
     dependency: transitive
     description:
@@ -210,13 +193,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.6"
-  platojobs_nrf_mesh:
-    dependency: "direct main"
-    description:
-      path: ".."
-      relative: true
-    source: path
-    version: "0.4.0"
   plugin_platform_interface:
     dependency: transitive
     description:
@@ -233,30 +209,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.0.5"
-  protobuf:
-    dependency: transitive
-    description:
-      name: protobuf
-      sha256: "75ec242d22e950bdcc79ee38dd520ce4ee0bc491d7fadc4ea47694604d22bf06"
-      url: "https://pub.dev"
-    source: hosted
-    version: "6.0.0"
-  reactive_ble_mobile:
-    dependency: transitive
-    description:
-      name: reactive_ble_mobile
-      sha256: ddfc324be406cec06aeace0e85a074cda8d0c01658ef6e5d308764fee4b33b61
-      url: "https://pub.dev"
-    source: hosted
-    version: "5.4.2"
-  reactive_ble_platform_interface:
-    dependency: transitive
-    description:
-      name: reactive_ble_platform_interface
-      sha256: "605fdd7b0538ad3991acae80315110fbf36e742fed21e7a9acc0adf0bf84c577"
-      url: "https://pub.dev"
-    source: hosted
-    version: "5.4.2"
   sky_engine:
     dependency: transitive
     description: flutter

@@ -1,11 +1,16 @@
 ## 1.0.0
 
 ### Breaking Changes
-- 统一跨平台通道与 Pigeon 代码生成配置（`platojobs_nrf_mesh` / `com.platojobs.nrf_mesh`）。
+- 统一跨平台通道与 Pigeon 代码生成配置（`nrf_mesh_flutter` / `com.platojobs.nrf_mesh`）。
 
 ### Features
 - 统一错误映射：将平台 `PlatformException` 转换为可读的 `PlatoJobsMeshException`。
 - 增加应用层 Command Queue（串行发送 + 超时 + 背压），提升高频指令稳定性。
+
+## 1.0.1
+
+### Fixes
+- 移除对 `flutter_reactive_ble` 的强依赖，避免与项目中其他 BLE 插件（如 `flutter_blue_plus`）产生依赖冲突。
 
 ## 0.4.0
 
@@ -17,9 +22,6 @@
 - Updated build.gradle.kts with correct package configuration
 
 ## 0.3.0
-
-### Breaking Changes
-- Renamed package from `nrf_mesh_flutter` to `platojobs_nrf_mesh`
 - Renamed core class from `NrfMeshManager` to `PlatoJobsNrfMeshManager`
 - Updated platform interface to `PlatoJobsMeshBridge`
 - Updated iOS and Android native implementation class names

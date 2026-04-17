@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
-import 'package:platojobs_nrf_mesh/platojobs_nrf_mesh.dart';
+import 'package:nrf_mesh_flutter/nrf_mesh_flutter.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();

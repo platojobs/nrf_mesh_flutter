@@ -923,7 +923,7 @@ class MeshApi {
   final String pigeonVar_messageChannelSuffix;
 
   Future<MeshNetwork> createNetwork(String name) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.createNetwork$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.createNetwork$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -942,7 +942,7 @@ class MeshApi {
   }
 
   Future<MeshNetwork> loadNetwork() async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.loadNetwork$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.loadNetwork$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -961,7 +961,7 @@ class MeshApi {
   }
 
   Future<bool> saveNetwork() async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.saveNetwork$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.saveNetwork$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -980,7 +980,7 @@ class MeshApi {
   }
 
   Future<bool> exportNetwork(String path) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.exportNetwork$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.exportNetwork$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -999,7 +999,7 @@ class MeshApi {
   }
 
   Future<bool> importNetwork(String path) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.importNetwork$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.importNetwork$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1018,7 +1018,7 @@ class MeshApi {
   }
 
   Future<void> startScan() async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.startScan$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.startScan$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1036,7 +1036,7 @@ class MeshApi {
   }
 
   Future<void> stopScan() async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.stopScan$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.stopScan$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1054,7 +1054,7 @@ class MeshApi {
   }
 
   Future<ProvisionedNode> provisionDevice(UnprovisionedDevice device, ProvisioningParameters params) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.provisionDevice$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.provisionDevice$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1073,7 +1073,7 @@ class MeshApi {
   }
 
   Future<void> sendMessage(MeshMessage message) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.sendMessage$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.sendMessage$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1091,7 +1091,7 @@ class MeshApi {
   }
 
   Future<List<ProvisionedNode>> getNodes() async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.getNodes$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.getNodes$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1110,7 +1110,7 @@ class MeshApi {
   }
 
   Future<void> removeNode(String nodeId) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.removeNode$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeNode$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1128,7 +1128,7 @@ class MeshApi {
   }
 
   Future<MeshGroup> createGroup(String name) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.createGroup$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.createGroup$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1147,7 +1147,7 @@ class MeshApi {
   }
 
   Future<List<MeshGroup>> getGroups() async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.getGroups$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.getGroups$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1166,7 +1166,7 @@ class MeshApi {
   }
 
   Future<void> addNodeToGroup(String nodeId, String groupId) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.addNodeToGroup$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.addNodeToGroup$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1195,7 +1195,7 @@ abstract class MeshFlutterApi {
     messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
     {
       final pigeonVar_channel = BasicMessageChannel<Object?>(
-          'dev.flutter.pigeon.platojobs_nrf_mesh.MeshFlutterApi.onDeviceDiscovered$messageChannelSuffix', pigeonChannelCodec,
+          'dev.flutter.pigeon.nrf_mesh_flutter.MeshFlutterApi.onDeviceDiscovered$messageChannelSuffix', pigeonChannelCodec,
           binaryMessenger: binaryMessenger);
       if (api == null) {
         pigeonVar_channel.setMessageHandler(null);
@@ -1216,7 +1216,7 @@ abstract class MeshFlutterApi {
     }
     {
       final pigeonVar_channel = BasicMessageChannel<Object?>(
-          'dev.flutter.pigeon.platojobs_nrf_mesh.MeshFlutterApi.onMessageReceived$messageChannelSuffix', pigeonChannelCodec,
+          'dev.flutter.pigeon.nrf_mesh_flutter.MeshFlutterApi.onMessageReceived$messageChannelSuffix', pigeonChannelCodec,
           binaryMessenger: binaryMessenger);
       if (api == null) {
         pigeonVar_channel.setMessageHandler(null);

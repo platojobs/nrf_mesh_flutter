@@ -1,5 +1,5 @@
-name: platojobs_nrf_mesh_example
-description: "Demonstrates how to use the platojobs_nrf_mesh plugin."
+name: nrf_mesh_flutter_example
+description: "Demonstrates how to use the nrf_mesh_flutter plugin."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -17,7 +17,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  platojobs_nrf_mesh:
+  nrf_mesh_flutter:
     path: ../
 
   # The following adds the Cupertino Icons font to your application.

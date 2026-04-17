@@ -896,7 +896,7 @@ class MeshApiSetup {
   /// Sets up an instance of `MeshApi` to handle messages through the `binaryMessenger`.
   static func setUp(binaryMessenger: FlutterBinaryMessenger, api: MeshApi?, messageChannelSuffix: String = "") {
     let channelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
-    let createNetworkChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.createNetwork\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let createNetworkChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.createNetwork\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       createNetworkChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
@@ -911,7 +911,7 @@ class MeshApiSetup {
     } else {
       createNetworkChannel.setMessageHandler(nil)
     }
-    let loadNetworkChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.loadNetwork\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let loadNetworkChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.loadNetwork\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       loadNetworkChannel.setMessageHandler { _, reply in
         do {
@@ -924,7 +924,7 @@ class MeshApiSetup {
     } else {
       loadNetworkChannel.setMessageHandler(nil)
     }
-    let saveNetworkChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.saveNetwork\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let saveNetworkChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.saveNetwork\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       saveNetworkChannel.setMessageHandler { _, reply in
         do {
@@ -937,7 +937,7 @@ class MeshApiSetup {
     } else {
       saveNetworkChannel.setMessageHandler(nil)
     }
-    let exportNetworkChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.exportNetwork\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let exportNetworkChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.exportNetwork\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       exportNetworkChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
@@ -952,7 +952,7 @@ class MeshApiSetup {
     } else {
       exportNetworkChannel.setMessageHandler(nil)
     }
-    let importNetworkChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.importNetwork\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let importNetworkChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.importNetwork\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       importNetworkChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
@@ -967,7 +967,7 @@ class MeshApiSetup {
     } else {
       importNetworkChannel.setMessageHandler(nil)
     }
-    let startScanChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.startScan\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let startScanChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.startScan\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       startScanChannel.setMessageHandler { _, reply in
         do {
@@ -980,7 +980,7 @@ class MeshApiSetup {
     } else {
       startScanChannel.setMessageHandler(nil)
     }
-    let stopScanChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.stopScan\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let stopScanChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.stopScan\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       stopScanChannel.setMessageHandler { _, reply in
         do {
@@ -993,7 +993,7 @@ class MeshApiSetup {
     } else {
       stopScanChannel.setMessageHandler(nil)
     }
-    let provisionDeviceChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.provisionDevice\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let provisionDeviceChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.provisionDevice\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       provisionDeviceChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
@@ -1009,7 +1009,7 @@ class MeshApiSetup {
     } else {
       provisionDeviceChannel.setMessageHandler(nil)
     }
-    let sendMessageChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.sendMessage\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let sendMessageChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.sendMessage\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       sendMessageChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
@@ -1024,7 +1024,7 @@ class MeshApiSetup {
     } else {
       sendMessageChannel.setMessageHandler(nil)
     }
-    let getNodesChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.getNodes\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let getNodesChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.getNodes\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       getNodesChannel.setMessageHandler { _, reply in
         do {
@@ -1037,7 +1037,7 @@ class MeshApiSetup {
     } else {
       getNodesChannel.setMessageHandler(nil)
     }
-    let removeNodeChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.removeNode\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let removeNodeChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeNode\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       removeNodeChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
@@ -1052,7 +1052,7 @@ class MeshApiSetup {
     } else {
       removeNodeChannel.setMessageHandler(nil)
     }
-    let createGroupChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.createGroup\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let createGroupChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.createGroup\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       createGroupChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
@@ -1067,7 +1067,7 @@ class MeshApiSetup {
     } else {
       createGroupChannel.setMessageHandler(nil)
     }
-    let getGroupsChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.getGroups\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let getGroupsChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.getGroups\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       getGroupsChannel.setMessageHandler { _, reply in
         do {
@@ -1080,7 +1080,7 @@ class MeshApiSetup {
     } else {
       getGroupsChannel.setMessageHandler(nil)
     }
-    let addNodeToGroupChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.platojobs_nrf_mesh.MeshApi.addNodeToGroup\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let addNodeToGroupChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.addNodeToGroup\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       addNodeToGroupChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
@@ -1114,7 +1114,7 @@ class MeshFlutterApi: MeshFlutterApiProtocol {
     return PigeonGeneratedPigeonCodec.shared
   }
   func onDeviceDiscovered(device deviceArg: UnprovisionedDevice, completion: @escaping (Result<Void, PigeonError>) -> Void) {
-    let channelName: String = "dev.flutter.pigeon.platojobs_nrf_mesh.MeshFlutterApi.onDeviceDiscovered\(messageChannelSuffix)"
+    let channelName: String = "dev.flutter.pigeon.nrf_mesh_flutter.MeshFlutterApi.onDeviceDiscovered\(messageChannelSuffix)"
     let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
     channel.sendMessage([deviceArg] as [Any?]) { response in
       guard let listResponse = response as? [Any?] else {
@@ -1132,7 +1132,7 @@ class MeshFlutterApi: MeshFlutterApiProtocol {
     }
   }
   func onMessageReceived(message messageArg: MeshMessage, completion: @escaping (Result<Void, PigeonError>) -> Void) {
-    let channelName: String = "dev.flutter.pigeon.platojobs_nrf_mesh.MeshFlutterApi.onMessageReceived\(messageChannelSuffix)"
+    let channelName: String = "dev.flutter.pigeon.nrf_mesh_flutter.MeshFlutterApi.onMessageReceived\(messageChannelSuffix)"
     let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
     channel.sendMessage([messageArg] as [Any?]) { response in
       guard let listResponse = response as? [Any?] else {

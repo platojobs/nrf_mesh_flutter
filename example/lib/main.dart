@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 
-import 'package:platojobs_nrf_mesh/platojobs_nrf_mesh.dart';
+import 'package:nrf_mesh_flutter/nrf_mesh_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -71,7 +71,8 @@ class _MyAppState extends State<MyApp> {
 
     _meshManager.scanForDevices().listen((device) {
       setState(() {
-        if (!_devices.any((d) => d.deviceId == device.deviceId)) {
+        final id = device.deviceId;
+        if (!_devices.any((d) => d.deviceId == id)) {
           _devices.add(device);
         }
       });
