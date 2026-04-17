@@ -1,3 +1,10 @@
+## 1.1.2
+
+### Developer Experience
+- Extend fake bridge with outbound observability (record/stream sent messages).
+- Add failure/delay injection for provisioning and network import/export.
+- Add in-memory export/import storage to simulate persistence in tests.
+
 ## 1.1.1
 
 ### Developer Experience

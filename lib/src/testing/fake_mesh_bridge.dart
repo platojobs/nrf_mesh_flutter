@@ -29,6 +29,13 @@ class FakeMeshScenarioStep {
   }) {
     return FakeMeshScenarioStep._(delay, (b) => b.emitIncomingMessage(message));
   }
+
+  static FakeMeshScenarioStep scanError(
+    Object error, {
+    Duration delay = Duration.zero,
+  }) {
+    return FakeMeshScenarioStep._(delay, (b) => b.emitScanError(error));
+  }
 }
 
 class FakeMeshScenario {
@@ -57,12 +64,30 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
   Object? nextSendMessageError;
   Duration nextSendMessageDelay = Duration.zero;
 
+  Object? nextProvisionError;
+  Duration nextProvisionDelay = Duration.zero;
+
+  Object? nextExportNetworkError;
+  Duration nextExportNetworkDelay = Duration.zero;
+
+  Object? nextImportNetworkError;
+  Duration nextImportNetworkDelay = Duration.zero;
+
   final StreamController<UnprovisionedDevice> _scanController =
       StreamController<UnprovisionedDevice>.broadcast();
   final StreamController<MeshMessage> _messageController =
       StreamController<MeshMessage>.broadcast();
+  final StreamController<MeshMessage> _sentMessageController =
+      StreamController<MeshMessage>.broadcast();
 
   bool _scanStarted = false;
+  int _nextUnicastAddress = 1;
+
+  final Map<String, MeshNetwork> _networksByPath = <String, MeshNetwork>{};
+  final List<MeshMessage> _sentMessages = <MeshMessage>[];
+
+  Stream<MeshMessage> get sentMessageStream => _sentMessageController.stream;
+  List<MeshMessage> get sentMessages => List<MeshMessage>.unmodifiable(_sentMessages);
 
   MeshNetwork _network = MeshNetwork(
     networkId: 'fake-network',
@@ -107,10 +132,36 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
   Future<bool> saveNetwork() async => true;
 
   @override
-  Future<bool> exportNetwork(String path) async => true;
+  Future<bool> exportNetwork(String path) async {
+    if (nextExportNetworkDelay != Duration.zero) {
+      await Future<void>.delayed(nextExportNetworkDelay);
+      nextExportNetworkDelay = Duration.zero;
+    }
+    final error = nextExportNetworkError;
+    if (error != null) {
+      nextExportNetworkError = null;
+      throw error;
+    }
+    _networksByPath[path] = _network;
+    return true;
+  }
 
   @override
-  Future<bool> importNetwork(String path) async => true;
+  Future<bool> importNetwork(String path) async {
+    if (nextImportNetworkDelay != Duration.zero) {
+      await Future<void>.delayed(nextImportNetworkDelay);
+      nextImportNetworkDelay = Duration.zero;
+    }
+    final error = nextImportNetworkError;
+    if (error != null) {
+      nextImportNetworkError = null;
+      throw error;
+    }
+    final loaded = _networksByPath[path];
+    if (loaded == null) return false;
+    _network = loaded;
+    return true;
+  }
 
   @override
   Stream<UnprovisionedDevice> scanForDevices() {
@@ -131,9 +182,21 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
     UnprovisionedDevice device,
     dynamic params,
   ) async {
+    if (nextProvisionDelay != Duration.zero) {
+      await Future<void>.delayed(nextProvisionDelay);
+      nextProvisionDelay = Duration.zero;
+    }
+    final provisionError = nextProvisionError;
+    if (provisionError != null) {
+      nextProvisionError = null;
+      throw provisionError;
+    }
+
+    final unicast = _nextUnicastAddress;
+    _nextUnicastAddress += 1;
     final node = ProvisionedNode(
       uuid: device.deviceId,
-      unicastAddress: '0x0001',
+      unicastAddress: '0x${unicast.toRadixString(16).padLeft(4, '0')}',
       elements: const [],
       networkKeys: const [],
       appKeys: const [],
@@ -160,6 +223,9 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
       nextSendMessageError = null;
       throw error;
     }
+
+    _sentMessages.add(message);
+    _sentMessageController.add(message);
 
     if (echoSentMessagesToIncomingStream) {
       _messageController.add(message);
@@ -216,6 +282,21 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
     _messageController.add(message);
   }
 
+  /// Test helper: emit an error on scan stream.
+  void emitScanError(Object error) {
+    _scanController.addError(error);
+  }
+
+  /// Reset fake in-memory state.
+  void reset() {
+    _scanStarted = false;
+    _nextUnicastAddress = 1;
+    _nodes.clear();
+    _groups.clear();
+    _sentMessages.clear();
+    _networksByPath.clear();
+  }
+
   /// Starts the scripted scenario (if any). Safe to call multiple times.
   Future<void> startScenarioIfNeeded() async {
     if (_scanStarted) return;
@@ -238,6 +319,7 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
   Future<void> dispose() async {
     await _scanController.close();
     await _messageController.close();
+    await _sentMessageController.close();
   }
 }
 
