@@ -1,6 +1,6 @@
 name: platojobs_nrf_mesh
 description: Flutter plugin for Bluetooth Mesh using Nordic nRF Mesh libraries
-version: 0.4.0
+version: 1.0.0
 homepage: https://github.com/platojobs/nrf_mesh_flutter
 
 environment:
