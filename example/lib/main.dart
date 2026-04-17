@@ -2,11 +2,6 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 
 import 'package:platojobs_nrf_mesh/platojobs_nrf_mesh.dart';
-import 'package:platojobs_nrf_mesh/src/models/mesh_network.dart';
-import 'package:platojobs_nrf_mesh/src/models/unprovisioned_device.dart';
-import 'package:platojobs_nrf_mesh/src/models/provisioned_node.dart';
-import 'package:platojobs_nrf_mesh/src/models/mesh_group.dart';
-import 'package:platojobs_nrf_mesh/src/models/mesh_message.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

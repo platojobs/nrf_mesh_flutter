@@ -1,3 +1,12 @@
+## 1.0.0
+
+### Breaking Changes
+- 统一跨平台通道与 Pigeon 代码生成配置（`platojobs_nrf_mesh` / `com.platojobs.nrf_mesh`）。
+
+### Features
+- 统一错误映射：将平台 `PlatformException` 转换为可读的 `PlatoJobsMeshException`。
+- 增加应用层 Command Queue（串行发送 + 超时 + 背压），提升高频指令稳定性。
+
 ## 0.4.0
 
 ### Features

@@ -61,8 +61,7 @@ class MethodChannelHandler {
   Future<dynamic> invokeMethod(String method, [dynamic arguments]) async {
     try {
       return await _channel.invokeMethod(method, arguments);
-    } on PlatformException catch (e) {
-      print('Error invoking method $method: ${e.message}');
+    } on PlatformException {
       rethrow;
     }
   }

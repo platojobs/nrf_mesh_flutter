@@ -4,6 +4,13 @@ import 'package:pigeon/pigeon.dart';
 
 // Pigeon message definitions for nRF Mesh Flutter plugin
 
+@ConfigurePigeon(PigeonOptions(
+  dartOut: 'lib/src/platform_interface/pigeon_generated.dart',
+  swiftOut: 'ios/Classes/PigeonGenerated.swift',
+  kotlinOut: 'android/src/main/kotlin/com/platojobs/nrf_mesh/PigeonGenerated.kt',
+  kotlinOptions: KotlinOptions(package: 'com.platojobs.nrf_mesh'),
+  dartPackageName: 'platojobs_nrf_mesh',
+))
 @HostApi()
 abstract class MeshApi {
   // Network management
@@ -112,7 +119,7 @@ class MeshMessage {
   int? opcode;
   int? address;
   int? appKeyIndex;
-  Map<String, dynamic>? parameters;
+  Map<String, Object?>? parameters;
 }
 
 class ProvisioningParameters {
