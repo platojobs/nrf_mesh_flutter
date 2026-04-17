@@ -60,5 +60,41 @@ void main() {
 
     await fake.dispose();
   });
+
+  test('Fake bridge records sent messages', () async {
+    final fake = FakePlatoJobsMeshBridge();
+    PlatoJobsNrfMeshManager.setBridgeForTesting(fake);
+    await PlatoJobsNrfMeshManager.instance.initialize();
+
+    await PlatoJobsNrfMeshManager.instance.sendMessage(GenericOnOffSet(state: true));
+
+    expect(fake.sentMessages.length, 1);
+    expect(fake.sentMessages.single, isA<GenericOnOffSet>());
+
+    await fake.dispose();
+  });
+
+  test('Fake bridge can inject provision failure', () async {
+    final fake = FakePlatoJobsMeshBridge();
+    PlatoJobsNrfMeshManager.setBridgeForTesting(fake);
+    await PlatoJobsNrfMeshManager.instance.initialize();
+
+    fake.nextProvisionError = Exception('provision failed');
+    await expectLater(
+      PlatoJobsNrfMeshManager.instance.provisionDevice(
+        UnprovisionedDevice(
+          deviceId: 'dev-x',
+          name: 'X',
+          serviceUuid: '',
+          rssi: -10,
+          serviceData: const <int>[1],
+        ),
+        ProvisioningParameters(deviceName: 'X'),
+      ),
+      throwsA(isA<Exception>()),
+    );
+
+    await fake.dispose();
+  });
 }
 
