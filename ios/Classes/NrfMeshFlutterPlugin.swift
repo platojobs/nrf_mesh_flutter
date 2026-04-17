@@ -2,24 +2,23 @@ import Flutter
 import UIKit
 import nRFMeshProvision
 
-public class NrfMeshFlutterPlugin: NSObject, FlutterPlugin {
+public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin {
     private var meshManager: MeshManager?
     private var scanEventSink: FlutterEventSink?
     private var messageEventSink: FlutterEventSink?
-    
+
     public static func register(with registrar: FlutterPluginRegistrar) {
-        let channel = FlutterMethodChannel(name: "nrf_mesh_flutter", binaryMessenger: registrar.messenger())
-        let instance = NrfMeshFlutterPlugin()
+        let channel = FlutterMethodChannel(name: "platojobs_nrf_mesh", binaryMessenger: registrar.messenger())
+        let instance = PlatoJobsMeshPlugin()
         registrar.addMethodCallDelegate(instance, channel: channel)
-        
-        // Set up event channels
-        let scanChannel = FlutterEventChannel(name: "nrf_mesh_flutter/scan", binaryMessenger: registrar.messenger())
+
+        let scanChannel = FlutterEventChannel(name: "platojobs_nrf_mesh/scan", binaryMessenger: registrar.messenger())
         scanChannel.setStreamHandler(instance)
-        
-        let messageChannel = FlutterEventChannel(name: "nrf_mesh_flutter/message", binaryMessenger: registrar.messenger())
+
+        let messageChannel = FlutterEventChannel(name: "platojobs_nrf_mesh/message", binaryMessenger: registrar.messenger())
         messageChannel.setStreamHandler(instance)
     }
-    
+
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method {
         case "initialize":
@@ -56,76 +55,76 @@ public class NrfMeshFlutterPlugin: NSObject, FlutterPlugin {
             result(FlutterMethodNotImplemented)
         }
     }
-    
+
     private func initialize(result: @escaping FlutterResult) {
         meshManager = MeshManager()
         meshManager?.delegate = self
         result(true)
     }
-    
+
     private func createNetwork(call: FlutterMethodCall, result: @escaping FlutterResult) {
         guard let args = call.arguments as? [String: Any],
               let name = args["name"] as? String else {
             result(FlutterError(code: "INVALID_ARGS", message: "Invalid arguments", details: nil))
             return
         }
-        
+
         meshManager?.createNetwork(name: name) {
             network in
             result(network.toMap())
         }
     }
-    
+
     private func loadNetwork(result: @escaping FlutterResult) {
         meshManager?.loadNetwork() {
             network in
             result(network?.toMap() ?? nil)
         }
     }
-    
+
     private func saveNetwork(result: @escaping FlutterResult) {
         meshManager?.saveNetwork() {
             success in
             result(success)
         }
     }
-    
+
     private func exportNetwork(call: FlutterMethodCall, result: @escaping FlutterResult) {
         guard let args = call.arguments as? [String: Any],
               let path = args["path"] as? String else {
             result(FlutterError(code: "INVALID_ARGS", message: "Invalid arguments", details: nil))
             return
         }
-        
+
         meshManager?.exportNetwork(to: path) {
             success in
             result(success)
         }
     }
-    
+
     private func importNetwork(call: FlutterMethodCall, result: @escaping FlutterResult) {
         guard let args = call.arguments as? [String: Any],
               let path = args["path"] as? String else {
             result(FlutterError(code: "INVALID_ARGS", message: "Invalid arguments", details: nil))
             return
         }
-        
+
         meshManager?.importNetwork(from: path) {
             success in
             result(success)
         }
     }
-    
+
     private func scanDevices(result: @escaping FlutterResult) {
         meshManager?.startScan()
         result(true)
     }
-    
+
     private func stopScan(result: @escaping FlutterResult) {
         meshManager?.stopScan()
         result(true)
     }
-    
+
     private func provisionDevice(call: FlutterMethodCall, result: @escaping FlutterResult) {
         guard let args = call.arguments as? [String: Any],
               let deviceMap = args["device"] as? [String: Any],
@@ -133,62 +132,62 @@ public class NrfMeshFlutterPlugin: NSObject, FlutterPlugin {
             result(FlutterError(code: "INVALID_ARGS", message: "Invalid arguments", details: nil))
             return
         }
-        
+
         let device = UnprovisionedDevice.fromMap(deviceMap)
         let params = ProvisioningParameters.fromMap(paramsMap)
-        
+
         meshManager?.provisionDevice(device, parameters: params) {
             node in
             result(node?.toMap() ?? nil)
         }
     }
-    
+
     private func sendMessage(call: FlutterMethodCall, result: @escaping FlutterResult) {
         guard let args = call.arguments as? [String: Any],
               let messageMap = args["message"] as? [String: Any] else {
             result(FlutterError(code: "INVALID_ARGS", message: "Invalid arguments", details: nil))
             return
         }
-        
+
         let message = MeshMessage.fromMap(messageMap)
         meshManager?.sendMessage(message)
         result(true)
     }
-    
+
     private func getNodes(result: @escaping FlutterResult) {
         let nodes = meshManager?.getNodes() ?? []
         result(nodes.map { $0.toMap() })
     }
-    
+
     private func removeNode(call: FlutterMethodCall, result: @escaping FlutterResult) {
         guard let args = call.arguments as? [String: Any],
               let nodeId = args["nodeId"] as? String else {
             result(FlutterError(code: "INVALID_ARGS", message: "Invalid arguments", details: nil))
             return
         }
-        
+
         meshManager?.removeNode(nodeId: nodeId)
         result(true)
     }
-    
+
     private func createGroup(call: FlutterMethodCall, result: @escaping FlutterResult) {
         guard let args = call.arguments as? [String: Any],
               let name = args["name"] as? String else {
             result(FlutterError(code: "INVALID_ARGS", message: "Invalid arguments", details: nil))
             return
         }
-        
+
         meshManager?.createGroup(name: name) {
             group in
             result(group?.toMap() ?? nil)
         }
     }
-    
+
     private func getGroups(result: @escaping FlutterResult) {
         let groups = meshManager?.getGroups() ?? []
         result(groups.map { $0.toMap() })
     }
-    
+
     private func addNodeToGroup(call: FlutterMethodCall, result: @escaping FlutterResult) {
         guard let args = call.arguments as? [String: Any],
               let nodeId = args["nodeId"] as? String,
@@ -196,14 +195,13 @@ public class NrfMeshFlutterPlugin: NSObject, FlutterPlugin {
             result(FlutterError(code: "INVALID_ARGS", message: "Invalid arguments", details: nil))
             return
         }
-        
+
         meshManager?.addNodeToGroup(nodeId: nodeId, groupId: groupId)
         result(true)
     }
 }
 
-// MARK: - FlutterStreamHandler
-extension NrfMeshFlutterPlugin: FlutterStreamHandler {
+extension PlatoJobsMeshPlugin: FlutterStreamHandler {
     public func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
         if let channelName = arguments as? String {
             if channelName == "scan" {
@@ -214,7 +212,7 @@ extension NrfMeshFlutterPlugin: FlutterStreamHandler {
         }
         return nil
     }
-    
+
     public func onCancel(withArguments arguments: Any?) -> FlutterError? {
         if let channelName = arguments as? String {
             if channelName == "scan" {
@@ -227,90 +225,77 @@ extension NrfMeshFlutterPlugin: FlutterStreamHandler {
     }
 }
 
-// MARK: - MeshManagerDelegate
-extension NrfMeshFlutterPlugin: MeshManagerDelegate {
+extension PlatoJobsMeshPlugin: MeshManagerDelegate {
     func meshManagerDidDiscoverDevice(_ device: UnprovisionedDevice) {
         scanEventSink?(device.toMap())
     }
-    
+
     func meshManagerDidReceiveMessage(_ message: MeshMessage) {
         messageEventSink?(message.toMap())
     }
 }
 
-// MARK: - Helper Classes
 class MeshManager: NSObject, ScannerDelegate {
     weak var delegate: MeshManagerDelegate?
     private var meshNetwork: MeshNetwork?
     private var scanner: Scanner?
-    
+
     func createNetwork(name: String, completion: @escaping (MeshNetwork) -> Void) {
-        // Implementation using nRFMeshProvision
         let network = MeshNetwork(name: name)
         meshNetwork = network
         completion(network)
     }
-    
+
     func loadNetwork(completion: @escaping (MeshNetwork?) -> Void) {
-        // Implementation to load network from storage
         completion(meshNetwork)
     }
-    
+
     func saveNetwork(completion: @escaping (Bool) -> Void) {
-        // Implementation to save network to storage
         completion(true)
     }
-    
+
     func exportNetwork(to path: String, completion: @escaping (Bool) -> Void) {
-        // Implementation to export network
         completion(true)
     }
-    
+
     func importNetwork(from path: String, completion: @escaping (Bool) -> Void) {
-        // Implementation to import network
         completion(true)
     }
-    
+
     func startScan() {
         scanner = Scanner(delegate: self)
         scanner?.start()
     }
-    
+
     func stopScan() {
         scanner?.stop()
     }
-    
+
     func provisionDevice(_ device: UnprovisionedDevice, parameters: ProvisioningParameters, completion: @escaping (ProvisionedNode?) -> Void) {
-        // Implementation to provision device
         completion(ProvisionedNode(uuid: device.deviceId, unicastAddress: "0x0001"))
     }
-    
+
     func sendMessage(_ message: MeshMessage) {
-        // Implementation to send message
     }
-    
+
     func getNodes() -> [ProvisionedNode] {
         return []
     }
-    
+
     func removeNode(nodeId: String) {
-        // Implementation to remove node
     }
-    
+
     func createGroup(name: String, completion: @escaping (MeshGroup?) -> Void) {
-        // Implementation to create group
         completion(MeshGroup(groupId: UUID().uuidString, name: name, address: "0xC000"))
     }
-    
+
     func getGroups() -> [MeshGroup] {
         return []
     }
-    
+
     func addNodeToGroup(nodeId: String, groupId: String) {
-        // Implementation to add node to group
     }
-    
-    // MARK: - ScannerDelegate
+
     func scanner(_ scanner: Scanner, didDiscover unprovisionedDevice: UnprovisionedDevice) {
         delegate?.meshManagerDidDiscoverDevice(unprovisionedDevice)
     }
@@ -327,7 +312,7 @@ class UnprovisionedDevice {
     let serviceUuid: String
     let rssi: Int
     let serviceData: [Int]
-    
+
     init(deviceId: String, name: String, serviceUuid: String, rssi: Int, serviceData: [Int]) {
         self.deviceId = deviceId
         self.name = name
@@ -335,7 +320,7 @@ class UnprovisionedDevice {
         self.rssi = rssi
         self.serviceData = serviceData
     }
-    
+
     static func fromMap(_ map: [String: Any]) -> UnprovisionedDevice {
         return UnprovisionedDevice(
             deviceId: map["deviceId"] as? String ?? "",
@@ -345,7 +330,7 @@ class UnprovisionedDevice {
             serviceData: (map["serviceData"] as? [Int]) ?? []
         )
     }
-    
+
     func toMap() -> [String: Any] {
         return [
             "deviceId": deviceId,
@@ -362,14 +347,14 @@ class ProvisioningParameters {
     let oobMethod: Int?
     let oobData: String?
     let enablePrivacy: Bool
-    
+
     init(deviceName: String, oobMethod: Int?, oobData: String?, enablePrivacy: Bool) {
         self.deviceName = deviceName
         self.oobMethod = oobMethod
         self.oobData = oobData
         self.enablePrivacy = enablePrivacy
     }
-    
+
     static func fromMap(_ map: [String: Any]) -> ProvisioningParameters {
         return ProvisioningParameters(
             deviceName: map["deviceName"] as? String ?? "",
@@ -383,12 +368,12 @@ class ProvisioningParameters {
 class ProvisionedNode {
     let uuid: String
     let unicastAddress: String
-    
+
     init(uuid: String, unicastAddress: String) {
         self.uuid = uuid
         self.unicastAddress = unicastAddress
     }
-    
+
     func toMap() -> [String: Any] {
         return [
             "uuid": uuid,
@@ -405,13 +390,13 @@ class MeshMessage {
     let opcode: String
     let parameters: [Int]
     let messageType: String
-    
+
     init(opcode: String, parameters: [Int], messageType: String) {
         self.opcode = opcode
         self.parameters = parameters
         self.messageType = messageType
     }
-    
+
     static func fromMap(_ map: [String: Any]) -> MeshMessage {
         return MeshMessage(
             opcode: map["opcode"] as? String ?? "",
@@ -419,7 +404,7 @@ class MeshMessage {
             messageType: map["messageType"] as? String ?? ""
         )
     }
-    
+
     func toMap() -> [String: Any] {
         return [
             "opcode": opcode,
@@ -433,13 +418,13 @@ class MeshGroup {
     let groupId: String
     let name: String
     let address: String
-    
+
     init(groupId: String, name: String, address: String) {
         self.groupId = groupId
         self.name = name
         self.address = address
     }
-    
+
     func toMap() -> [String: Any] {
         return [
             "groupId": groupId,
@@ -450,7 +435,6 @@ class MeshGroup {
     }
 }
 
-// MARK: - MeshNetwork Extension
 extension MeshNetwork {
     func toMap() -> [String: Any] {
         return [

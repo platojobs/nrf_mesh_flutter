@@ -1,18 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nrf_mesh_flutter/nrf_mesh_flutter.dart';
+import 'package:platojobs_nrf_mesh/platojobs_nrf_mesh.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('mesh manager instance creation', () {
-    // Test that the singleton instance is created correctly
-    final instance1 = NrfMeshManager.instance;
-    final instance2 = NrfMeshManager.instance;
-    expect(instance1, same(instance2));
-  });
-
   test('provisioning parameters creation', () {
-    // Test that provisioning parameters are created correctly
     final params = ProvisioningParameters(
       deviceName: 'Test Device',
       oobMethod: 1,

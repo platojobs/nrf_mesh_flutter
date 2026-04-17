@@ -1,7 +1,7 @@
-name: nrf_mesh_flutter
+name: platojobs_nrf_mesh
 description: Flutter plugin for Bluetooth Mesh using Nordic nRF Mesh libraries
-version: 0.1.0
-homepage: https://github.com/yourusername/nrf_mesh_flutter
+version: 0.3.0
+homepage: https://github.com/platojobs/nrf_mesh_flutter
 
 environment:
   sdk: ^3.11.4
@@ -14,11 +14,13 @@ dependencies:
   flutter_reactive_ble: ^5.0.0
   convert: ^3.1.1
   crypto: ^3.0.3
+  meta: ^1.10.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  pigeon: ^26.3.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -38,10 +40,10 @@ flutter:
   plugin:
     platforms:
       android:
-        package: com.example.nrf_mesh_flutter
-        pluginClass: NrfMeshFlutterPlugin
+        package: com.platojobs.nrf_mesh
+        pluginClass: PlatoJobsMeshPlugin
       ios:
-        pluginClass: NrfMeshFlutterPlugin
+        pluginClass: PlatoJobsMeshPlugin
 
   # To add assets to your plugin package, add an assets section, like this:
   # assets:

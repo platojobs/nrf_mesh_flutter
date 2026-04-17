@@ -1,12 +1,12 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nrf_mesh_flutter/nrf_mesh_flutter_method_channel.dart';
+import 'package:platojobs_nrf_mesh/platojobs_nrf_mesh_method_channel.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  MethodChannelNrfMeshFlutter platform = MethodChannelNrfMeshFlutter();
-  const MethodChannel channel = MethodChannel('nrf_mesh_flutter');
+  final platform = MethodChannelPlatoJobsMesh();
+  const MethodChannel channel = MethodChannel('platojobs_nrf_mesh');
 
   setUp(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger

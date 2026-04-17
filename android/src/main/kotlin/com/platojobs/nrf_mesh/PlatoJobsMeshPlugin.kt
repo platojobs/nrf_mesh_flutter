@@ -1,4 +1,4 @@
-package com.example.nrf_mesh_flutter
+package com.platojobs.nrf_mesh
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
@@ -11,30 +11,27 @@ import no.nordicsemi.android.mesh.MeshNetwork
 import no.nordicsemi.android.mesh.transport.ProvisionedMeshNode
 import no.nordicsemi.android.mesh.utils.MeshParserUtils
 
-/** NrfMeshFlutterPlugin */
-class NrfMeshFlutterPlugin :
+class PlatoJobsMeshPlugin :
     FlutterPlugin,
     MethodCallHandler,
     StreamHandler,
     MeshManagerDelegate {
-    // The MethodChannel that will the communication between Flutter and native Android
     private lateinit var channel: MethodChannel
     private lateinit var scanEventChannel: EventChannel
     private lateinit var messageEventChannel: EventChannel
-    
+
     private var scanEventSink: EventChannel.EventSink? = null
     private var messageEventSink: EventChannel.EventSink? = null
     private var meshManager: MeshManager? = null
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
-        channel = MethodChannel(flutterPluginBinding.binaryMessenger, "nrf_mesh_flutter")
+        channel = MethodChannel(flutterPluginBinding.binaryMessenger, "platojobs_nrf_mesh")
         channel.setMethodCallHandler(this)
-        
-        // Set up event channels
-        scanEventChannel = EventChannel(flutterPluginBinding.binaryMessenger, "nrf_mesh_flutter/scan")
+
+        scanEventChannel = EventChannel(flutterPluginBinding.binaryMessenger, "platojobs_nrf_mesh/scan")
         scanEventChannel.setStreamHandler(this)
-        
-        messageEventChannel = EventChannel(flutterPluginBinding.binaryMessenger, "nrf_mesh_flutter/message")
+
+        messageEventChannel = EventChannel(flutterPluginBinding.binaryMessenger, "platojobs_nrf_mesh/message")
         messageEventChannel.setStreamHandler(this)
     }
 
@@ -61,73 +58,68 @@ class NrfMeshFlutterPlugin :
             else -> result.notImplemented()
         }
     }
-    
+
     private fun initialize(result: Result) {
         meshManager = MeshManager()
         meshManager?.delegate = this
         result.success(true)
     }
-    
+
     private fun createNetwork(call: MethodCall, result: Result) {
         val name = call.argument<String>("name") ?: run {
             result.error("INVALID_ARGS", "Invalid arguments", null)
             return
         }
-        
-        meshManager?.createNetwork(name) {
-            network ->
+
+        meshManager?.createNetwork(name) { network ->
             result.success(network.toMap())
         }
     }
-    
+
     private fun loadNetwork(result: Result) {
-        meshManager?.loadNetwork() {
-            network ->
+        meshManager?.loadNetwork() { network ->
             result.success(network?.toMap() ?: null)
         }
     }
-    
+
     private fun saveNetwork(result: Result) {
-        meshManager?.saveNetwork() {
-            success ->
+        meshManager?.saveNetwork() { success ->
             result.success(success)
         }
     }
-    
+
     private fun exportNetwork(call: MethodCall, result: Result) {
         val path = call.argument<String>("path") ?: run {
             result.error("INVALID_ARGS", "Invalid arguments", null)
             return
         }
-        
-        meshManager?.exportNetwork(path) {
-            success ->
+
+        meshManager?.exportNetwork(path) { success ->
             result.success(success)
         }
     }
-    
+
     private fun importNetwork(call: MethodCall, result: Result) {
         val path = call.argument<String>("path") ?: run {
             result.error("INVALID_ARGS", "Invalid arguments", null)
             return
         }
-        
-        meshManager?.importNetwork(path) {
-            success ->
+
+        meshManager?.importNetwork(path) { success ->
             result.success(success)
         }
     }
-    
+
     private fun scanDevices(result: Result) {
         meshManager?.startScan()
         result.success(true)
     }
-    
+
     private fun stopScan(result: Result) {
         meshManager?.stopScan()
         result.success(true)
     }
-    
+
     private fun provisionDevice(call: MethodCall, result: Result) {
         val deviceMap = call.argument<Map<String, Any>>("device") ?: run {
             result.error("INVALID_ARGS", "Invalid arguments", null)
@@ -137,59 +129,57 @@ class NrfMeshFlutterPlugin :
             result.error("INVALID_ARGS", "Invalid arguments", null)
             return
         }
-        
+
         val device = UnprovisionedDevice.fromMap(deviceMap)
         val params = ProvisioningParameters.fromMap(paramsMap)
-        
-        meshManager?.provisionDevice(device, params) {
-            node ->
+
+        meshManager?.provisionDevice(device, params) { node ->
             result.success(node?.toMap() ?: null)
         }
     }
-    
+
     private fun sendMessage(call: MethodCall, result: Result) {
         val messageMap = call.argument<Map<String, Any>>("message") ?: run {
             result.error("INVALID_ARGS", "Invalid arguments", null)
             return
         }
-        
+
         val message = MeshMessage.fromMap(messageMap)
         meshManager?.sendMessage(message)
         result.success(true)
     }
-    
+
     private fun getNodes(result: Result) {
         val nodes = meshManager?.getNodes() ?: emptyList()
         result.success(nodes.map { it.toMap() })
     }
-    
+
     private fun removeNode(call: MethodCall, result: Result) {
         val nodeId = call.argument<String>("nodeId") ?: run {
             result.error("INVALID_ARGS", "Invalid arguments", null)
             return
         }
-        
+
         meshManager?.removeNode(nodeId)
         result.success(true)
     }
-    
+
     private fun createGroup(call: MethodCall, result: Result) {
         val name = call.argument<String>("name") ?: run {
             result.error("INVALID_ARGS", "Invalid arguments", null)
             return
         }
-        
-        meshManager?.createGroup(name) {
-            group ->
+
+        meshManager?.createGroup(name) { group ->
             result.success(group?.toMap() ?: null)
         }
     }
-    
+
     private fun getGroups(result: Result) {
         val groups = meshManager?.getGroups() ?: emptyList()
         result.success(groups.map { it.toMap() })
     }
-    
+
     private fun addNodeToGroup(call: MethodCall, result: Result) {
         val nodeId = call.argument<String>("nodeId") ?: run {
             result.error("INVALID_ARGS", "Invalid arguments", null)
@@ -199,7 +189,7 @@ class NrfMeshFlutterPlugin :
             result.error("INVALID_ARGS", "Invalid arguments", null)
             return
         }
-        
+
         meshManager?.addNodeToGroup(nodeId, groupId)
         result.success(true)
     }
@@ -209,8 +199,7 @@ class NrfMeshFlutterPlugin :
         scanEventChannel.setStreamHandler(null)
         messageEventChannel.setStreamHandler(null)
     }
-    
-    // MARK: - StreamHandler
+
     override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
         if (arguments is String) {
             when (arguments) {
@@ -219,7 +208,7 @@ class NrfMeshFlutterPlugin :
             }
         }
     }
-    
+
     override fun onCancel(arguments: Any?) {
         if (arguments is String) {
             when (arguments) {
@@ -228,12 +217,11 @@ class NrfMeshFlutterPlugin :
             }
         }
     }
-    
-    // MARK: - MeshManagerDelegate
+
     override fun onDeviceDiscovered(device: UnprovisionedDevice) {
         scanEventSink?.success(device.toMap())
     }
-    
+
     override fun onMessageReceived(message: MeshMessage) {
         messageEventSink?.success(message.toMap())
     }
@@ -247,72 +235,60 @@ interface MeshManagerDelegate {
 class MeshManager {
     var delegate: MeshManagerDelegate? = null
     private var meshNetwork: MeshNetwork? = null
-    
+
     fun createNetwork(name: String, completion: (MeshNetwork) -> Unit) {
-        // Implementation using nRF Mesh library
         val network = MeshNetwork.create(name)
         meshNetwork = network
         completion(network)
     }
-    
+
     fun loadNetwork(completion: (MeshNetwork?) -> Unit) {
-        // Implementation to load network from storage
         completion(meshNetwork)
     }
-    
+
     fun saveNetwork(completion: (Boolean) -> Unit) {
-        // Implementation to save network to storage
         completion(true)
     }
-    
+
     fun exportNetwork(path: String, completion: (Boolean) -> Unit) {
-        // Implementation to export network
         completion(true)
     }
-    
+
     fun importNetwork(path: String, completion: (Boolean) -> Unit) {
-        // Implementation to import network
         completion(true)
     }
-    
+
     fun startScan() {
-        // Implementation to start scanning
     }
-    
+
     fun stopScan() {
-        // Implementation to stop scanning
     }
-    
+
     fun provisionDevice(device: UnprovisionedDevice, parameters: ProvisioningParameters, completion: (ProvisionedNode?) -> Unit) {
-        // Implementation to provision device
         val node = ProvisionedMeshNode()
         completion(node)
     }
-    
+
     fun sendMessage(message: MeshMessage) {
-        // Implementation to send message
     }
-    
+
     fun getNodes(): List<ProvisionedNode> {
         return emptyList()
     }
-    
+
     fun removeNode(nodeId: String) {
-        // Implementation to remove node
     }
-    
+
     fun createGroup(name: String, completion: (MeshGroup?) -> Unit) {
-        // Implementation to create group
         val group = MeshGroup(groupId = java.util.UUID.randomUUID().toString(), name = name, address = "0xC000")
         completion(group)
     }
-    
+
     fun getGroups(): List<MeshGroup> {
         return emptyList()
     }
-    
+
     fun addNodeToGroup(nodeId: String, groupId: String) {
-        // Implementation to add node to group
     }
 }
 
@@ -334,7 +310,7 @@ class UnprovisionedDevice(
             )
         }
     }
-    
+
     fun toMap(): Map<String, Any> {
         return mapOf(
             "deviceId" to deviceId,
@@ -399,7 +375,7 @@ class MeshMessage(
             )
         }
     }
-    
+
     fun toMap(): Map<String, Any> {
         return mapOf(
             "opcode" to opcode,

@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 
-import 'package:nrf_mesh_flutter/nrf_mesh_flutter.dart';
-import 'package:nrf_mesh_flutter/src/models/mesh_network.dart';
-import 'package:nrf_mesh_flutter/src/models/unprovisioned_device.dart';
-import 'package:nrf_mesh_flutter/src/models/provisioned_node.dart';
-import 'package:nrf_mesh_flutter/src/models/mesh_group.dart';
-import 'package:nrf_mesh_flutter/src/models/mesh_message.dart';
+import 'package:platojobs_nrf_mesh/platojobs_nrf_mesh.dart';
+import 'package:platojobs_nrf_mesh/src/models/mesh_network.dart';
+import 'package:platojobs_nrf_mesh/src/models/unprovisioned_device.dart';
+import 'package:platojobs_nrf_mesh/src/models/provisioned_node.dart';
+import 'package:platojobs_nrf_mesh/src/models/mesh_group.dart';
+import 'package:platojobs_nrf_mesh/src/models/mesh_message.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await NrfMeshManager.instance.initialize();
+  await PlatoJobsNrfMeshManager.instance.initialize();
   runApp(const MyApp());
 }
 
@@ -22,7 +22,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  final _meshManager = NrfMeshManager.instance;
+  final _meshManager = PlatoJobsNrfMeshManager.instance;
   MeshNetwork? _network;
   List<UnprovisionedDevice> _devices = [];
   List<ProvisionedNode> _nodes = [];
@@ -139,7 +139,7 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-        appBar: AppBar(title: const Text('nRF Mesh Flutter Example')),
+        appBar: AppBar(title: const Text('PlatoJobs nRF Mesh Example')),
         body: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -147,8 +147,6 @@ class _MyAppState extends State<MyApp> {
             children: [
               Text('Status: $_status', style: const TextStyle(fontSize: 16)),
               const SizedBox(height: 16),
-
-              // Network Info
               if (_network != null)
                 Card(
                   child: Padding(
@@ -167,10 +165,7 @@ class _MyAppState extends State<MyApp> {
                     ),
                   ),
                 ),
-
               const SizedBox(height: 16),
-
-              // Scan Controls
               Row(
                 children: [
                   ElevatedButton(
@@ -189,10 +184,7 @@ class _MyAppState extends State<MyApp> {
                   ),
                 ],
               ),
-
               const SizedBox(height: 16),
-
-              // Devices List
               const Text(
                 'Discovered Devices',
                 style: TextStyle(fontWeight: FontWeight.bold),
