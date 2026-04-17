@@ -1,0 +1,10 @@
+# Exclude the shim package workspace folder from publishing.
+discontinued_platojobs_nrf_mesh/
+
+# Local maintenance docs (not for publishing).
+PROJECT_SPECIFICATIONS.md
+
+# Build artifacts and IDE metadata.
+build/
+*.iml
+
