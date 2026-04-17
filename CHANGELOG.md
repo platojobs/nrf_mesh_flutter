@@ -12,6 +12,11 @@
 ### Fixes
 - 移除对 `flutter_reactive_ble` 的强依赖，避免与项目中其他 BLE 插件（如 `flutter_blue_plus`）产生依赖冲突。
 
+## 1.0.2
+
+### Docs
+- 更新 README：补充更明确的错误处理方式（统一异常类型）与更完整的权限说明。
+
 ## 0.4.0
 
 ### Features
