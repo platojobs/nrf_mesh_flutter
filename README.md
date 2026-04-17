@@ -77,6 +77,28 @@ flowchart TD
   F --> G[messageStream]
 ```
 
+## Mocking (No Hardware Needed)
+
+For UI development without real Mesh hardware you can inject a fake bridge:
+
+```dart
+import 'package:nrf_mesh_flutter/nrf_mesh_flutter.dart';
+
+final fake = FakePlatoJobsMeshBridge();
+PlatoJobsNrfMeshManager.setBridgeForTesting(fake);
+await PlatoJobsNrfMeshManager.instance.initialize();
+
+fake.emitDiscoveredDevice(
+  UnprovisionedDevice(
+    deviceId: 'dev-1',
+    name: 'Demo',
+    serviceUuid: '',
+    rssi: -40,
+    serviceData: const <int>[1, 2, 3],
+  ),
+);
+```
+
 ## Usage
 
 ### Network Management
@@ -312,14 +334,14 @@ try {
 
 ## Android 12+ / 14+ Notes
 
-- Android 12+ 需要运行时申请 `BLUETOOTH_SCAN` / `BLUETOOTH_CONNECT`。
+- Android 12+ needs runtime permissions: `BLUETOOTH_SCAN` / `BLUETOOTH_CONNECT`.
 - Android 13+ 如果要在通知中提示连接状态，可能需要 `POST_NOTIFICATIONS`（由你的 App 决定是否需要）。
-- Android 14+ 后台扫描/连接限制更严格：建议在前台流程（用户可见）中完成 provisioning 与 proxy 连接，并做好失败重试与超时处理。
+- Android 14+ background scan/connection restrictions are stricter: keep provisioning/proxy connection in a user-visible flow, and implement retry + timeouts.
 
 ## iOS 13+ / 17+ Notes
 
-- iOS 上建议在 `Info.plist` 中提供蓝牙用途说明（如 `NSBluetoothAlwaysUsageDescription`）。
-- iOS 17+ 对后台能力更敏感：尽量将 mesh 操作放在前台可见流程，避免长时间后台扫描。
+- Add Bluetooth usage descriptions to `Info.plist` (e.g. `NSBluetoothAlwaysUsageDescription`).
+- iOS 17+ is more sensitive about background operations: keep mesh actions in the foreground flow where possible.
 
 ## Examples
 

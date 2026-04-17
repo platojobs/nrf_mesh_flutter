@@ -22,16 +22,24 @@ export 'src/core/mesh_exceptions.dart'
         PlatoJobsMeshPermissionException,
         PlatoJobsMeshConnectionException,
         PlatoJobsMeshInvalidStateException;
+export 'src/testing/fake_mesh_bridge.dart' show FakePlatoJobsMeshBridge;
 
 class PlatoJobsNrfMeshManager {
   static final PlatoJobsNrfMeshManager instance =
       PlatoJobsNrfMeshManager._internal();
   factory PlatoJobsNrfMeshManager() => instance;
   PlatoJobsNrfMeshManager._internal() {
-    platform.PlatoJobsMeshBridge.instance = platform.PlatoJobsMeshBridgeImpl();
+    if (!platform.PlatoJobsMeshBridge.isInitialized) {
+      platform.PlatoJobsMeshBridge.instance = platform.PlatoJobsMeshBridgeImpl();
+    }
   }
 
   final MeshManagerApi _meshManagerApi = MeshManagerApi();
+
+  /// Override the platform bridge, intended for tests / mocks.
+  static void setBridgeForTesting(platform.PlatoJobsMeshBridge bridge) {
+    platform.PlatoJobsMeshBridge.instance = bridge;
+  }
 
   Future<void> initialize() async {
     await _meshManagerApi.initialize();
