@@ -338,25 +338,10 @@ MIT License - see LICENSE file for details.
 
 ## Changelog
 
-### 0.3.0
+For the full history, see [`CHANGELOG.md`](CHANGELOG.md).
 
-- Refactored with PlatoJobs naming prefix to avoid naming conflicts
-- Updated to use plugin_platform_interface
-- Integrated pigeon for automatic MethodChannel code generation
-- Improved documentation
+### Latest
 
-### 0.2.0
-
-- Refactored interface package using plugin_platform_interface
-- Added pigeon: ^26.3.4 for automatic MethodChannel code generation
-- Fixed type conversion and null safety issues
-- Optimized platform interface implementation
-
-### 0.1.0
-
-- Initial release
-- Support for mesh network management
-- Support for device scanning and provisioning
-- Support for mesh message sending and receiving
-- Support for node and group management
-- Support for iOS and Android platforms
+- **1.0.4**: Fix changelog ordering (latest first).
+- **1.0.3**: Fix changelog ordering (latest first) and exclude local artifacts from published package via `.pubignore`.
+- **1.0.2**: Improve README (provisioning flow, error handling, and permissions notes).
