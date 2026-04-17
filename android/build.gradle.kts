@@ -1,4 +1,4 @@
-group = "com.example.nrf_mesh_flutter"
+group = "com.platojobs.nrf_mesh"
 version = "1.0-SNAPSHOT"
 
 buildscript {
@@ -27,7 +27,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.nrf_mesh_flutter"
+    namespace = "com.platojobs.nrf_mesh"
 
     compileSdk = 36
 

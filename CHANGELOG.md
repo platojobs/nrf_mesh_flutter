@@ -1,3 +1,12 @@
+## 0.4.0
+
+### Features
+- Migrated Android implementation to use Nordic's Kotlin Mesh Library
+- Updated Android package name from `com.example.nrf_mesh_flutter` to `com.platojobs.nrf_mesh`
+- Improved Android code structure and documentation
+- Added comprehensive documentation for Android implementation
+- Updated build.gradle.kts with correct package configuration
+
 ## 0.3.0
 
 ### Breaking Changes

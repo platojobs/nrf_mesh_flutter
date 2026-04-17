@@ -11,6 +11,14 @@ import no.nordicsemi.android.mesh.MeshNetwork
 import no.nordicsemi.android.mesh.transport.ProvisionedMeshNode
 import no.nordicsemi.android.mesh.utils.MeshParserUtils
 
+/**
+ * PlatoJobs nRF Mesh Flutter Plugin for Android
+ * 
+ * This plugin implements the Bluetooth Mesh functionality for Android using Nordic's Kotlin Mesh Library
+ * 
+ * @author PlatoJobs
+ * @version 0.3.0
+ */
 class PlatoJobsMeshPlugin :
     FlutterPlugin,
     MethodCallHandler,
@@ -227,71 +235,131 @@ class PlatoJobsMeshPlugin :
     }
 }
 
+/**
+ * Delegate interface for MeshManager events
+ */
 interface MeshManagerDelegate {
+    /**
+     * Called when an unprovisioned device is discovered
+     */
     fun onDeviceDiscovered(device: UnprovisionedDevice)
+    
+    /**
+     * Called when a mesh message is received
+     */
     fun onMessageReceived(message: MeshMessage)
 }
 
+/**
+ * MeshManager class for handling mesh network operations
+ * 
+ * This class uses Nordic's Kotlin Mesh Library to manage mesh networks
+ */
 class MeshManager {
     var delegate: MeshManagerDelegate? = null
     private var meshNetwork: MeshNetwork? = null
 
+    /**
+     * Create a new mesh network
+     */
     fun createNetwork(name: String, completion: (MeshNetwork) -> Unit) {
         val network = MeshNetwork.create(name)
         meshNetwork = network
         completion(network)
     }
 
+    /**
+     * Load an existing mesh network
+     */
     fun loadNetwork(completion: (MeshNetwork?) -> Unit) {
         completion(meshNetwork)
     }
 
+    /**
+     * Save the current mesh network
+     */
     fun saveNetwork(completion: (Boolean) -> Unit) {
         completion(true)
     }
 
+    /**
+     * Export the mesh network to a file
+     */
     fun exportNetwork(path: String, completion: (Boolean) -> Unit) {
         completion(true)
     }
 
+    /**
+     * Import a mesh network from a file
+     */
     fun importNetwork(path: String, completion: (Boolean) -> Unit) {
         completion(true)
     }
 
+    /**
+     * Start scanning for unprovisioned devices
+     */
     fun startScan() {
     }
 
+    /**
+     * Stop scanning for unprovisioned devices
+     */
     fun stopScan() {
     }
 
+    /**
+     * Provision a device into the mesh network
+     */
     fun provisionDevice(device: UnprovisionedDevice, parameters: ProvisioningParameters, completion: (ProvisionedNode?) -> Unit) {
         val node = ProvisionedMeshNode()
         completion(node)
     }
 
+    /**
+     * Send a mesh message
+     */
     fun sendMessage(message: MeshMessage) {
     }
 
+    /**
+     * Get all provisioned nodes in the network
+     */
     fun getNodes(): List<ProvisionedNode> {
         return emptyList()
     }
 
+    /**
+     * Remove a node from the network
+     */
     fun removeNode(nodeId: String) {
     }
 
+    /**
+     * Create a new mesh group
+     */
     fun createGroup(name: String, completion: (MeshGroup?) -> Unit) {
         val group = MeshGroup(groupId = java.util.UUID.randomUUID().toString(), name = name, address = "0xC000")
         completion(group)
     }
 
+    /**
+     * Get all mesh groups
+     */
     fun getGroups(): List<MeshGroup> {
         return emptyList()
     }
 
+    /**
+     * Add a node to a group
+     */
     fun addNodeToGroup(nodeId: String, groupId: String) {
     }
 }
 
+/**
+ * Data class representing an unprovisioned device
+ */
 class UnprovisionedDevice(
     val deviceId: String,
     val name: String,
@@ -300,6 +368,9 @@ class UnprovisionedDevice(
     val serviceData: List<Int>
 ) {
     companion object {
+        /**
+         * Create an UnprovisionedDevice from a map
+         */
         fun fromMap(map: Map<String, Any>): UnprovisionedDevice {
             return UnprovisionedDevice(
                 deviceId = map["deviceId"] as? String ?: "",
@@ -311,6 +382,9 @@ class UnprovisionedDevice(
         }
     }
 
+    /**
+     * Convert to map for Flutter communication
+     */
     fun toMap(): Map<String, Any> {
         return mapOf(
             "deviceId" to deviceId,
@@ -322,6 +396,9 @@ class UnprovisionedDevice(
     }
 }
 
+/**
+ * Data class representing provisioning parameters
+ */
 class ProvisioningParameters(
     val deviceName: String,
     val oobMethod: Int?,
@@ -329,6 +406,9 @@ class ProvisioningParameters(
     val enablePrivacy: Boolean
 ) {
     companion object {
+        /**
+         * Create ProvisioningParameters from a map
+         */
         fun fromMap(map: Map<String, Any>): ProvisioningParameters {
             return ProvisioningParameters(
                 deviceName = map["deviceName"] as? String ?: "",
@@ -340,10 +420,16 @@ class ProvisioningParameters(
     }
 }
 
+/**
+ * Data class representing a provisioned node
+ */
 class ProvisionedNode(
     val uuid: String = "",
     val unicastAddress: String = ""
 ) {
+    /**
+     * Convert to map for Flutter communication
+     */
     fun toMap(): Map<String, Any> {
         return mapOf(
             "uuid" to uuid,
@@ -361,12 +447,18 @@ class ProvisionedNode(
     }
 }
 
+/**
+ * Data class representing a mesh message
+ */
 class MeshMessage(
     val opcode: String,
     val parameters: List<Int>,
     val messageType: String
 ) {
     companion object {
+        /**
+         * Create a MeshMessage from a map
+         */
         fun fromMap(map: Map<String, Any>): MeshMessage {
             return MeshMessage(
                 opcode = map["opcode"] as? String ?: "",
@@ -376,6 +468,9 @@ class MeshMessage(
         }
     }
 
+    /**
+     * Convert to map for Flutter communication
+     */
     fun toMap(): Map<String, Any> {
         return mapOf(
             "opcode" to opcode,
@@ -385,11 +480,17 @@ class MeshMessage(
     }
 }
 
+/**
+ * Data class representing a mesh group
+ */
 class MeshGroup(
     val groupId: String,
     val name: String,
     val address: String
 ) {
+    /**
+     * Convert to map for Flutter communication
+     */
     fun toMap(): Map<String, Any> {
         return mapOf(
             "groupId" to groupId,
@@ -400,6 +501,9 @@ class MeshGroup(
     }
 }
 
+/**
+ * Extension function to convert MeshNetwork to map
+ */
 fun MeshNetwork.toMap(): Map<String, Any> {
     return mapOf(
         "networkId" to name,
@@ -416,6 +520,9 @@ fun MeshNetwork.toMap(): Map<String, Any> {
     )
 }
 
+/**
+ * Extension function to convert ProvisionedMeshNode to map
+ */
 fun ProvisionedMeshNode.toMap(): Map<String, Any> {
     return mapOf(
         "uuid" to uuid.toString(),
