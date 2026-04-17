@@ -25,7 +25,7 @@ Add `nrf_mesh_flutter` to your `pubspec.yaml`:
 dependencies:
   flutter:
     sdk: flutter
-  nrf_mesh_flutter: ^1.0.1
+  nrf_mesh_flutter: ^1.1.1
 ```
 
 ### iOS Configuration
@@ -84,20 +84,30 @@ For UI development without real Mesh hardware you can inject a fake bridge:
 ```dart
 import 'package:nrf_mesh_flutter/nrf_mesh_flutter.dart';
 
-final fake = FakePlatoJobsMeshBridge();
+final fake = FakePlatoJobsMeshBridge(
+  scenario: FakeMeshScenario()
+      .add(
+        FakeMeshScenarioStep.discoveredDevice(
+          UnprovisionedDevice(
+            deviceId: 'dev-1',
+            name: 'Demo',
+            serviceUuid: '',
+            rssi: -40,
+            serviceData: const <int>[1, 2, 3],
+          ),
+        ),
+      )
+      .add(
+        FakeMeshScenarioStep.incomingMessage(GenericOnOffSet(state: true)),
+      ),
+);
 PlatoJobsNrfMeshManager.setBridgeForTesting(fake);
 await PlatoJobsNrfMeshManager.instance.initialize();
-
-fake.emitDiscoveredDevice(
-  UnprovisionedDevice(
-    deviceId: 'dev-1',
-    name: 'Demo',
-    serviceUuid: '',
-    rssi: -40,
-    serviceData: const <int>[1, 2, 3],
-  ),
-);
 ```
+
+Notes:
+- Call `scanForDevices()` to start the scripted scenario (it runs once per fake instance).
+- You can still push events manually with `emitDiscoveredDevice(...)` / `emitIncomingMessage(...)`.
 
 ## Usage
 
@@ -364,6 +374,6 @@ For the full history, see [`CHANGELOG.md`](CHANGELOG.md).
 
 ### Latest
 
+- **1.1.1**: Improve mocking with scripted scenarios (devices/messages) + failure injection.
+- **1.1.0**: DX improvements (mock bridge + tests + permissions/background notes).
 - **1.0.4**: Fix changelog ordering (latest first).
-- **1.0.3**: Fix changelog ordering (latest first) and exclude local artifacts from published package via `.pubignore`.
-- **1.0.2**: Improve README (provisioning flow, error handling, and permissions notes).

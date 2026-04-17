@@ -1,3 +1,10 @@
+## 1.1.1
+
+### Developer Experience
+- Enhance mock bridge with a scriptable scenario API (queued device discoveries + incoming messages).
+- Add sendMessage failure injection helpers for tests and UI flows.
+- Update README mock section and bump install snippet.
+
 ## 1.1.0
 
 ### Developer Experience

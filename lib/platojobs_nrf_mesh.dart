@@ -22,7 +22,11 @@ export 'src/core/mesh_exceptions.dart'
         PlatoJobsMeshPermissionException,
         PlatoJobsMeshConnectionException,
         PlatoJobsMeshInvalidStateException;
-export 'src/testing/fake_mesh_bridge.dart' show FakePlatoJobsMeshBridge;
+export 'src/testing/fake_mesh_bridge.dart'
+    show
+        FakePlatoJobsMeshBridge,
+        FakeMeshScenario,
+        FakeMeshScenarioStep;
 
 class PlatoJobsNrfMeshManager {
   static final PlatoJobsNrfMeshManager instance =

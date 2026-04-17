@@ -10,8 +10,7 @@ import 'mesh_exceptions.dart';
 import '../platform_interface/platojobs_mesh_platform.dart' as platform;
 
 class MeshManagerApi {
-  final platform.PlatoJobsMeshBridge _platform =
-      platform.PlatoJobsMeshBridge.instance;
+  platform.PlatoJobsMeshBridge get _platform => platform.PlatoJobsMeshBridge.instance;
   final PlatoJobsMeshCommandQueue _commandQueue = PlatoJobsMeshCommandQueue();
 
   Future<T> _guard<T>(Future<T> Function() call) async {
