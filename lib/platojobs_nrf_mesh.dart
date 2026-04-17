@@ -8,6 +8,21 @@ import 'src/models/mesh_group.dart' as models;
 import 'src/models/mesh_message.dart' as models;
 import 'src/platform_interface/platojobs_mesh_platform.dart' as platform;
 
+export 'src/models/mesh_network.dart' show MeshNetwork, NetworkKey, AppKey, Provisioner;
+export 'src/models/unprovisioned_device.dart' show UnprovisionedDevice;
+export 'src/models/provisioned_node.dart' show ProvisionedNode, NodeFeatures, Element, Model;
+export 'src/models/mesh_group.dart' show MeshGroup;
+export 'src/models/mesh_message.dart'
+    show MeshMessage, UnknownMessage, GenericOnOffSet, GenericLevelSet;
+export 'src/core/mesh_exceptions.dart'
+    show
+        PlatoJobsMeshException,
+        PlatoJobsMeshPlatformException,
+        PlatoJobsMeshTimeoutException,
+        PlatoJobsMeshPermissionException,
+        PlatoJobsMeshConnectionException,
+        PlatoJobsMeshInvalidStateException;
+
 class PlatoJobsNrfMeshManager {
   static final PlatoJobsNrfMeshManager instance =
       PlatoJobsNrfMeshManager._internal();

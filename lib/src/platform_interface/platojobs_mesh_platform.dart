@@ -82,10 +82,12 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
           );
         },
         onMessageReceived: (message) {
+          final bytes = message.parameters?['bytes'];
+          final parameters = (bytes is List) ? bytes.cast<int>() : <int>[];
           _messageStreamController.add(
             models.UnknownMessage(
-              opcode: message.opcode?.toString() ?? '0',
-              parameters: message.parameters?.values.cast<int>().toList() ?? [],
+              opcode: message.opcode == null ? '0' : '0x${message.opcode!.toRadixString(16)}',
+              parameters: parameters,
             ),
           );
         },
@@ -156,11 +158,13 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
 
   @override
   Future<void> sendMessage(models.MeshMessage message) async {
+    final opcodeStr = message.opcode.toLowerCase().replaceAll('0x', '');
+    final opcodeInt = int.tryParse(opcodeStr, radix: 16);
     final pigeonMessage = pigeon.MeshMessage(
-      opcode: int.tryParse(message.opcode.replaceAll('0x', '')),
+      opcode: opcodeInt,
       address: 0,
       appKeyIndex: 0,
-      parameters: {},
+      parameters: <String, Object?>{'bytes': message.parameters},
     );
     await _meshApi.sendMessage(pigeonMessage);
   }
