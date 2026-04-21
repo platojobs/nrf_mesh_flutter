@@ -25,7 +25,7 @@ Add `nrf_mesh_flutter` to your `pubspec.yaml`:
 dependencies:
   flutter:
     sdk: flutter
-  nrf_mesh_flutter: ^1.1.2
+  nrf_mesh_flutter: ^1.1.3
 ```
 
 ### iOS Configuration
@@ -165,7 +165,13 @@ final node = await PlatoJobsNrfMeshManager.instance.provisionDevice(
 ```dart
 // Send a Generic On/Off message
 await PlatoJobsNrfMeshManager.instance.sendMessage(
-  GenericOnOffSet(state: true, transitionTime: 0, delay: 0),
+  GenericOnOffSet(
+    state: true,
+    transitionTime: 0,
+    delay: 0,
+    address: 0xC000, // e.g. group address or node unicast
+    appKeyIndex: 0,
+  ),
 );
 
 // Listen for incoming messages

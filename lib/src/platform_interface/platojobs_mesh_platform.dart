@@ -2,11 +2,11 @@
 
 import 'dart:async';
 
-import '../models/mesh_network.dart' as models;
-import '../models/provisioned_node.dart' as models;
-import '../models/unprovisioned_device.dart' as models;
-import '../models/mesh_message.dart' as models;
-import '../models/mesh_group.dart' as models;
+import '../models/mesh_group.dart' as group_models;
+import '../models/mesh_message.dart' as msg_models;
+import '../models/mesh_network.dart' as net_models;
+import '../models/provisioned_node.dart' as node_models;
+import '../models/unprovisioned_device.dart' as dev_models;
 import 'pigeon_generated.dart' as pigeon;
 
 abstract class PlatoJobsMeshBridge {
@@ -31,9 +31,9 @@ abstract class PlatoJobsMeshBridge {
 
   Future<void> initialize();
 
-  Future<models.MeshNetwork> createNetwork(String name);
+  Future<net_models.MeshNetwork> createNetwork(String name);
 
-  Future<models.MeshNetwork> loadNetwork();
+  Future<net_models.MeshNetwork> loadNetwork();
 
   Future<bool> saveNetwork();
 
@@ -41,36 +41,36 @@ abstract class PlatoJobsMeshBridge {
 
   Future<bool> importNetwork(String path);
 
-  Stream<models.UnprovisionedDevice> scanForDevices();
+  Stream<dev_models.UnprovisionedDevice> scanForDevices();
 
   Future<void> stopScan();
 
-  Future<models.ProvisionedNode> provisionDevice(
-    models.UnprovisionedDevice device,
+  Future<node_models.ProvisionedNode> provisionDevice(
+    dev_models.UnprovisionedDevice device,
     dynamic params,
   );
 
-  Future<void> sendMessage(models.MeshMessage message);
+  Future<void> sendMessage(msg_models.MeshMessage message);
 
-  Stream<models.MeshMessage> get messageStream;
+  Stream<msg_models.MeshMessage> get messageStream;
 
-  Future<List<models.ProvisionedNode>> getNodes();
+  Future<List<node_models.ProvisionedNode>> getNodes();
 
   Future<void> removeNode(String nodeId);
 
-  Future<models.MeshGroup> createGroup(String name);
+  Future<group_models.MeshGroup> createGroup(String name);
 
-  Future<List<models.MeshGroup>> getGroups();
+  Future<List<group_models.MeshGroup>> getGroups();
 
   Future<void> addNodeToGroup(String nodeId, String groupId);
 }
 
 class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
   final pigeon.MeshApi _meshApi = pigeon.MeshApi();
-  final StreamController<models.UnprovisionedDevice> _scanStreamController =
-      StreamController<models.UnprovisionedDevice>.broadcast();
-  final StreamController<models.MeshMessage> _messageStreamController =
-      StreamController<models.MeshMessage>.broadcast();
+  final StreamController<dev_models.UnprovisionedDevice> _scanStreamController =
+      StreamController<dev_models.UnprovisionedDevice>.broadcast();
+  final StreamController<msg_models.MeshMessage> _messageStreamController =
+      StreamController<msg_models.MeshMessage>.broadcast();
 
   @override
   Future<void> initialize() async {
@@ -78,7 +78,7 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
       _PlatoJobsMeshFlutterApiHandler(
         onDeviceDiscovered: (device) {
           _scanStreamController.add(
-            models.UnprovisionedDevice(
+            dev_models.UnprovisionedDevice(
               deviceId: device.deviceId ?? '',
               name: device.name ?? '',
               serviceUuid: '',
@@ -90,10 +90,13 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
         onMessageReceived: (message) {
           final bytes = message.parameters?['bytes'];
           final parameters = (bytes is List) ? bytes.cast<int>() : <int>[];
+          final opcode = message.opcode ?? 0;
           _messageStreamController.add(
-            models.UnknownMessage(
-              opcode: message.opcode == null ? '0' : '0x${message.opcode!.toRadixString(16)}',
+            msg_models.MeshMessage.fromIncoming(
+              opcode: opcode,
               parameters: parameters,
+              address: message.address?.toInt(),
+              appKeyIndex: message.appKeyIndex?.toInt(),
             ),
           );
         },
@@ -102,13 +105,13 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
   }
 
   @override
-  Future<models.MeshNetwork> createNetwork(String name) async {
+  Future<net_models.MeshNetwork> createNetwork(String name) async {
     final result = await _meshApi.createNetwork(name);
     return _convertToMeshNetwork(result);
   }
 
   @override
-  Future<models.MeshNetwork> loadNetwork() async {
+  Future<net_models.MeshNetwork> loadNetwork() async {
     final result = await _meshApi.loadNetwork();
     return _convertToMeshNetwork(result);
   }
@@ -129,7 +132,7 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
   }
 
   @override
-  Stream<models.UnprovisionedDevice> scanForDevices() {
+  Stream<dev_models.UnprovisionedDevice> scanForDevices() {
     _meshApi.startScan();
     return _scanStreamController.stream;
   }
@@ -140,8 +143,8 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
   }
 
   @override
-  Future<models.ProvisionedNode> provisionDevice(
-    models.UnprovisionedDevice device,
+  Future<node_models.ProvisionedNode> provisionDevice(
+    dev_models.UnprovisionedDevice device,
     dynamic params,
   ) async {
     final pigeonDevice = pigeon.UnprovisionedDevice(
@@ -163,25 +166,25 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
   }
 
   @override
-  Future<void> sendMessage(models.MeshMessage message) async {
+  Future<void> sendMessage(msg_models.MeshMessage message) async {
     final opcodeStr = message.opcode.toLowerCase().replaceAll('0x', '');
     final opcodeInt = int.tryParse(opcodeStr, radix: 16);
     final pigeonMessage = pigeon.MeshMessage(
       opcode: opcodeInt,
-      address: 0,
-      appKeyIndex: 0,
+      address: message.address ?? 0,
+      appKeyIndex: message.appKeyIndex ?? 0,
       parameters: <String, Object?>{'bytes': message.parameters},
     );
     await _meshApi.sendMessage(pigeonMessage);
   }
 
   @override
-  Stream<models.MeshMessage> get messageStream {
+  Stream<msg_models.MeshMessage> get messageStream {
     return _messageStreamController.stream;
   }
 
   @override
-  Future<List<models.ProvisionedNode>> getNodes() async {
+  Future<List<node_models.ProvisionedNode>> getNodes() async {
     final result = await _meshApi.getNodes();
     return result.map((node) => _convertToProvisionedNode(node)).toList();
   }
@@ -192,13 +195,13 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
   }
 
   @override
-  Future<models.MeshGroup> createGroup(String name) async {
+  Future<group_models.MeshGroup> createGroup(String name) async {
     final result = await _meshApi.createGroup(name);
     return _convertToMeshGroup(result);
   }
 
   @override
-  Future<List<models.MeshGroup>> getGroups() async {
+  Future<List<group_models.MeshGroup>> getGroups() async {
     final result = await _meshApi.getGroups();
     return result.map((group) => _convertToMeshGroup(group)).toList();
   }
@@ -208,15 +211,37 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
     await _meshApi.addNodeToGroup(nodeId, groupId);
   }
 
-  models.MeshNetwork _convertToMeshNetwork(pigeon.MeshNetwork pigeonNetwork) {
-    return models.MeshNetwork(
+  net_models.MeshNetwork _convertToMeshNetwork(pigeon.MeshNetwork pigeonNetwork) {
+    return net_models.MeshNetwork(
       networkId: pigeonNetwork.networkId ?? '',
       name: pigeonNetwork.name ?? '',
-      networkKeys: [],
-      appKeys: [],
-      nodes: [],
-      groups: [],
-      provisioner: models.Provisioner(
+      networkKeys: (pigeonNetwork.networkKeys ?? const <pigeon.NetworkKey>[])
+          .map(
+            (k) => net_models.NetworkKey(
+              keyId: k.keyId ?? '',
+              key: k.key ?? '',
+              index: (k.index ?? 0).toInt(),
+              enabled: k.enabled ?? true,
+            ),
+          )
+          .toList(growable: false),
+      appKeys: (pigeonNetwork.appKeys ?? const <pigeon.AppKey>[])
+          .map(
+            (k) => net_models.AppKey(
+              keyId: k.keyId ?? '',
+              key: k.key ?? '',
+              index: (k.index ?? 0).toInt(),
+              enabled: k.enabled ?? true,
+            ),
+          )
+          .toList(growable: false),
+      nodes: (pigeonNetwork.nodes ?? const <pigeon.ProvisionedNode>[])
+          .map(_convertToProvisionedNode)
+          .toList(growable: false),
+      groups: (pigeonNetwork.groups ?? const <pigeon.MeshGroup>[])
+          .map(_convertToMeshGroup)
+          .toList(growable: false),
+      provisioner: net_models.Provisioner(
         name: pigeonNetwork.provisioner?.name ?? '',
         provisionerId: pigeonNetwork.provisioner?.provisionerId ?? '',
         addressRange: pigeonNetwork.provisioner?.addressRange ?? [],
@@ -224,16 +249,38 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
     );
   }
 
-  models.ProvisionedNode _convertToProvisionedNode(
+  node_models.ProvisionedNode _convertToProvisionedNode(
     pigeon.ProvisionedNode pigeonNode,
   ) {
-    return models.ProvisionedNode(
-      uuid: pigeonNode.uuid?.toString() ?? '',
-      unicastAddress: pigeonNode.unicastAddress?.toString() ?? '',
-      elements: [],
-      networkKeys: [],
-      appKeys: [],
-      features: models.NodeFeatures(
+    String hex16(int v) => '0x${v.toRadixString(16).padLeft(4, '0')}';
+
+    return node_models.ProvisionedNode(
+      uuid: (pigeonNode.uuid ?? const <int>[])
+          .map((b) => b.toRadixString(16).padLeft(2, '0'))
+          .join(),
+      unicastAddress: pigeonNode.unicastAddress == null
+          ? ''
+          : hex16(pigeonNode.unicastAddress!.toInt()),
+      elements: (pigeonNode.elements ?? const <pigeon.Element>[])
+          .map(
+            (e) => node_models.Element(
+              address: e.address == null ? '' : hex16(e.address!.toInt()),
+              models: (e.models ?? const <pigeon.Model>[])
+                  .map(
+                    (m) => node_models.Model(
+                      modelId: (m.modelId ?? 0).toString(),
+                      modelName: m.modelName ?? '',
+                      isServer: m.publishable ?? false,
+                      isClient: m.subscribable ?? false,
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
+          )
+          .toList(growable: false),
+      networkKeys: const <node_models.NetworkKey>[],
+      appKeys: const <node_models.AppKey>[],
+      features: node_models.NodeFeatures(
         relay: false,
         proxy: false,
         friend: false,
@@ -242,8 +289,8 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
     );
   }
 
-  models.MeshGroup _convertToMeshGroup(pigeon.MeshGroup pigeonGroup) {
-    return models.MeshGroup(
+  group_models.MeshGroup _convertToMeshGroup(pigeon.MeshGroup pigeonGroup) {
+    return group_models.MeshGroup(
       groupId: pigeonGroup.groupId ?? '',
       name: pigeonGroup.name ?? '',
       address: pigeonGroup.address?.toString() ?? '',
