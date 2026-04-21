@@ -71,8 +71,10 @@ android {
 }
 
 dependencies {
-    implementation("no.nordicsemi.android:mesh:3.4.0")
     implementation("no.nordicsemi.android:ble-ktx:2.7.0")
+    // Nordic Kotlin Mesh Library (replaces legacy no.nordicsemi.android:mesh)
+    implementation("no.nordicsemi.kotlin.mesh:core:0.9.2")
+    implementation("no.nordicsemi.kotlin.mesh:provisioning:0.9.2")
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     testImplementation("org.mockito:mockito-core:5.0.0")
 }
