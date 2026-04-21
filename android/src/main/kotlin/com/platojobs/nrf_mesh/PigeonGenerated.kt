@@ -530,7 +530,10 @@ data class Model (
   val modelId: Long? = null,
   val modelName: String? = null,
   val publishable: Boolean? = null,
-  val subscribable: Boolean? = null
+  val subscribable: Boolean? = null,
+  val boundAppKeyIndexes: List<Long>? = null,
+  val subscriptions: List<Long>? = null,
+  val publication: Publication? = null
 )
  {
   companion object {
@@ -539,7 +542,10 @@ data class Model (
       val modelName = pigeonVar_list[1] as String?
       val publishable = pigeonVar_list[2] as Boolean?
       val subscribable = pigeonVar_list[3] as Boolean?
-      return Model(modelId, modelName, publishable, subscribable)
+      val boundAppKeyIndexes = pigeonVar_list[4] as List<Long>?
+      val subscriptions = pigeonVar_list[5] as List<Long>?
+      val publication = pigeonVar_list[6] as Publication?
+      return Model(modelId, modelName, publishable, subscribable, boundAppKeyIndexes, subscriptions, publication)
     }
   }
   fun toList(): List<Any?> {
@@ -548,6 +554,9 @@ data class Model (
       modelName,
       publishable,
       subscribable,
+      boundAppKeyIndexes,
+      subscriptions,
+      publication,
     )
   }
   override fun equals(other: Any?): Boolean {
@@ -558,7 +567,7 @@ data class Model (
       return true
     }
     val other = other as Model
-    return PigeonGeneratedPigeonUtils.deepEquals(this.modelId, other.modelId) && PigeonGeneratedPigeonUtils.deepEquals(this.modelName, other.modelName) && PigeonGeneratedPigeonUtils.deepEquals(this.publishable, other.publishable) && PigeonGeneratedPigeonUtils.deepEquals(this.subscribable, other.subscribable)
+    return PigeonGeneratedPigeonUtils.deepEquals(this.modelId, other.modelId) && PigeonGeneratedPigeonUtils.deepEquals(this.modelName, other.modelName) && PigeonGeneratedPigeonUtils.deepEquals(this.publishable, other.publishable) && PigeonGeneratedPigeonUtils.deepEquals(this.subscribable, other.subscribable) && PigeonGeneratedPigeonUtils.deepEquals(this.boundAppKeyIndexes, other.boundAppKeyIndexes) && PigeonGeneratedPigeonUtils.deepEquals(this.subscriptions, other.subscriptions) && PigeonGeneratedPigeonUtils.deepEquals(this.publication, other.publication)
   }
 
   override fun hashCode(): Int {
@@ -567,6 +576,51 @@ data class Model (
     result = 31 * result + PigeonGeneratedPigeonUtils.deepHash(this.modelName)
     result = 31 * result + PigeonGeneratedPigeonUtils.deepHash(this.publishable)
     result = 31 * result + PigeonGeneratedPigeonUtils.deepHash(this.subscribable)
+    result = 31 * result + PigeonGeneratedPigeonUtils.deepHash(this.boundAppKeyIndexes)
+    result = 31 * result + PigeonGeneratedPigeonUtils.deepHash(this.subscriptions)
+    result = 31 * result + PigeonGeneratedPigeonUtils.deepHash(this.publication)
+    return result
+  }
+}
+
+/** Generated class from Pigeon that represents data sent in messages. */
+data class Publication (
+  val address: Long? = null,
+  val appKeyIndex: Long? = null,
+  val ttl: Long? = null
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): Publication {
+      val address = pigeonVar_list[0] as Long?
+      val appKeyIndex = pigeonVar_list[1] as Long?
+      val ttl = pigeonVar_list[2] as Long?
+      return Publication(address, appKeyIndex, ttl)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      address,
+      appKeyIndex,
+      ttl,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as Publication
+    return PigeonGeneratedPigeonUtils.deepEquals(this.address, other.address) && PigeonGeneratedPigeonUtils.deepEquals(this.appKeyIndex, other.appKeyIndex) && PigeonGeneratedPigeonUtils.deepEquals(this.ttl, other.ttl)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + PigeonGeneratedPigeonUtils.deepHash(this.address)
+    result = 31 * result + PigeonGeneratedPigeonUtils.deepHash(this.appKeyIndex)
+    result = 31 * result + PigeonGeneratedPigeonUtils.deepHash(this.ttl)
     return result
   }
 }
@@ -837,25 +891,30 @@ private open class PigeonGeneratedPigeonCodec : StandardMessageCodec() {
       }
       137.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          MeshGroup.fromList(it)
+          Publication.fromList(it)
         }
       }
       138.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          MeshMessage.fromList(it)
+          MeshGroup.fromList(it)
         }
       }
       139.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          ProvisioningParameters.fromList(it)
+          MeshMessage.fromList(it)
         }
       }
       140.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          GenericOnOffSet.fromList(it)
+          ProvisioningParameters.fromList(it)
         }
       }
       141.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          GenericOnOffSet.fromList(it)
+        }
+      }
+      142.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
           GenericLevelSet.fromList(it)
         }
@@ -897,24 +956,28 @@ private open class PigeonGeneratedPigeonCodec : StandardMessageCodec() {
         stream.write(136)
         writeValue(stream, value.toList())
       }
-      is MeshGroup -> {
+      is Publication -> {
         stream.write(137)
         writeValue(stream, value.toList())
       }
-      is MeshMessage -> {
+      is MeshGroup -> {
         stream.write(138)
         writeValue(stream, value.toList())
       }
-      is ProvisioningParameters -> {
+      is MeshMessage -> {
         stream.write(139)
         writeValue(stream, value.toList())
       }
-      is GenericOnOffSet -> {
+      is ProvisioningParameters -> {
         stream.write(140)
         writeValue(stream, value.toList())
       }
-      is GenericLevelSet -> {
+      is GenericOnOffSet -> {
         stream.write(141)
+        writeValue(stream, value.toList())
+      }
+      is GenericLevelSet -> {
+        stream.write(142)
         writeValue(stream, value.toList())
       }
       else -> super.writeValue(stream, value)
@@ -938,6 +1001,16 @@ interface MeshApi {
   fun createGroup(name: String): MeshGroup
   fun getGroups(): List<MeshGroup>
   fun addNodeToGroup(nodeId: String, groupId: String)
+  /** Bind an AppKey to a model on a given element address. */
+  fun bindAppKey(elementAddress: Long, modelId: Long, appKeyIndex: Long): Boolean
+  /** Unbind an AppKey from a model on a given element address. */
+  fun unbindAppKey(elementAddress: Long, modelId: Long, appKeyIndex: Long): Boolean
+  /** Add a subscription address to a model on a given element address. */
+  fun addSubscription(elementAddress: Long, modelId: Long, address: Long): Boolean
+  /** Remove a subscription address from a model on a given element address. */
+  fun removeSubscription(elementAddress: Long, modelId: Long, address: Long): Boolean
+  /** Set publication for a model on a given element address. */
+  fun setPublication(elementAddress: Long, modelId: Long, publishAddress: Long, appKeyIndex: Long, ttl: Long?): Boolean
 
   companion object {
     /** The codec used by MeshApi. */
@@ -1172,6 +1245,103 @@ interface MeshApi {
             val wrapped: List<Any?> = try {
               api.addNodeToGroup(nodeIdArg, groupIdArg)
               listOf(null)
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.bindAppKey$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val elementAddressArg = args[0] as Long
+            val modelIdArg = args[1] as Long
+            val appKeyIndexArg = args[2] as Long
+            val wrapped: List<Any?> = try {
+              listOf(api.bindAppKey(elementAddressArg, modelIdArg, appKeyIndexArg))
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.unbindAppKey$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val elementAddressArg = args[0] as Long
+            val modelIdArg = args[1] as Long
+            val appKeyIndexArg = args[2] as Long
+            val wrapped: List<Any?> = try {
+              listOf(api.unbindAppKey(elementAddressArg, modelIdArg, appKeyIndexArg))
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.addSubscription$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val elementAddressArg = args[0] as Long
+            val modelIdArg = args[1] as Long
+            val addressArg = args[2] as Long
+            val wrapped: List<Any?> = try {
+              listOf(api.addSubscription(elementAddressArg, modelIdArg, addressArg))
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeSubscription$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val elementAddressArg = args[0] as Long
+            val modelIdArg = args[1] as Long
+            val addressArg = args[2] as Long
+            val wrapped: List<Any?> = try {
+              listOf(api.removeSubscription(elementAddressArg, modelIdArg, addressArg))
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setPublication$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val elementAddressArg = args[0] as Long
+            val modelIdArg = args[1] as Long
+            val publishAddressArg = args[2] as Long
+            val appKeyIndexArg = args[3] as Long
+            val ttlArg = args[4] as Long?
+            val wrapped: List<Any?> = try {
+              listOf(api.setPublication(elementAddressArg, modelIdArg, publishAddressArg, appKeyIndexArg, ttlArg))
             } catch (exception: Throwable) {
               PigeonGeneratedPigeonUtils.wrapError(exception)
             }

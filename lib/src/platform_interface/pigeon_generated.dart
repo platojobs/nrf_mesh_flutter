@@ -508,6 +508,9 @@ class Model {
     this.modelName,
     this.publishable,
     this.subscribable,
+    this.boundAppKeyIndexes,
+    this.subscriptions,
+    this.publication,
   });
 
   int? modelId;
@@ -518,12 +521,21 @@ class Model {
 
   bool? subscribable;
 
+  List<int>? boundAppKeyIndexes;
+
+  List<int>? subscriptions;
+
+  Publication? publication;
+
   List<Object?> _toList() {
     return <Object?>[
       modelId,
       modelName,
       publishable,
       subscribable,
+      boundAppKeyIndexes,
+      subscriptions,
+      publication,
     ];
   }
 
@@ -537,6 +549,9 @@ class Model {
       modelName: result[1] as String?,
       publishable: result[2] as bool?,
       subscribable: result[3] as bool?,
+      boundAppKeyIndexes: (result[4] as List<Object?>?)?.cast<int>(),
+      subscriptions: (result[5] as List<Object?>?)?.cast<int>(),
+      publication: result[6] as Publication?,
     );
   }
 
@@ -549,7 +564,57 @@ class Model {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(modelId, other.modelId) && _deepEquals(modelName, other.modelName) && _deepEquals(publishable, other.publishable) && _deepEquals(subscribable, other.subscribable);
+    return _deepEquals(modelId, other.modelId) && _deepEquals(modelName, other.modelName) && _deepEquals(publishable, other.publishable) && _deepEquals(subscribable, other.subscribable) && _deepEquals(boundAppKeyIndexes, other.boundAppKeyIndexes) && _deepEquals(subscriptions, other.subscriptions) && _deepEquals(publication, other.publication);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+}
+
+class Publication {
+  Publication({
+    this.address,
+    this.appKeyIndex,
+    this.ttl,
+  });
+
+  int? address;
+
+  int? appKeyIndex;
+
+  int? ttl;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      address,
+      appKeyIndex,
+      ttl,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static Publication decode(Object result) {
+    result as List<Object?>;
+    return Publication(
+      address: result[0] as int?,
+      appKeyIndex: result[1] as int?,
+      ttl: result[2] as int?,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! Publication || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(address, other.address) && _deepEquals(appKeyIndex, other.appKeyIndex) && _deepEquals(ttl, other.ttl);
   }
 
   @override
@@ -854,20 +919,23 @@ class _PigeonCodec extends StandardMessageCodec {
     }    else if (value is Model) {
       buffer.putUint8(136);
       writeValue(buffer, value.encode());
-    }    else if (value is MeshGroup) {
+    }    else if (value is Publication) {
       buffer.putUint8(137);
       writeValue(buffer, value.encode());
-    }    else if (value is MeshMessage) {
+    }    else if (value is MeshGroup) {
       buffer.putUint8(138);
       writeValue(buffer, value.encode());
-    }    else if (value is ProvisioningParameters) {
+    }    else if (value is MeshMessage) {
       buffer.putUint8(139);
       writeValue(buffer, value.encode());
-    }    else if (value is GenericOnOffSet) {
+    }    else if (value is ProvisioningParameters) {
       buffer.putUint8(140);
       writeValue(buffer, value.encode());
-    }    else if (value is GenericLevelSet) {
+    }    else if (value is GenericOnOffSet) {
       buffer.putUint8(141);
+      writeValue(buffer, value.encode());
+    }    else if (value is GenericLevelSet) {
+      buffer.putUint8(142);
       writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
@@ -894,14 +962,16 @@ class _PigeonCodec extends StandardMessageCodec {
       case 136:
         return Model.decode(readValue(buffer)!);
       case 137:
-        return MeshGroup.decode(readValue(buffer)!);
+        return Publication.decode(readValue(buffer)!);
       case 138:
-        return MeshMessage.decode(readValue(buffer)!);
+        return MeshGroup.decode(readValue(buffer)!);
       case 139:
-        return ProvisioningParameters.decode(readValue(buffer)!);
+        return MeshMessage.decode(readValue(buffer)!);
       case 140:
-        return GenericOnOffSet.decode(readValue(buffer)!);
+        return ProvisioningParameters.decode(readValue(buffer)!);
       case 141:
+        return GenericOnOffSet.decode(readValue(buffer)!);
+      case 142:
         return GenericLevelSet.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
@@ -1181,6 +1251,106 @@ class MeshApi {
         isNullValid: true,
     )
     ;
+  }
+
+  /// Bind an AppKey to a model on a given element address.
+  Future<bool> bindAppKey(int elementAddress, int modelId, int appKeyIndex) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.bindAppKey$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[elementAddress, modelId, appKeyIndex]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as bool;
+  }
+
+  /// Unbind an AppKey from a model on a given element address.
+  Future<bool> unbindAppKey(int elementAddress, int modelId, int appKeyIndex) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.unbindAppKey$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[elementAddress, modelId, appKeyIndex]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as bool;
+  }
+
+  /// Add a subscription address to a model on a given element address.
+  Future<bool> addSubscription(int elementAddress, int modelId, int address) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.addSubscription$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[elementAddress, modelId, address]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as bool;
+  }
+
+  /// Remove a subscription address from a model on a given element address.
+  Future<bool> removeSubscription(int elementAddress, int modelId, int address) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeSubscription$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[elementAddress, modelId, address]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as bool;
+  }
+
+  /// Set publication for a model on a given element address.
+  Future<bool> setPublication(int elementAddress, int modelId, int publishAddress, int appKeyIndex, {int? ttl, }) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setPublication$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[elementAddress, modelId, publishAddress, appKeyIndex, ttl]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as bool;
   }
 }
 

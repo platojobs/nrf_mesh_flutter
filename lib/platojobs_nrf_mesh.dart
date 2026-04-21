@@ -10,7 +10,8 @@ import 'src/platform_interface/platojobs_mesh_platform.dart' as platform;
 
 export 'src/models/mesh_network.dart' show MeshNetwork, NetworkKey, AppKey, Provisioner;
 export 'src/models/unprovisioned_device.dart' show UnprovisionedDevice;
-export 'src/models/provisioned_node.dart' show ProvisionedNode, NodeFeatures, Element, Model;
+export 'src/models/provisioned_node.dart'
+    show ProvisionedNode, NodeFeatures, Element, Model, Publication;
 export 'src/models/mesh_group.dart' show MeshGroup;
 export 'src/models/mesh_message.dart'
     show
@@ -116,6 +117,39 @@ class PlatoJobsNrfMeshManager {
 
   Future<void> addNodeToGroup(String nodeId, String groupId) async {
     return await _meshManagerApi.addNodeToGroup(nodeId, groupId);
+  }
+
+  // Configuration (P1 - minimal)
+  Future<bool> bindAppKey(int elementAddress, int modelId, int appKeyIndex) async {
+    return await _meshManagerApi.bindAppKey(elementAddress, modelId, appKeyIndex);
+  }
+
+  Future<bool> unbindAppKey(int elementAddress, int modelId, int appKeyIndex) async {
+    return await _meshManagerApi.unbindAppKey(elementAddress, modelId, appKeyIndex);
+  }
+
+  Future<bool> addSubscription(int elementAddress, int modelId, int address) async {
+    return await _meshManagerApi.addSubscription(elementAddress, modelId, address);
+  }
+
+  Future<bool> removeSubscription(int elementAddress, int modelId, int address) async {
+    return await _meshManagerApi.removeSubscription(elementAddress, modelId, address);
+  }
+
+  Future<bool> setPublication(
+    int elementAddress,
+    int modelId,
+    int publishAddress,
+    int appKeyIndex, {
+    int? ttl,
+  }) async {
+    return await _meshManagerApi.setPublication(
+      elementAddress,
+      modelId,
+      publishAddress,
+      appKeyIndex,
+      ttl: ttl,
+    );
   }
 }
 

@@ -96,5 +96,49 @@ void main() {
 
     await fake.dispose();
   });
+
+  test('Fake bridge supports minimal configuration operations', () async {
+    final fake = FakePlatoJobsMeshBridge();
+    PlatoJobsNrfMeshManager.setBridgeForTesting(fake);
+    await PlatoJobsNrfMeshManager.instance.initialize();
+
+    await PlatoJobsNrfMeshManager.instance.provisionDevice(
+      UnprovisionedDevice(
+        deviceId: 'dev-cfg',
+        name: 'Cfg',
+        serviceUuid: '',
+        rssi: -10,
+        serviceData: const <int>[1],
+      ),
+      ProvisioningParameters(deviceName: 'Cfg'),
+    );
+
+    final ok1 = await PlatoJobsNrfMeshManager.instance.bindAppKey(0x0001, 0x1000, 0);
+    final ok2 = await PlatoJobsNrfMeshManager.instance.addSubscription(0x0001, 0x1000, 0xC000);
+    final ok3 = await PlatoJobsNrfMeshManager.instance.setPublication(
+      0x0001,
+      0x1000,
+      0xC000,
+      0,
+      ttl: 5,
+    );
+    final ok4 = await PlatoJobsNrfMeshManager.instance.removeSubscription(0x0001, 0x1000, 0xC000);
+    final ok5 = await PlatoJobsNrfMeshManager.instance.unbindAppKey(0x0001, 0x1000, 0);
+
+    expect(ok1, true);
+    expect(ok2, true);
+    expect(ok3, true);
+    expect(ok4, true);
+    expect(ok5, true);
+
+    final nodes = await PlatoJobsNrfMeshManager.instance.getNodes();
+    expect(nodes.isNotEmpty, true);
+    final element = nodes.first.elements.first;
+    final model = element.models.firstWhere((m) => m.modelId == '4096'); // 0x1000
+    expect(model.boundAppKeyIndexes, isEmpty);
+    expect(model.subscriptions, isEmpty);
+
+    await fake.dispose();
+  });
 }
 

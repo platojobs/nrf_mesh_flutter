@@ -106,6 +106,17 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
   final List<ProvisionedNode> _nodes = <ProvisionedNode>[];
   final List<MeshGroup> _groups = <MeshGroup>[];
 
+  // P1 configuration state (purely in-memory for tests/UI)
+  //
+  // Key format: "$elementAddress:$modelId"
+  final Map<String, Set<int>> _boundAppKeysByModel = <String, Set<int>>{};
+  final Map<String, Set<int>> _subscriptionsByModel = <String, Set<int>>{};
+  final Map<String, ({int publishAddress, int appKeyIndex, int? ttl})>
+      _publicationByModel =
+      <String, ({int publishAddress, int appKeyIndex, int? ttl})>{};
+
+  String _modelKey(int elementAddress, int modelId) => '$elementAddress:$modelId';
+
   @override
   Future<void> initialize() async {
     // no-op
@@ -194,10 +205,33 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
 
     final unicast = _nextUnicastAddress;
     _nextUnicastAddress += 1;
+
+    final elementAddress = unicast;
+    const genericOnOffServer = 0x1000;
+    const genericLevelServer = 0x1002;
+
     final node = ProvisionedNode(
       uuid: device.deviceId,
       unicastAddress: '0x${unicast.toRadixString(16).padLeft(4, '0')}',
-      elements: const [],
+      elements: <Element>[
+        Element(
+          address: '0x${elementAddress.toRadixString(16).padLeft(4, '0')}',
+          models: <Model>[
+            Model(
+              modelId: '$genericOnOffServer',
+              modelName: 'Generic OnOff Server',
+              isServer: true,
+              isClient: false,
+            ),
+            Model(
+              modelId: '$genericLevelServer',
+              modelName: 'Generic Level Server',
+              isServer: true,
+              isClient: false,
+            ),
+          ],
+        ),
+      ],
       networkKeys: const [],
       appKeys: const [],
       features: NodeFeatures(
@@ -272,6 +306,103 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
     _groups[idx] = updated;
   }
 
+  @override
+  Future<bool> bindAppKey(int elementAddress, int modelId, int appKeyIndex) async {
+    final key = _modelKey(elementAddress, modelId);
+    final set = _boundAppKeysByModel.putIfAbsent(key, () => <int>{});
+    set.add(appKeyIndex);
+    _applyConfigToNodes(elementAddress: elementAddress, modelId: modelId);
+    return true;
+  }
+
+  @override
+  Future<bool> unbindAppKey(int elementAddress, int modelId, int appKeyIndex) async {
+    final key = _modelKey(elementAddress, modelId);
+    _boundAppKeysByModel[key]?.remove(appKeyIndex);
+    _applyConfigToNodes(elementAddress: elementAddress, modelId: modelId);
+    return true;
+  }
+
+  @override
+  Future<bool> addSubscription(int elementAddress, int modelId, int address) async {
+    final key = _modelKey(elementAddress, modelId);
+    final set = _subscriptionsByModel.putIfAbsent(key, () => <int>{});
+    set.add(address);
+    _applyConfigToNodes(elementAddress: elementAddress, modelId: modelId);
+    return true;
+  }
+
+  @override
+  Future<bool> removeSubscription(int elementAddress, int modelId, int address) async {
+    final key = _modelKey(elementAddress, modelId);
+    _subscriptionsByModel[key]?.remove(address);
+    _applyConfigToNodes(elementAddress: elementAddress, modelId: modelId);
+    return true;
+  }
+
+  @override
+  Future<bool> setPublication(
+    int elementAddress,
+    int modelId,
+    int publishAddress,
+    int appKeyIndex, {
+    int? ttl,
+  }) async {
+    final key = _modelKey(elementAddress, modelId);
+    _publicationByModel[key] =
+        (publishAddress: publishAddress, appKeyIndex: appKeyIndex, ttl: ttl);
+    _applyConfigToNodes(elementAddress: elementAddress, modelId: modelId);
+    return true;
+  }
+
+  void _applyConfigToNodes({
+    required int elementAddress,
+    required int modelId,
+  }) {
+    final key = _modelKey(elementAddress, modelId);
+    final bound = _boundAppKeysByModel[key] ?? const <int>{};
+    final subs = _subscriptionsByModel[key] ?? const <int>{};
+    final pub = _publicationByModel[key];
+
+    final elementHex = '0x${elementAddress.toRadixString(16).padLeft(4, '0')}';
+    final modelIdStr = '$modelId';
+
+    for (var i = 0; i < _nodes.length; i++) {
+      final node = _nodes[i];
+      final updatedElements = node.elements.map((e) {
+        if (e.address != elementHex) return e;
+        final updatedModels = e.models.map((m) {
+          if (m.modelId != modelIdStr) return m;
+          return Model(
+            modelId: m.modelId,
+            modelName: m.modelName,
+            isServer: m.isServer,
+            isClient: m.isClient,
+            boundAppKeyIndexes: bound.toList(growable: false),
+            subscriptions: subs.toList(growable: false),
+            publication: pub == null
+                ? null
+                : Publication(
+                    address: pub.publishAddress,
+                    appKeyIndex: pub.appKeyIndex,
+                    ttl: pub.ttl,
+                  ),
+          );
+        }).toList(growable: false);
+        return Element(address: e.address, models: updatedModels);
+      }).toList(growable: false);
+
+      _nodes[i] = ProvisionedNode(
+        uuid: node.uuid,
+        unicastAddress: node.unicastAddress,
+        elements: updatedElements,
+        networkKeys: node.networkKeys,
+        appKeys: node.appKeys,
+        features: node.features,
+      );
+    }
+  }
+
   /// Test helper: emit a fake unprovisioned device discovery event.
   void emitDiscoveredDevice(UnprovisionedDevice device) {
     _scanController.add(device);
@@ -295,6 +426,9 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
     _groups.clear();
     _sentMessages.clear();
     _networksByPath.clear();
+    _boundAppKeysByModel.clear();
+    _subscriptionsByModel.clear();
+    _publicationByModel.clear();
   }
 
   /// Starts the scripted scenario (if any). Safe to call multiple times.
