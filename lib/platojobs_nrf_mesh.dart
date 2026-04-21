@@ -13,7 +13,13 @@ export 'src/models/unprovisioned_device.dart' show UnprovisionedDevice;
 export 'src/models/provisioned_node.dart' show ProvisionedNode, NodeFeatures, Element, Model;
 export 'src/models/mesh_group.dart' show MeshGroup;
 export 'src/models/mesh_message.dart'
-    show MeshMessage, UnknownMessage, GenericOnOffSet, GenericLevelSet;
+    show
+        MeshMessage,
+        UnknownMessage,
+        GenericOnOffSet,
+        GenericLevelSet,
+        GenericOnOffStatus,
+        GenericLevelStatus;
 export 'src/core/mesh_exceptions.dart'
     show
         PlatoJobsMeshException,

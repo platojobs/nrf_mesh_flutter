@@ -1,3 +1,10 @@
+## 1.1.3
+
+### Features
+- Add address + appKeyIndex fields to `MeshMessage` and pass through the Pigeon bridge for outgoing messages.
+- Decode incoming messages into typed `GenericOnOffStatus` / `GenericLevelStatus` when possible (fallback to `UnknownMessage`).
+- Improve Pigeon-to-Dart model conversion to populate network keys/app keys/nodes/groups when provided by the platform.
+
 ## 1.1.2
 
 ### Developer Experience
