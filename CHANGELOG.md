@@ -1,3 +1,8 @@
+## 1.1.4
+
+### Fixes
+- Publish from a clean git state (eliminate pub.dev validation warning).
+
 ## 1.1.3
 
 ### Features
