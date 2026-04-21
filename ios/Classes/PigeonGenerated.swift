@@ -959,6 +959,9 @@ protocol MeshApi {
   func removeSubscription(elementAddress: Int64, modelId: Int64, address: Int64) throws -> Bool
   /// Set publication for a model on a given element address.
   func setPublication(elementAddress: Int64, modelId: Int64, publishAddress: Int64, appKeyIndex: Int64, ttl: Int64?) throws -> Bool
+  func connectProxy(deviceId: String, proxyUnicastAddress: Int64) throws -> Bool
+  func disconnectProxy() throws -> Bool
+  func isProxyConnected() throws -> Bool
 }
 
 /// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
@@ -1258,6 +1261,48 @@ class MeshApiSetup {
       }
     } else {
       setPublicationChannel.setMessageHandler(nil)
+    }
+    let connectProxyChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.connectProxy\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      connectProxyChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let deviceIdArg = args[0] as! String
+        let proxyUnicastAddressArg = args[1] as! Int64
+        do {
+          let result = try api.connectProxy(deviceId: deviceIdArg, proxyUnicastAddress: proxyUnicastAddressArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      connectProxyChannel.setMessageHandler(nil)
+    }
+    let disconnectProxyChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.disconnectProxy\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      disconnectProxyChannel.setMessageHandler { _, reply in
+        do {
+          let result = try api.disconnectProxy()
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      disconnectProxyChannel.setMessageHandler(nil)
+    }
+    let isProxyConnectedChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.isProxyConnected\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      isProxyConnectedChannel.setMessageHandler { _, reply in
+        do {
+          let result = try api.isProxyConnected()
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      isProxyConnectedChannel.setMessageHandler(nil)
     }
   }
 }

@@ -151,6 +151,19 @@ class PlatoJobsNrfMeshManager {
       ttl: ttl,
     );
   }
+
+  // Proxy (P1 real-transport prerequisite)
+  Future<bool> connectProxy(String deviceId, int proxyUnicastAddress) async {
+    return await _meshManagerApi.connectProxy(deviceId, proxyUnicastAddress);
+  }
+
+  Future<bool> disconnectProxy() async {
+    return await _meshManagerApi.disconnectProxy();
+  }
+
+  Future<bool> isProxyConnected() async {
+    return await _meshManagerApi.isProxyConnected();
+  }
 }
 
 class ProvisioningParameters {

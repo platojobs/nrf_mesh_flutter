@@ -5,6 +5,21 @@ import io.flutter.embedding.engine.plugins.FlutterPlugin
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import no.nordicsemi.kotlin.ble.client.android.CentralManagerFactory
+import no.nordicsemi.kotlin.ble.environment.android.NativeAndroidEnvironment
+import no.nordicsemi.kotlin.mesh.bearer.gatt.GattBearerImpl
+import no.nordicsemi.kotlin.mesh.core.MeshNetworkManager
+import no.nordicsemi.kotlin.mesh.core.SecurePropertiesStorage
+import no.nordicsemi.kotlin.mesh.core.Storage
+import no.nordicsemi.kotlin.mesh.core.model.IvIndex
+import no.nordicsemi.kotlin.mesh.core.model.UnicastAddress
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 /**
  * PlatoJobs nRF Mesh Flutter Plugin for Android
@@ -18,29 +33,76 @@ class PlatoJobsMeshPlugin :
     FlutterPlugin,
     MeshApi {
 
-    private var meshManager: MeshManager? = null
+    private var legacyManager: MeshManager? = null
     private var flutterApi: MeshFlutterApi? = null
     private var appContext: Context? = null
+    private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var proxyConnected: Boolean = false
+    private var kotlinMeshManager: MeshNetworkManager? = null
+    private var bearer: GattBearerImpl<String, no.nordicsemi.kotlin.ble.client.CentralManager<String, no.nordicsemi.kotlin.ble.client.Peripheral<String, *>, *, *, *>, no.nordicsemi.kotlin.ble.client.Peripheral<String, *>, no.nordicsemi.kotlin.ble.client.Peripheral.Executor<String>, no.nordicsemi.kotlin.ble.client.CentralManager.ScanFilterScope, no.nordicsemi.kotlin.ble.client.ScanResult<*, *>>? = null
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         appContext = flutterPluginBinding.applicationContext
-        meshManager = MeshManager()
+        legacyManager = MeshManager()
         flutterApi = MeshFlutterApi(flutterPluginBinding.binaryMessenger)
         MeshApi.setUp(flutterPluginBinding.binaryMessenger, this)
+
+        // Initialize Kotlin Mesh manager (storage + secure properties).
+        val ctx = appContext!!
+        val storage = object : Storage {
+            override suspend fun load(): ByteArray {
+                val f = File(ctx.filesDir, "kotlin_mesh_network.bin")
+                return if (f.exists()) f.readBytes() else ByteArray(0)
+            }
+
+            override suspend fun save(network: ByteArray) {
+                val f = File(ctx.filesDir, "kotlin_mesh_network.bin")
+                f.parentFile?.mkdirs()
+                f.writeBytes(network)
+            }
+        }
+        val secure = object : SecurePropertiesStorage {
+            // Minimal in-memory secure properties. Persisting seq/iv will be added later.
+            private var iv: IvIndex = IvIndex(0u)
+            @OptIn(ExperimentalUuidApi::class)
+            override suspend fun ivIndex(uuid: Uuid): IvIndex = iv
+            @OptIn(ExperimentalUuidApi::class)
+            override suspend fun storeIvIndex(uuid: Uuid, ivIndex: IvIndex) { iv = ivIndex }
+            @OptIn(ExperimentalUuidApi::class)
+            override suspend fun nextSequenceNumber(uuid: Uuid, address: UnicastAddress): UInt = 0u
+            @OptIn(ExperimentalUuidApi::class)
+            override suspend fun storeNextSequenceNumber(uuid: Uuid, address: UnicastAddress, sequenceNumber: UInt) {}
+            @OptIn(ExperimentalUuidApi::class)
+            override suspend fun resetSequenceNumber(uuid: Uuid, address: UnicastAddress) {}
+            @OptIn(ExperimentalUuidApi::class)
+            override suspend fun lastSeqAuthValue(uuid: Uuid, source: UnicastAddress): ULong? = null
+            @OptIn(ExperimentalUuidApi::class)
+            override fun storeLastSeqAuthValue(uuid: Uuid, source: UnicastAddress, lastSeqAuth: ULong) {}
+            @OptIn(ExperimentalUuidApi::class)
+            override suspend fun previousSeqAuthValue(uuid: Uuid, source: UnicastAddress): ULong? = null
+            @OptIn(ExperimentalUuidApi::class)
+            override fun storePreviousSeqAuthValue(uuid: Uuid, source: UnicastAddress, seqAuth: ULong) {}
+            @OptIn(ExperimentalUuidApi::class)
+            override suspend fun storeLocalProvisioner(uuid: Uuid, localProvisionerUuid: Uuid) {}
+            @OptIn(ExperimentalUuidApi::class)
+            override suspend fun localProvisioner(uuid: Uuid): String? = null
+        }
+        kotlinMeshManager = MeshNetworkManager(storage = storage, secureProperties = secure, ioDispatcher = Dispatchers.IO)
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         MeshApi.setUp(binding.binaryMessenger, null)
         flutterApi = null
-        meshManager = null
+        legacyManager = null
+        kotlinMeshManager = null
         appContext = null
     }
 
     // MeshApi implementation (Pigeon)
 
     override fun createNetwork(name: String): MeshNetwork {
-        meshManager?.createNetwork(name)
-        return meshManager?.toMeshNetworkPigeon() ?: MeshNetwork(
+        legacyManager?.createNetwork(name)
+        return legacyManager?.toMeshNetworkPigeon() ?: MeshNetwork(
             networkId = name,
             name = name,
             networkKeys = emptyList(),
@@ -58,12 +120,12 @@ class PlatoJobsMeshPlugin :
     override fun loadNetwork(): MeshNetwork {
         val ctx = appContext
         if (ctx != null) {
-            val loaded = meshManager?.loadFromDefaultPath(ctx)
+            val loaded = legacyManager?.loadFromDefaultPath(ctx)
             if (loaded != null) return loaded
         }
 
-        meshManager?.createNetwork("default")
-        return meshManager?.toMeshNetworkPigeon() ?: MeshNetwork(
+        legacyManager?.createNetwork("default")
+        return legacyManager?.toMeshNetworkPigeon() ?: MeshNetwork(
             networkId = "default",
             name = "default",
             networkKeys = emptyList(),
@@ -80,17 +142,17 @@ class PlatoJobsMeshPlugin :
 
     override fun saveNetwork(): Boolean {
         val ctx = appContext ?: return false
-        return meshManager?.saveToDefaultPath(ctx) ?: false
+        return legacyManager?.saveToDefaultPath(ctx) ?: false
     }
 
     override fun exportNetwork(path: String): Boolean {
         val ctx = appContext ?: return false
-        return meshManager?.exportToPath(ctx, path) ?: false
+        return legacyManager?.exportToPath(ctx, path) ?: false
     }
 
     override fun importNetwork(path: String): Boolean {
         val ctx = appContext ?: return false
-        return meshManager?.importFromPath(ctx, path) ?: false
+        return legacyManager?.importFromPath(ctx, path) ?: false
     }
 
     override fun startScan() {
@@ -105,7 +167,7 @@ class PlatoJobsMeshPlugin :
         device: UnprovisionedDevice,
         params: ProvisioningParameters
     ): ProvisionedNode {
-        return meshManager?.provision(device, params) ?: ProvisionedNode(
+        return legacyManager?.provision(device, params) ?: ProvisionedNode(
             nodeId = device.deviceId ?: "",
             name = params.deviceName,
             unicastAddress = 1L,
@@ -119,14 +181,14 @@ class PlatoJobsMeshPlugin :
         // Placeholder: no-op
     }
 
-    override fun getNodes(): List<ProvisionedNode> = meshManager?.getNodes() ?: emptyList()
+    override fun getNodes(): List<ProvisionedNode> = legacyManager?.getNodes() ?: emptyList()
 
     override fun removeNode(nodeId: String) {
         // no-op
     }
 
     override fun createGroup(name: String): MeshGroup {
-        return meshManager?.createGroup(name) ?: MeshGroup(
+        return legacyManager?.createGroup(name) ?: MeshGroup(
             groupId = java.util.UUID.randomUUID().toString(),
             name = name,
             address = 0xC000L,
@@ -134,7 +196,7 @@ class PlatoJobsMeshPlugin :
         )
     }
 
-    override fun getGroups(): List<MeshGroup> = meshManager?.getGroups() ?: emptyList()
+    override fun getGroups(): List<MeshGroup> = legacyManager?.getGroups() ?: emptyList()
 
     override fun addNodeToGroup(nodeId: String, groupId: String) {
         // no-op
@@ -142,16 +204,16 @@ class PlatoJobsMeshPlugin :
 
     // Configuration (P1 - minimal, in-memory)
     override fun bindAppKey(elementAddress: Long, modelId: Long, appKeyIndex: Long): Boolean =
-        meshManager?.bindAppKey(elementAddress, modelId, appKeyIndex) ?: false
+        legacyManager?.bindAppKey(elementAddress, modelId, appKeyIndex) ?: false
 
     override fun unbindAppKey(elementAddress: Long, modelId: Long, appKeyIndex: Long): Boolean =
-        meshManager?.unbindAppKey(elementAddress, modelId, appKeyIndex) ?: false
+        legacyManager?.unbindAppKey(elementAddress, modelId, appKeyIndex) ?: false
 
     override fun addSubscription(elementAddress: Long, modelId: Long, address: Long): Boolean =
-        meshManager?.addSubscription(elementAddress, modelId, address) ?: false
+        legacyManager?.addSubscription(elementAddress, modelId, address) ?: false
 
     override fun removeSubscription(elementAddress: Long, modelId: Long, address: Long): Boolean =
-        meshManager?.removeSubscription(elementAddress, modelId, address) ?: false
+        legacyManager?.removeSubscription(elementAddress, modelId, address) ?: false
 
     override fun setPublication(
         elementAddress: Long,
@@ -159,7 +221,52 @@ class PlatoJobsMeshPlugin :
         publishAddress: Long,
         appKeyIndex: Long,
         ttl: Long?
-    ): Boolean = meshManager?.setPublication(elementAddress, modelId, publishAddress, appKeyIndex, ttl) ?: false
+    ): Boolean = legacyManager?.setPublication(elementAddress, modelId, publishAddress, appKeyIndex, ttl) ?: false
+
+    // Proxy connection (P1 real-transport prerequisite)
+    override fun connectProxy(deviceId: String, proxyUnicastAddress: Long): Boolean {
+        val ctx = appContext ?: return false
+        val manager = kotlinMeshManager ?: return false
+
+        return try {
+            runBlocking {
+                val env = NativeAndroidEnvironment.getInstance(
+                    context = ctx,
+                    isNeverForLocationFlagSet = true
+                )
+                val central = CentralManagerFactory.native(environment = env, scope = ioScope)
+                val peripheral = central.getPeripheralsById(listOf(deviceId)).first()
+                val b = GattBearerImpl(
+                    peripheral = peripheral,
+                    centralManager = central,
+                    ioDispatcher = Dispatchers.IO
+                )
+                bearer = b
+                manager.meshBearer = b
+                b.open()
+                proxyConnected = true
+            }
+            true
+        } catch (_: Throwable) {
+            proxyConnected = false
+            false
+        }
+    }
+
+    override fun disconnectProxy(): Boolean {
+        return try {
+            runBlocking {
+                bearer?.close()
+            }
+            bearer = null
+            proxyConnected = false
+            true
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    override fun isProxyConnected(): Boolean = proxyConnected
 }
 
 /**

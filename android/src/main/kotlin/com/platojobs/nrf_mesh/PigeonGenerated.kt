@@ -1011,6 +1011,9 @@ interface MeshApi {
   fun removeSubscription(elementAddress: Long, modelId: Long, address: Long): Boolean
   /** Set publication for a model on a given element address. */
   fun setPublication(elementAddress: Long, modelId: Long, publishAddress: Long, appKeyIndex: Long, ttl: Long?): Boolean
+  fun connectProxy(deviceId: String, proxyUnicastAddress: Long): Boolean
+  fun disconnectProxy(): Boolean
+  fun isProxyConnected(): Boolean
 
   companion object {
     /** The codec used by MeshApi. */
@@ -1342,6 +1345,54 @@ interface MeshApi {
             val ttlArg = args[4] as Long?
             val wrapped: List<Any?> = try {
               listOf(api.setPublication(elementAddressArg, modelIdArg, publishAddressArg, appKeyIndexArg, ttlArg))
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.connectProxy$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val deviceIdArg = args[0] as String
+            val proxyUnicastAddressArg = args[1] as Long
+            val wrapped: List<Any?> = try {
+              listOf(api.connectProxy(deviceIdArg, proxyUnicastAddressArg))
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.disconnectProxy$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            val wrapped: List<Any?> = try {
+              listOf(api.disconnectProxy())
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.isProxyConnected$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            val wrapped: List<Any?> = try {
+              listOf(api.isProxyConnected())
             } catch (exception: Throwable) {
               PigeonGeneratedPigeonUtils.wrapError(exception)
             }

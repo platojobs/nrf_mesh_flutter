@@ -117,6 +117,8 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
 
   String _modelKey(int elementAddress, int modelId) => '$elementAddress:$modelId';
 
+  bool _proxyConnected = false;
+
   @override
   Future<void> initialize() async {
     // no-op
@@ -355,6 +357,21 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
     return true;
   }
 
+  @override
+  Future<bool> connectProxy(String deviceId, int proxyUnicastAddress) async {
+    _proxyConnected = true;
+    return true;
+  }
+
+  @override
+  Future<bool> disconnectProxy() async {
+    _proxyConnected = false;
+    return true;
+  }
+
+  @override
+  Future<bool> isProxyConnected() async => _proxyConnected;
+
   void _applyConfigToNodes({
     required int elementAddress,
     required int modelId,
@@ -429,6 +446,7 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
     _boundAppKeysByModel.clear();
     _subscriptionsByModel.clear();
     _publicationByModel.clear();
+    _proxyConnected = false;
   }
 
   /// Starts the scripted scenario (if any). Safe to call multiple times.

@@ -1,3 +1,9 @@
+## 2.0.1
+
+### Features
+- Add Proxy connection APIs (`connectProxy` / `disconnectProxy` / `isProxyConnected`) to unblock real transport work for P1.
+- Android: start wiring Kotlin BLE + GATT bearer for Proxy connections (foundation for real Config message delivery).
+
 ## 2.0.0
 
 ### Breaking Changes
