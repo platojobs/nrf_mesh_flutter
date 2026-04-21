@@ -1,3 +1,14 @@
+## 2.0.0
+
+### Breaking Changes
+- Android: remove legacy dependency `no.nordicsemi.android:mesh` and switch to Nordic Kotlin Mesh library dependencies.
+
+### Features
+- P1 configuration APIs (bind/unbind AppKey, subscriptions, publication) are available in Dart and bridged to native.
+- `getNodes()` now exposes model bindings/subscriptions/publication fields for UI and debugging.
+- iOS/Android support JSON persistence for network state (save/load/export/import), including nodes/groups and configuration fields.
+- Example app includes a config demo view for validating P1 flows.
+
 ## 1.1.4
 
 ### Fixes
