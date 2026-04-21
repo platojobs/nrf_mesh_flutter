@@ -41,6 +41,32 @@ abstract class MeshApi {
   MeshGroup createGroup(String name);
   List<MeshGroup> getGroups();
   void addNodeToGroup(String nodeId, String groupId);
+
+  // Configuration (P1 - minimal)
+  //
+  // Note: These APIs are intentionally minimal and model-agnostic.
+  // They are designed to map to Config Model operations on native platforms.
+
+  /// Bind an AppKey to a model on a given element address.
+  bool bindAppKey(int elementAddress, int modelId, int appKeyIndex);
+
+  /// Unbind an AppKey from a model on a given element address.
+  bool unbindAppKey(int elementAddress, int modelId, int appKeyIndex);
+
+  /// Add a subscription address to a model on a given element address.
+  bool addSubscription(int elementAddress, int modelId, int address);
+
+  /// Remove a subscription address from a model on a given element address.
+  bool removeSubscription(int elementAddress, int modelId, int address);
+
+  /// Set publication for a model on a given element address.
+  bool setPublication(
+    int elementAddress,
+    int modelId,
+    int publishAddress,
+    int appKeyIndex, {
+    int? ttl,
+  });
 }
 
 @FlutterApi()
@@ -106,6 +132,15 @@ class Model {
   String? modelName;
   bool? publishable;
   bool? subscribable;
+  List<int>? boundAppKeyIndexes;
+  List<int>? subscriptions;
+  Publication? publication;
+}
+
+class Publication {
+  int? address;
+  int? appKeyIndex;
+  int? ttl;
 }
 
 class MeshGroup {

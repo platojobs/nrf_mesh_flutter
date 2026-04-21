@@ -114,6 +114,41 @@ class MeshManagerApi {
   Future<void> addNodeToGroup(String nodeId, String groupId) async {
     return await _guard(() => _platform.addNodeToGroup(nodeId, groupId));
   }
+
+  // Configuration (P1 - minimal)
+  Future<bool> bindAppKey(int elementAddress, int modelId, int appKeyIndex) async {
+    return await _guard(() => _platform.bindAppKey(elementAddress, modelId, appKeyIndex));
+  }
+
+  Future<bool> unbindAppKey(int elementAddress, int modelId, int appKeyIndex) async {
+    return await _guard(() => _platform.unbindAppKey(elementAddress, modelId, appKeyIndex));
+  }
+
+  Future<bool> addSubscription(int elementAddress, int modelId, int address) async {
+    return await _guard(() => _platform.addSubscription(elementAddress, modelId, address));
+  }
+
+  Future<bool> removeSubscription(int elementAddress, int modelId, int address) async {
+    return await _guard(() => _platform.removeSubscription(elementAddress, modelId, address));
+  }
+
+  Future<bool> setPublication(
+    int elementAddress,
+    int modelId,
+    int publishAddress,
+    int appKeyIndex, {
+    int? ttl,
+  }) async {
+    return await _guard(
+      () => _platform.setPublication(
+        elementAddress,
+        modelId,
+        publishAddress,
+        appKeyIndex,
+        ttl: ttl,
+      ),
+    );
+  }
 }
 
 /// Provisioning parameters for mesh devices

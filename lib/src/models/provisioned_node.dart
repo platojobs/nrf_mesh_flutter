@@ -67,12 +67,18 @@ class Model {
   final String modelName;
   final bool isServer;
   final bool isClient;
+  final List<int> boundAppKeyIndexes;
+  final List<int> subscriptions;
+  final Publication? publication;
 
   Model({
     required this.modelId,
     required this.modelName,
     required this.isServer,
     required this.isClient,
+    this.boundAppKeyIndexes = const <int>[],
+    this.subscriptions = const <int>[],
+    this.publication,
   });
 
   factory Model.fromMap(Map<String, dynamic> map) {
@@ -81,6 +87,11 @@ class Model {
       modelName: map['modelName'],
       isServer: map['isServer'],
       isClient: map['isClient'],
+      boundAppKeyIndexes: (map['boundAppKeyIndexes'] as List?)?.cast<int>() ?? const <int>[],
+      subscriptions: (map['subscriptions'] as List?)?.cast<int>() ?? const <int>[],
+      publication: map['publication'] == null
+          ? null
+          : Publication.fromMap((map['publication'] as Map).cast<String, dynamic>()),
     );
   }
 
@@ -90,6 +101,37 @@ class Model {
       'modelName': modelName,
       'isServer': isServer,
       'isClient': isClient,
+      'boundAppKeyIndexes': boundAppKeyIndexes,
+      'subscriptions': subscriptions,
+      'publication': publication?.toMap(),
+    };
+  }
+}
+
+class Publication {
+  final int address;
+  final int appKeyIndex;
+  final int? ttl;
+
+  const Publication({
+    required this.address,
+    required this.appKeyIndex,
+    this.ttl,
+  });
+
+  factory Publication.fromMap(Map<String, dynamic> map) {
+    return Publication(
+      address: map['address'],
+      appKeyIndex: map['appKeyIndex'],
+      ttl: map['ttl'],
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return <String, dynamic>{
+      'address': address,
+      'appKeyIndex': appKeyIndex,
+      'ttl': ttl,
     };
   }
 }

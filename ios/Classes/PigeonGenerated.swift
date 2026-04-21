@@ -516,6 +516,9 @@ struct Model: Hashable {
   var modelName: String? = nil
   var publishable: Bool? = nil
   var subscribable: Bool? = nil
+  var boundAppKeyIndexes: [Int64]? = nil
+  var subscriptions: [Int64]? = nil
+  var publication: Publication? = nil
 
 
   // swift-format-ignore: AlwaysUseLowerCamelCase
@@ -524,12 +527,18 @@ struct Model: Hashable {
     let modelName: String? = nilOrValue(pigeonVar_list[1])
     let publishable: Bool? = nilOrValue(pigeonVar_list[2])
     let subscribable: Bool? = nilOrValue(pigeonVar_list[3])
+    let boundAppKeyIndexes: [Int64]? = nilOrValue(pigeonVar_list[4])
+    let subscriptions: [Int64]? = nilOrValue(pigeonVar_list[5])
+    let publication: Publication? = nilOrValue(pigeonVar_list[6])
 
     return Model(
       modelId: modelId,
       modelName: modelName,
       publishable: publishable,
-      subscribable: subscribable
+      subscribable: subscribable,
+      boundAppKeyIndexes: boundAppKeyIndexes,
+      subscriptions: subscriptions,
+      publication: publication
     )
   }
   func toList() -> [Any?] {
@@ -538,13 +547,16 @@ struct Model: Hashable {
       modelName,
       publishable,
       subscribable,
+      boundAppKeyIndexes,
+      subscriptions,
+      publication,
     ]
   }
   static func == (lhs: Model, rhs: Model) -> Bool {
     if Swift.type(of: lhs) != Swift.type(of: rhs) {
       return false
     }
-    return deepEqualsPigeonGenerated(lhs.modelId, rhs.modelId) && deepEqualsPigeonGenerated(lhs.modelName, rhs.modelName) && deepEqualsPigeonGenerated(lhs.publishable, rhs.publishable) && deepEqualsPigeonGenerated(lhs.subscribable, rhs.subscribable)
+    return deepEqualsPigeonGenerated(lhs.modelId, rhs.modelId) && deepEqualsPigeonGenerated(lhs.modelName, rhs.modelName) && deepEqualsPigeonGenerated(lhs.publishable, rhs.publishable) && deepEqualsPigeonGenerated(lhs.subscribable, rhs.subscribable) && deepEqualsPigeonGenerated(lhs.boundAppKeyIndexes, rhs.boundAppKeyIndexes) && deepEqualsPigeonGenerated(lhs.subscriptions, rhs.subscriptions) && deepEqualsPigeonGenerated(lhs.publication, rhs.publication)
   }
 
   func hash(into hasher: inout Hasher) {
@@ -553,6 +565,50 @@ struct Model: Hashable {
     deepHashPigeonGenerated(value: modelName, hasher: &hasher)
     deepHashPigeonGenerated(value: publishable, hasher: &hasher)
     deepHashPigeonGenerated(value: subscribable, hasher: &hasher)
+    deepHashPigeonGenerated(value: boundAppKeyIndexes, hasher: &hasher)
+    deepHashPigeonGenerated(value: subscriptions, hasher: &hasher)
+    deepHashPigeonGenerated(value: publication, hasher: &hasher)
+  }
+}
+
+/// Generated class from Pigeon that represents data sent in messages.
+struct Publication: Hashable {
+  var address: Int64? = nil
+  var appKeyIndex: Int64? = nil
+  var ttl: Int64? = nil
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> Publication? {
+    let address: Int64? = nilOrValue(pigeonVar_list[0])
+    let appKeyIndex: Int64? = nilOrValue(pigeonVar_list[1])
+    let ttl: Int64? = nilOrValue(pigeonVar_list[2])
+
+    return Publication(
+      address: address,
+      appKeyIndex: appKeyIndex,
+      ttl: ttl
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      address,
+      appKeyIndex,
+      ttl,
+    ]
+  }
+  static func == (lhs: Publication, rhs: Publication) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return deepEqualsPigeonGenerated(lhs.address, rhs.address) && deepEqualsPigeonGenerated(lhs.appKeyIndex, rhs.appKeyIndex) && deepEqualsPigeonGenerated(lhs.ttl, rhs.ttl)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("Publication")
+    deepHashPigeonGenerated(value: address, hasher: &hasher)
+    deepHashPigeonGenerated(value: appKeyIndex, hasher: &hasher)
+    deepHashPigeonGenerated(value: ttl, hasher: &hasher)
   }
 }
 
@@ -796,14 +852,16 @@ private class PigeonGeneratedPigeonCodecReader: FlutterStandardReader {
     case 136:
       return Model.fromList(self.readValue() as! [Any?])
     case 137:
-      return MeshGroup.fromList(self.readValue() as! [Any?])
+      return Publication.fromList(self.readValue() as! [Any?])
     case 138:
-      return MeshMessage.fromList(self.readValue() as! [Any?])
+      return MeshGroup.fromList(self.readValue() as! [Any?])
     case 139:
-      return ProvisioningParameters.fromList(self.readValue() as! [Any?])
+      return MeshMessage.fromList(self.readValue() as! [Any?])
     case 140:
-      return GenericOnOffSet.fromList(self.readValue() as! [Any?])
+      return ProvisioningParameters.fromList(self.readValue() as! [Any?])
     case 141:
+      return GenericOnOffSet.fromList(self.readValue() as! [Any?])
+    case 142:
       return GenericLevelSet.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
@@ -837,20 +895,23 @@ private class PigeonGeneratedPigeonCodecWriter: FlutterStandardWriter {
     } else if let value = value as? Model {
       super.writeByte(136)
       super.writeValue(value.toList())
-    } else if let value = value as? MeshGroup {
+    } else if let value = value as? Publication {
       super.writeByte(137)
       super.writeValue(value.toList())
-    } else if let value = value as? MeshMessage {
+    } else if let value = value as? MeshGroup {
       super.writeByte(138)
       super.writeValue(value.toList())
-    } else if let value = value as? ProvisioningParameters {
+    } else if let value = value as? MeshMessage {
       super.writeByte(139)
       super.writeValue(value.toList())
-    } else if let value = value as? GenericOnOffSet {
+    } else if let value = value as? ProvisioningParameters {
       super.writeByte(140)
       super.writeValue(value.toList())
-    } else if let value = value as? GenericLevelSet {
+    } else if let value = value as? GenericOnOffSet {
       super.writeByte(141)
+      super.writeValue(value.toList())
+    } else if let value = value as? GenericLevelSet {
+      super.writeByte(142)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -888,6 +949,16 @@ protocol MeshApi {
   func createGroup(name: String) throws -> MeshGroup
   func getGroups() throws -> [MeshGroup]
   func addNodeToGroup(nodeId: String, groupId: String) throws
+  /// Bind an AppKey to a model on a given element address.
+  func bindAppKey(elementAddress: Int64, modelId: Int64, appKeyIndex: Int64) throws -> Bool
+  /// Unbind an AppKey from a model on a given element address.
+  func unbindAppKey(elementAddress: Int64, modelId: Int64, appKeyIndex: Int64) throws -> Bool
+  /// Add a subscription address to a model on a given element address.
+  func addSubscription(elementAddress: Int64, modelId: Int64, address: Int64) throws -> Bool
+  /// Remove a subscription address from a model on a given element address.
+  func removeSubscription(elementAddress: Int64, modelId: Int64, address: Int64) throws -> Bool
+  /// Set publication for a model on a given element address.
+  func setPublication(elementAddress: Int64, modelId: Int64, publishAddress: Int64, appKeyIndex: Int64, ttl: Int64?) throws -> Bool
 }
 
 /// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
@@ -1095,6 +1166,98 @@ class MeshApiSetup {
       }
     } else {
       addNodeToGroupChannel.setMessageHandler(nil)
+    }
+    /// Bind an AppKey to a model on a given element address.
+    let bindAppKeyChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.bindAppKey\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      bindAppKeyChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let elementAddressArg = args[0] as! Int64
+        let modelIdArg = args[1] as! Int64
+        let appKeyIndexArg = args[2] as! Int64
+        do {
+          let result = try api.bindAppKey(elementAddress: elementAddressArg, modelId: modelIdArg, appKeyIndex: appKeyIndexArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      bindAppKeyChannel.setMessageHandler(nil)
+    }
+    /// Unbind an AppKey from a model on a given element address.
+    let unbindAppKeyChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.unbindAppKey\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      unbindAppKeyChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let elementAddressArg = args[0] as! Int64
+        let modelIdArg = args[1] as! Int64
+        let appKeyIndexArg = args[2] as! Int64
+        do {
+          let result = try api.unbindAppKey(elementAddress: elementAddressArg, modelId: modelIdArg, appKeyIndex: appKeyIndexArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      unbindAppKeyChannel.setMessageHandler(nil)
+    }
+    /// Add a subscription address to a model on a given element address.
+    let addSubscriptionChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.addSubscription\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      addSubscriptionChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let elementAddressArg = args[0] as! Int64
+        let modelIdArg = args[1] as! Int64
+        let addressArg = args[2] as! Int64
+        do {
+          let result = try api.addSubscription(elementAddress: elementAddressArg, modelId: modelIdArg, address: addressArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      addSubscriptionChannel.setMessageHandler(nil)
+    }
+    /// Remove a subscription address from a model on a given element address.
+    let removeSubscriptionChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeSubscription\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      removeSubscriptionChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let elementAddressArg = args[0] as! Int64
+        let modelIdArg = args[1] as! Int64
+        let addressArg = args[2] as! Int64
+        do {
+          let result = try api.removeSubscription(elementAddress: elementAddressArg, modelId: modelIdArg, address: addressArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      removeSubscriptionChannel.setMessageHandler(nil)
+    }
+    /// Set publication for a model on a given element address.
+    let setPublicationChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setPublication\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      setPublicationChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let elementAddressArg = args[0] as! Int64
+        let modelIdArg = args[1] as! Int64
+        let publishAddressArg = args[2] as! Int64
+        let appKeyIndexArg = args[3] as! Int64
+        let ttlArg: Int64? = nilOrValue(args[4])
+        do {
+          let result = try api.setPublication(elementAddress: elementAddressArg, modelId: modelIdArg, publishAddress: publishAddressArg, appKeyIndex: appKeyIndexArg, ttl: ttlArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      setPublicationChannel.setMessageHandler(nil)
     }
   }
 }

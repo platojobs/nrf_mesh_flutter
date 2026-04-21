@@ -63,6 +63,19 @@ abstract class PlatoJobsMeshBridge {
   Future<List<group_models.MeshGroup>> getGroups();
 
   Future<void> addNodeToGroup(String nodeId, String groupId);
+
+  // Configuration (P1 - minimal)
+  Future<bool> bindAppKey(int elementAddress, int modelId, int appKeyIndex);
+  Future<bool> unbindAppKey(int elementAddress, int modelId, int appKeyIndex);
+  Future<bool> addSubscription(int elementAddress, int modelId, int address);
+  Future<bool> removeSubscription(int elementAddress, int modelId, int address);
+  Future<bool> setPublication(
+    int elementAddress,
+    int modelId,
+    int publishAddress,
+    int appKeyIndex, {
+    int? ttl,
+  });
 }
 
 class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
@@ -211,6 +224,43 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
     await _meshApi.addNodeToGroup(nodeId, groupId);
   }
 
+  @override
+  Future<bool> bindAppKey(int elementAddress, int modelId, int appKeyIndex) async {
+    return await _meshApi.bindAppKey(elementAddress, modelId, appKeyIndex);
+  }
+
+  @override
+  Future<bool> unbindAppKey(int elementAddress, int modelId, int appKeyIndex) async {
+    return await _meshApi.unbindAppKey(elementAddress, modelId, appKeyIndex);
+  }
+
+  @override
+  Future<bool> addSubscription(int elementAddress, int modelId, int address) async {
+    return await _meshApi.addSubscription(elementAddress, modelId, address);
+  }
+
+  @override
+  Future<bool> removeSubscription(int elementAddress, int modelId, int address) async {
+    return await _meshApi.removeSubscription(elementAddress, modelId, address);
+  }
+
+  @override
+  Future<bool> setPublication(
+    int elementAddress,
+    int modelId,
+    int publishAddress,
+    int appKeyIndex, {
+    int? ttl,
+  }) async {
+    return await _meshApi.setPublication(
+      elementAddress,
+      modelId,
+      publishAddress,
+      appKeyIndex,
+      ttl: ttl,
+    );
+  }
+
   net_models.MeshNetwork _convertToMeshNetwork(pigeon.MeshNetwork pigeonNetwork) {
     return net_models.MeshNetwork(
       networkId: pigeonNetwork.networkId ?? '',
@@ -272,6 +322,15 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
                       modelName: m.modelName ?? '',
                       isServer: m.publishable ?? false,
                       isClient: m.subscribable ?? false,
+                      boundAppKeyIndexes: m.boundAppKeyIndexes ?? const <int>[],
+                      subscriptions: m.subscriptions ?? const <int>[],
+                      publication: m.publication == null
+                          ? null
+                          : node_models.Publication(
+                              address: (m.publication!.address ?? 0).toInt(),
+                              appKeyIndex: (m.publication!.appKeyIndex ?? 0).toInt(),
+                              ttl: m.publication!.ttl?.toInt(),
+                            ),
                     ),
                   )
                   .toList(growable: false),

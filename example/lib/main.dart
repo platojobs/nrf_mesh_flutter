@@ -112,11 +112,46 @@ class _MyAppState extends State<MyApp> {
 
       setState(() => _status = 'Sending test message...');
       await _meshManager.sendMessage(
-        GenericOnOffSet(state: true, transitionTime: 0, delay: 0),
+        GenericOnOffSet(
+          state: true,
+          transitionTime: 0,
+          delay: 0,
+          address: 0xC000,
+          appKeyIndex: 0,
+        ),
       );
       setState(() => _status = 'Message sent');
     } catch (e) {
       setState(() => _status = 'Send error: $e');
+    }
+  }
+
+  Future<void> _configDemo() async {
+    try {
+      if (_nodes.isEmpty) {
+        setState(() => _status = 'No nodes available');
+        return;
+      }
+      final first = _nodes.first;
+      if (first.elements.isEmpty || first.elements.first.models.isEmpty) {
+        setState(() => _status = 'Node has no models');
+        return;
+      }
+      final elementAddress = int.tryParse(
+            first.elements.first.address.replaceAll('0x', ''),
+            radix: 16,
+          ) ??
+          1;
+      final modelId = int.tryParse(first.elements.first.models.first.modelId) ?? 0x1000;
+
+      setState(() => _status = 'Configuring model...');
+      await _meshManager.bindAppKey(elementAddress, modelId, 0);
+      await _meshManager.addSubscription(elementAddress, modelId, 0xC000);
+      await _meshManager.setPublication(elementAddress, modelId, 0xC000, 0, ttl: 5);
+      setState(() => _status = 'Config updated');
+      await _loadNodesAndGroups();
+    } catch (e) {
+      setState(() => _status = 'Config error: $e');
     }
   }
 
@@ -178,7 +213,41 @@ class _MyAppState extends State<MyApp> {
                     onPressed: _createGroup,
                     child: const Text('Create Group'),
                   ),
+                  const SizedBox(width: 16),
+                  ElevatedButton(
+                    onPressed: _configDemo,
+                    child: const Text('Config Demo'),
+                  ),
                 ],
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Provisioned Nodes',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(
+                height: 160,
+                child: ListView.builder(
+                  itemCount: _nodes.length,
+                  itemBuilder: (context, index) {
+                    final node = _nodes[index];
+                    final element = node.elements.isNotEmpty ? node.elements.first : null;
+                    final model = (element != null && element.models.isNotEmpty) ? element.models.first : null;
+                    return ListTile(
+                      dense: true,
+                      title: Text('Node ${node.uuid} @ ${node.unicastAddress}'),
+                      subtitle: model == null
+                          ? const Text('No model info')
+                          : Text(
+                              'Element: ${element!.address}\n'
+                              'Model: ${model.modelName} (${model.modelId})\n'
+                              'Bound AppKeys: ${model.boundAppKeyIndexes}\n'
+                              'Subs: ${model.subscriptions}\n'
+                              'Pub: ${model.publication == null ? 'null' : 'addr=${model.publication!.address} appKey=${model.publication!.appKeyIndex} ttl=${model.publication!.ttl}'}',
+                            ),
+                    );
+                  },
+                ),
               ),
               const SizedBox(height: 16),
               const Text(
