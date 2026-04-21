@@ -1,7 +1,10 @@
 package com.platojobs.nrf_mesh
 
+import android.content.Context
 import io.flutter.embedding.engine.plugins.FlutterPlugin
-import no.nordicsemi.android.mesh.MeshNetwork as NordicMeshNetwork
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.File
 
 /**
  * PlatoJobs nRF Mesh Flutter Plugin for Android
@@ -17,8 +20,10 @@ class PlatoJobsMeshPlugin :
 
     private var meshManager: MeshManager? = null
     private var flutterApi: MeshFlutterApi? = null
+    private var appContext: Context? = null
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
+        appContext = flutterPluginBinding.applicationContext
         meshManager = MeshManager()
         flutterApi = MeshFlutterApi(flutterPluginBinding.binaryMessenger)
         MeshApi.setUp(flutterPluginBinding.binaryMessenger, this)
@@ -28,27 +33,65 @@ class PlatoJobsMeshPlugin :
         MeshApi.setUp(binding.binaryMessenger, null)
         flutterApi = null
         meshManager = null
+        appContext = null
     }
 
     // MeshApi implementation (Pigeon)
 
     override fun createNetwork(name: String): MeshNetwork {
-        val network = meshManager?.createNetwork(name) ?: NordicMeshNetwork.create(name)
-        meshManager?.setNetwork(network)
-        return network.toPigeon()
+        meshManager?.createNetwork(name)
+        return meshManager?.toMeshNetworkPigeon() ?: MeshNetwork(
+            networkId = name,
+            name = name,
+            networkKeys = emptyList(),
+            appKeys = emptyList(),
+            nodes = emptyList(),
+            groups = emptyList(),
+            provisioner = Provisioner(
+                name = "Provisioner",
+                provisionerId = java.util.UUID.randomUUID().toString(),
+                addressRange = listOf(1L, 0x0100L)
+            )
+        )
     }
 
     override fun loadNetwork(): MeshNetwork {
-        val network = meshManager?.getNetwork() ?: NordicMeshNetwork.create("default")
-        meshManager?.setNetwork(network)
-        return network.toPigeon()
+        val ctx = appContext
+        if (ctx != null) {
+            val loaded = meshManager?.loadFromDefaultPath(ctx)
+            if (loaded != null) return loaded
+        }
+
+        meshManager?.createNetwork("default")
+        return meshManager?.toMeshNetworkPigeon() ?: MeshNetwork(
+            networkId = "default",
+            name = "default",
+            networkKeys = emptyList(),
+            appKeys = emptyList(),
+            nodes = emptyList(),
+            groups = emptyList(),
+            provisioner = Provisioner(
+                name = "Provisioner",
+                provisionerId = java.util.UUID.randomUUID().toString(),
+                addressRange = listOf(1L, 0x0100L)
+            )
+        )
     }
 
-    override fun saveNetwork(): Boolean = true
+    override fun saveNetwork(): Boolean {
+        val ctx = appContext ?: return false
+        return meshManager?.saveToDefaultPath(ctx) ?: false
+    }
 
-    override fun exportNetwork(path: String): Boolean = true
+    override fun exportNetwork(path: String): Boolean {
+        val ctx = appContext ?: return false
+        return meshManager?.exportToPath(ctx, path) ?: false
+    }
 
-    override fun importNetwork(path: String): Boolean = true
+    override fun importNetwork(path: String): Boolean {
+        val ctx = appContext ?: return false
+        return meshManager?.importFromPath(ctx, path) ?: false
+    }
 
     override fun startScan() {
         // Transport layer is currently abstracted away; no-op for now.
@@ -83,15 +126,15 @@ class PlatoJobsMeshPlugin :
     }
 
     override fun createGroup(name: String): MeshGroup {
-        return MeshGroup(
+        return meshManager?.createGroup(name) ?: MeshGroup(
             groupId = java.util.UUID.randomUUID().toString(),
             name = name,
-            address = 0xC000,
+            address = 0xC000L,
             nodeIds = emptyList()
         )
     }
 
-    override fun getGroups(): List<MeshGroup> = emptyList()
+    override fun getGroups(): List<MeshGroup> = meshManager?.getGroups() ?: emptyList()
 
     override fun addNodeToGroup(nodeId: String, groupId: String) {
         // no-op
@@ -123,22 +166,21 @@ class PlatoJobsMeshPlugin :
  * Delegate interface for MeshManager events
  */
 class MeshManager {
-    private var meshNetwork: NordicMeshNetwork? = null
     private val nodes: MutableList<ProvisionedNode> = mutableListOf()
     private var nextUnicast: Long = 1L
+    private var networkName: String = "default"
+    private val groups: MutableList<MeshGroup> = mutableListOf()
 
-    fun getNetwork(): NordicMeshNetwork? = meshNetwork
-    fun setNetwork(network: NordicMeshNetwork) {
-        meshNetwork = network
-    }
+    fun setNetworkName(name: String) { networkName = name }
 
     /**
      * Create a new mesh network
      */
-    fun createNetwork(name: String): NordicMeshNetwork {
-        val network = NordicMeshNetwork.create(name)
-        meshNetwork = network
-        return network
+    fun createNetwork(name: String) {
+        networkName = name
+        nodes.clear()
+        groups.clear()
+        nextUnicast = 1L
     }
 
     fun provision(device: UnprovisionedDevice, params: ProvisioningParameters): ProvisionedNode {
@@ -186,6 +228,216 @@ class MeshManager {
     }
 
     fun getNodes(): List<ProvisionedNode> = nodes.toList()
+
+    fun createGroup(name: String): MeshGroup {
+        val group = MeshGroup(
+            groupId = java.util.UUID.randomUUID().toString(),
+            name = name,
+            address = 0xC000L,
+            nodeIds = emptyList()
+        )
+        groups.add(group)
+        return group
+    }
+
+    fun getGroups(): List<MeshGroup> = groups.toList()
+
+    fun toMeshNetworkPigeon(): MeshNetwork {
+        return MeshNetwork(
+            networkId = networkName,
+            name = networkName,
+            networkKeys = emptyList(),
+            appKeys = emptyList(),
+            nodes = nodes.toList(),
+            groups = groups.toList(),
+            provisioner = Provisioner(
+                name = "Provisioner",
+                provisionerId = java.util.UUID.randomUUID().toString(),
+                addressRange = listOf(1L, 0x0100L)
+            )
+        )
+    }
+
+    private fun defaultFile(ctx: Context): File = File(ctx.filesDir, "nrf_mesh_flutter_network.json")
+
+    fun saveToDefaultPath(ctx: Context): Boolean {
+        return exportToFile(defaultFile(ctx))
+    }
+
+    fun loadFromDefaultPath(ctx: Context): MeshNetwork? {
+        val f = defaultFile(ctx)
+        if (!f.exists()) return null
+        return if (importFromFile(f)) toMeshNetworkPigeon() else null
+    }
+
+    fun exportToPath(ctx: Context, path: String): Boolean {
+        // If path is relative, place under app files directory.
+        val f = File(path)
+        val out = if (f.isAbsolute) f else File(ctx.filesDir, path)
+        return exportToFile(out)
+    }
+
+    fun importFromPath(ctx: Context, path: String): Boolean {
+        val f = File(path)
+        val inp = if (f.isAbsolute) f else File(ctx.filesDir, path)
+        return importFromFile(inp)
+    }
+
+    private fun exportToFile(file: File): Boolean {
+        return try {
+            val root = JSONObject()
+            root.put("name", networkName)
+            root.put("nextUnicast", nextUnicast)
+
+            val nodesArr = JSONArray()
+            for (n in nodes) {
+                nodesArr.put(nodeToJson(n))
+            }
+            root.put("nodes", nodesArr)
+
+            val groupsArr = JSONArray()
+            for (g in groups) {
+                groupsArr.put(groupToJson(g))
+            }
+            root.put("groups", groupsArr)
+
+            file.parentFile?.mkdirs()
+            file.writeText(root.toString())
+            true
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    private fun importFromFile(file: File): Boolean {
+        return try {
+            if (!file.exists()) return false
+            val root = JSONObject(file.readText())
+            networkName = root.optString("name", "default")
+            nextUnicast = root.optLong("nextUnicast", 1L)
+            nodes.clear()
+            groups.clear()
+
+            val nodesArr = root.optJSONArray("nodes") ?: JSONArray()
+            for (i in 0 until nodesArr.length()) {
+                val o = nodesArr.getJSONObject(i)
+                nodes.add(nodeFromJson(o))
+            }
+
+            val groupsArr = root.optJSONArray("groups") ?: JSONArray()
+            for (i in 0 until groupsArr.length()) {
+                val o = groupsArr.getJSONObject(i)
+                groups.add(groupFromJson(o))
+            }
+            true
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    private fun nodeToJson(n: ProvisionedNode): JSONObject {
+        val o = JSONObject()
+        o.put("nodeId", n.nodeId)
+        o.put("name", n.name)
+        o.put("unicastAddress", n.unicastAddress)
+        o.put("uuid", JSONArray(n.uuid ?: emptyList()))
+        o.put("provisioned", n.provisioned)
+        val elements = JSONArray()
+        for (e in n.elements ?: emptyList()) {
+            val eo = JSONObject()
+            eo.put("address", e.address)
+            val modelsArr = JSONArray()
+            for (m in e.models ?: emptyList()) {
+                val mo = JSONObject()
+                mo.put("modelId", m.modelId)
+                mo.put("modelName", m.modelName)
+                mo.put("publishable", m.publishable)
+                mo.put("subscribable", m.subscribable)
+                mo.put("boundAppKeyIndexes", JSONArray(m.boundAppKeyIndexes ?: emptyList()))
+                mo.put("subscriptions", JSONArray(m.subscriptions ?: emptyList()))
+                val pub = m.publication
+                if (pub != null) {
+                    val po = JSONObject()
+                    po.put("address", pub.address)
+                    po.put("appKeyIndex", pub.appKeyIndex)
+                    po.put("ttl", pub.ttl)
+                    mo.put("publication", po)
+                }
+                modelsArr.put(mo)
+            }
+            eo.put("models", modelsArr)
+            elements.put(eo)
+        }
+        o.put("elements", elements)
+        return o
+    }
+
+    private fun nodeFromJson(o: JSONObject): ProvisionedNode {
+        val elementsArr = o.optJSONArray("elements") ?: JSONArray()
+        val elements = mutableListOf<Element>()
+        for (i in 0 until elementsArr.length()) {
+            val eo = elementsArr.getJSONObject(i)
+            val modelsArr = eo.optJSONArray("models") ?: JSONArray()
+            val models = mutableListOf<Model>()
+            for (j in 0 until modelsArr.length()) {
+                val mo = modelsArr.getJSONObject(j)
+                val boundArr = mo.optJSONArray("boundAppKeyIndexes") ?: JSONArray()
+                val subsArr = mo.optJSONArray("subscriptions") ?: JSONArray()
+                val bound = (0 until boundArr.length()).map { boundArr.getLong(it) }
+                val subs = (0 until subsArr.length()).map { subsArr.getLong(it) }
+                val pubObj = mo.optJSONObject("publication")
+                val pub = if (pubObj == null) null else Publication(
+                    address = pubObj.optLong("address"),
+                    appKeyIndex = pubObj.optLong("appKeyIndex"),
+                    ttl = if (pubObj.has("ttl")) pubObj.optLong("ttl") else null
+                )
+                models.add(
+                    Model(
+                        modelId = mo.optLong("modelId"),
+                        modelName = mo.optString("modelName"),
+                        publishable = mo.optBoolean("publishable", true),
+                        subscribable = mo.optBoolean("subscribable", true),
+                        boundAppKeyIndexes = bound,
+                        subscriptions = subs,
+                        publication = pub
+                    )
+                )
+            }
+            elements.add(Element(address = eo.optLong("address"), models = models))
+        }
+
+        val uuidArr = o.optJSONArray("uuid") ?: JSONArray()
+        val uuid = (0 until uuidArr.length()).map { uuidArr.getLong(it) }
+
+        return ProvisionedNode(
+            nodeId = o.optString("nodeId"),
+            name = o.optString("name"),
+            unicastAddress = o.optLong("unicastAddress"),
+            uuid = uuid,
+            elements = elements,
+            provisioned = o.optBoolean("provisioned", true)
+        )
+    }
+
+    private fun groupToJson(g: MeshGroup): JSONObject {
+        val o = JSONObject()
+        o.put("groupId", g.groupId)
+        o.put("name", g.name)
+        o.put("address", g.address)
+        o.put("nodeIds", JSONArray(g.nodeIds ?: emptyList<String>()))
+        return o
+    }
+
+    private fun groupFromJson(o: JSONObject): MeshGroup {
+        val idsArr = o.optJSONArray("nodeIds") ?: JSONArray()
+        val ids = (0 until idsArr.length()).map { idsArr.getString(it) }
+        return MeshGroup(
+            groupId = o.optString("groupId"),
+            name = o.optString("name"),
+            address = o.optLong("address"),
+            nodeIds = ids
+        )
+    }
 
     private fun updateModel(
         elementAddress: Long,
@@ -269,18 +521,3 @@ class MeshManager {
     }
 }
 
-private fun NordicMeshNetwork.toPigeon(): MeshNetwork {
-    return MeshNetwork(
-        networkId = name,
-        name = name,
-        networkKeys = emptyList(),
-        appKeys = emptyList(),
-        nodes = emptyList(),
-        groups = emptyList(),
-        provisioner = Provisioner(
-            name = "Provisioner",
-            provisionerId = java.util.UUID.randomUUID().toString(),
-            addressRange = listOf(1L, 0x0100L)
-        )
-    )
-}
