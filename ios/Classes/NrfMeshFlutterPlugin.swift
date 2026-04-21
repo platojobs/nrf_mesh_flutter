@@ -7,6 +7,8 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
     private var flutterApi: MeshFlutterApi?
     private var nodes: [ProvisionedNode] = []
     private var nextUnicast: Int64 = 1
+    private var networkName: String = "default"
+    private var groups: [MeshGroup] = []
 
     public static func register(with registrar: FlutterPluginRegistrar) {
         let instance = PlatoJobsMeshPlugin()
@@ -14,9 +16,126 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         MeshApiSetup.setUp(binaryMessenger: registrar.messenger(), api: instance)
     }
 
+    private func defaultFileURL() -> URL? {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?
+            .appendingPathComponent("nrf_mesh_flutter_network.json")
+    }
+
+    private func exportToURL(_ url: URL) throws -> Bool {
+        var root: [String: Any] = [:]
+        root["name"] = networkName
+        root["nextUnicast"] = nextUnicast
+        root["nodes"] = nodes.map { nodeToDict($0) }
+        root["groups"] = groups.map { groupToDict($0) }
+        let data = try JSONSerialization.data(withJSONObject: root, options: [])
+        try data.write(to: url, options: [.atomic])
+        return true
+    }
+
+    private func importFromURL(_ url: URL) throws -> Bool {
+        let data = try Data(contentsOf: url)
+        let json = try JSONSerialization.jsonObject(with: data, options: [])
+        guard let root = json as? [String: Any] else { return false }
+        networkName = root["name"] as? String ?? "default"
+        nextUnicast = (root["nextUnicast"] as? NSNumber)?.int64Value ?? 1
+        nodes = (root["nodes"] as? [[String: Any]] ?? []).map { nodeFromDict($0) }
+        groups = (root["groups"] as? [[String: Any]] ?? []).map { groupFromDict($0) }
+        return true
+    }
+
+    private func nodeToDict(_ n: ProvisionedNode) -> [String: Any] {
+        var o: [String: Any] = [:]
+        o["nodeId"] = n.nodeId ?? ""
+        o["name"] = n.name ?? ""
+        o["unicastAddress"] = n.unicastAddress ?? 0
+        o["uuid"] = n.uuid ?? []
+        o["provisioned"] = n.provisioned ?? true
+        o["elements"] = (n.elements ?? []).map { e -> [String: Any] in
+            var eo: [String: Any] = [:]
+            eo["address"] = e.address ?? 0
+            eo["models"] = (e.models ?? []).map { m -> [String: Any] in
+                var mo: [String: Any] = [:]
+                mo["modelId"] = m.modelId ?? 0
+                mo["modelName"] = m.modelName ?? ""
+                mo["publishable"] = m.publishable ?? true
+                mo["subscribable"] = m.subscribable ?? true
+                mo["boundAppKeyIndexes"] = m.boundAppKeyIndexes ?? []
+                mo["subscriptions"] = m.subscriptions ?? []
+                if let pub = m.publication {
+                    mo["publication"] = [
+                        "address": pub.address ?? 0,
+                        "appKeyIndex": pub.appKeyIndex ?? 0,
+                        "ttl": pub.ttl as Any
+                    ]
+                }
+                return mo
+            }
+            return eo
+        }
+        return o
+    }
+
+    private func nodeFromDict(_ o: [String: Any]) -> ProvisionedNode {
+        let elementsDict = o["elements"] as? [[String: Any]] ?? []
+        let elements: [Element] = elementsDict.map { eo in
+            let e = Element()
+            e.address = (eo["address"] as? NSNumber)?.int64Value ?? 0
+            let modelsDict = eo["models"] as? [[String: Any]] ?? []
+            e.models = modelsDict.map { mo in
+                let m = Model()
+                m.modelId = (mo["modelId"] as? NSNumber)?.int64Value ?? 0
+                m.modelName = mo["modelName"] as? String ?? ""
+                m.publishable = mo["publishable"] as? Bool ?? true
+                m.subscribable = mo["subscribable"] as? Bool ?? true
+                m.boundAppKeyIndexes = mo["boundAppKeyIndexes"] as? [Int] ?? []
+                m.subscriptions = mo["subscriptions"] as? [Int] ?? []
+                if let po = mo["publication"] as? [String: Any] {
+                    let pub = Publication()
+                    pub.address = (po["address"] as? NSNumber)?.int64Value ?? 0
+                    pub.appKeyIndex = (po["appKeyIndex"] as? NSNumber)?.int64Value ?? 0
+                    pub.ttl = (po["ttl"] as? NSNumber)?.int64Value
+                    m.publication = pub
+                }
+                return m
+            }
+            return e
+        }
+
+        return ProvisionedNode(
+            nodeId: o["nodeId"] as? String ?? "",
+            name: o["name"] as? String ?? "",
+            unicastAddress: (o["unicastAddress"] as? NSNumber)?.int64Value ?? 0,
+            uuid: o["uuid"] as? [Int64] ?? [],
+            elements: elements,
+            provisioned: (o["provisioned"] as? Bool) ?? true
+        )
+    }
+
+    private func groupToDict(_ g: MeshGroup) -> [String: Any] {
+        [
+            "groupId": g.groupId ?? "",
+            "name": g.name ?? "",
+            "address": g.address ?? 0,
+            "nodeIds": g.nodeIds ?? []
+        ]
+    }
+
+    private func groupFromDict(_ o: [String: Any]) -> MeshGroup {
+        MeshGroup(
+            groupId: o["groupId"] as? String ?? "",
+            name: o["name"] as? String ?? "",
+            address: (o["address"] as? NSNumber)?.int64Value ?? 0,
+            nodeIds: o["nodeIds"] as? [String] ?? []
+        )
+    }
+
     func createNetwork(name: String) throws -> MeshNetwork {
         // Placeholder: keep state in-memory for now.
         meshNetwork = nRFMeshProvision.MeshNetwork(name: name)
+        networkName = name
+        nodes.removeAll()
+        groups.removeAll()
+        nextUnicast = 1
         return MeshNetwork(
             networkId: name,
             name: name,
@@ -33,14 +152,20 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
     }
 
     func loadNetwork() throws -> MeshNetwork {
-        let name = meshNetwork?.name ?? "default"
+        if let url = defaultFileURL(),
+           (try? importFromURL(url)) == true {
+            // loaded into memory
+        } else {
+            networkName = meshNetwork?.name ?? "default"
+        }
+        let name = networkName
         return MeshNetwork(
             networkId: name,
             name: name,
             networkKeys: [],
             appKeys: [],
-            nodes: [],
-            groups: [],
+            nodes: nodes,
+            groups: groups,
             provisioner: Provisioner(
                 name: "Provisioner",
                 provisionerId: UUID().uuidString,
@@ -49,9 +174,20 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         )
     }
 
-    func saveNetwork() throws -> Bool { true }
-    func exportNetwork(path: String) throws -> Bool { true }
-    func importNetwork(path: String) throws -> Bool { true }
+    func saveNetwork() throws -> Bool {
+        guard let url = defaultFileURL() else { return false }
+        return try exportToURL(url)
+    }
+
+    func exportNetwork(path: String) throws -> Bool {
+        let url = URL(fileURLWithPath: path)
+        return try exportToURL(url)
+    }
+
+    func importNetwork(path: String) throws -> Bool {
+        let url = URL(fileURLWithPath: path)
+        return try importFromURL(url)
+    }
     func startScan() throws { }
     func stopScan() throws { }
 
@@ -102,15 +238,17 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
     func removeNode(nodeId: String) throws { }
 
     func createGroup(name: String) throws -> MeshGroup {
-        return MeshGroup(
+        let group = MeshGroup(
             groupId: UUID().uuidString,
             name: name,
             address: 0xC000,
             nodeIds: []
         )
+        groups.append(group)
+        return group
     }
 
-    func getGroups() throws -> [MeshGroup] { [] }
+    func getGroups() throws -> [MeshGroup] { groups }
     func addNodeToGroup(nodeId: String, groupId: String) throws { }
 
     // Configuration (P1 - minimal, in-memory)
