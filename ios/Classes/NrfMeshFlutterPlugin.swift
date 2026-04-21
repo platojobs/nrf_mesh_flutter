@@ -317,4 +317,22 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
             m.publication = pub
         }
     }
+
+    // Proxy connection (P1 real-transport prerequisite)
+    private var proxyConnected: Bool = false
+
+    func connectProxy(deviceId: String, proxyUnicastAddress: Int64) throws -> Bool {
+        // TODO: Implement real PB-GATT / Proxy connection using nRFMeshProvision transport layer.
+        proxyConnected = true
+        return true
+    }
+
+    func disconnectProxy() throws -> Bool {
+        proxyConnected = false
+        return true
+    }
+
+    func isProxyConnected() throws -> Bool {
+        return proxyConnected
+    }
 }

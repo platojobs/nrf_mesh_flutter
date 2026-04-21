@@ -149,6 +149,19 @@ class MeshManagerApi {
       ),
     );
   }
+
+  // Proxy (P1 real-transport prerequisite)
+  Future<bool> connectProxy(String deviceId, int proxyUnicastAddress) async {
+    return await _guard(() => _platform.connectProxy(deviceId, proxyUnicastAddress));
+  }
+
+  Future<bool> disconnectProxy() async {
+    return await _guard(() => _platform.disconnectProxy());
+  }
+
+  Future<bool> isProxyConnected() async {
+    return await _guard(() => _platform.isProxyConnected());
+  }
 }
 
 /// Provisioning parameters for mesh devices

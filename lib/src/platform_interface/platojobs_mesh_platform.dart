@@ -76,6 +76,11 @@ abstract class PlatoJobsMeshBridge {
     int appKeyIndex, {
     int? ttl,
   });
+
+  // Proxy (P1 real-transport prerequisite)
+  Future<bool> connectProxy(String deviceId, int proxyUnicastAddress);
+  Future<bool> disconnectProxy();
+  Future<bool> isProxyConnected();
 }
 
 class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
@@ -259,6 +264,21 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
       appKeyIndex,
       ttl: ttl,
     );
+  }
+
+  @override
+  Future<bool> connectProxy(String deviceId, int proxyUnicastAddress) async {
+    return await _meshApi.connectProxy(deviceId, proxyUnicastAddress);
+  }
+
+  @override
+  Future<bool> disconnectProxy() async {
+    return await _meshApi.disconnectProxy();
+  }
+
+  @override
+  Future<bool> isProxyConnected() async {
+    return await _meshApi.isProxyConnected();
   }
 
   net_models.MeshNetwork _convertToMeshNetwork(pigeon.MeshNetwork pigeonNetwork) {

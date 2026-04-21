@@ -67,6 +67,11 @@ abstract class MeshApi {
     int appKeyIndex, {
     int? ttl,
   });
+
+  // Proxy (P1 real-transport prerequisite)
+  bool connectProxy(String deviceId, int proxyUnicastAddress);
+  bool disconnectProxy();
+  bool isProxyConnected();
 }
 
 @FlutterApi()

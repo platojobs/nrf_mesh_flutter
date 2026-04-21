@@ -71,8 +71,13 @@ android {
 }
 
 dependencies {
-    implementation("no.nordicsemi.android:ble-ktx:2.7.0")
+    // Nordic Kotlin BLE client (required by bearer-gatt)
+    implementation("no.nordicsemi.kotlin.ble:client-android:2.0.0-alpha19")
     // Nordic Kotlin Mesh Library (replaces legacy no.nordicsemi.android:mesh)
+    implementation("no.nordicsemi.kotlin.mesh:bearer:0.9.2")
+    implementation("no.nordicsemi.kotlin.mesh:bearer-gatt:0.9.2")
+    implementation("no.nordicsemi.kotlin.mesh:bearer-pbgatt:0.9.2")
+    implementation("no.nordicsemi.kotlin.mesh:bearer-provisioning:0.9.2")
     implementation("no.nordicsemi.kotlin.mesh:core:0.9.2")
     implementation("no.nordicsemi.kotlin.mesh:provisioning:0.9.2")
     testImplementation("org.jetbrains.kotlin:kotlin-test")
