@@ -25,7 +25,7 @@ Add `nrf_mesh_flutter` to your `pubspec.yaml`:
 dependencies:
   flutter:
     sdk: flutter
-  nrf_mesh_flutter: ^2.0.2
+  nrf_mesh_flutter: ^2.1.0
 ```
 
 ### iOS Configuration
