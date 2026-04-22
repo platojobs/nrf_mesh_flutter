@@ -1,3 +1,10 @@
+## 3.0.1
+
+### Fixes
+- Dart: fix Generic OnOff/Level `Set` opcodes + parameters to match Mesh Model spec (add TID and correct optional transition/delay encoding).
+- Android: implement real Access `sendMessage(...)` over Proxy + AppKeyIndex, and forward `incomingMeshMessages` into Dart `messageStream` for a full P2 send/receive loop.
+- Example (Android): fix debug build by excluding a duplicate `META-INF/versions/9/OSGI-INF/MANIFEST.MF` Java resource during packaging.
+
 ## 3.0.0
 
 ### Features
