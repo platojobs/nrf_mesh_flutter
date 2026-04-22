@@ -1,4 +1,4 @@
-## 2.0.2
+## 2.1.0
 
 ### Features
 - iOS: real GATT Proxy connection via `NordicMesh` / `GattBearer`, `MeshNetworkManager` import/export of Mesh Configuration Database 1.0.1, and real Foundation Config messages (bind/unbind AppKey, subscription add/delete, publication set) when a proxy is connected.
