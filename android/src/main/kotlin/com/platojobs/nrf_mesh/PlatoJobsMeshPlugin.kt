@@ -1,6 +1,7 @@
 package com.platojobs.nrf_mesh
 
 import android.content.Context
+import android.content.SharedPreferences
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import org.json.JSONArray
 import org.json.JSONObject
@@ -37,6 +38,7 @@ import no.nordicsemi.kotlin.mesh.core.model.SigModelId
 import no.nordicsemi.kotlin.mesh.core.model.UnicastAddress
 import no.nordicsemi.kotlin.mesh.core.model.isValidKeyIndex
 import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -81,33 +83,7 @@ class PlatoJobsMeshPlugin :
                 f.writeBytes(network)
             }
         }
-        @OptIn(ExperimentalTime::class)
-        val secure = object : SecurePropertiesStorage {
-            // Minimal in-memory secure properties. Persisting seq/iv will be added later.
-            private var iv: IvIndex = IvIndex(0u)
-            @OptIn(ExperimentalUuidApi::class)
-            override suspend fun ivIndex(uuid: Uuid): IvIndex = iv
-            @OptIn(ExperimentalUuidApi::class)
-            override suspend fun storeIvIndex(uuid: Uuid, ivIndex: IvIndex) { iv = ivIndex }
-            @OptIn(ExperimentalUuidApi::class)
-            override suspend fun nextSequenceNumber(uuid: Uuid, address: UnicastAddress): UInt = 0u
-            @OptIn(ExperimentalUuidApi::class)
-            override suspend fun storeNextSequenceNumber(uuid: Uuid, address: UnicastAddress, sequenceNumber: UInt) {}
-            @OptIn(ExperimentalUuidApi::class)
-            override suspend fun resetSequenceNumber(uuid: Uuid, address: UnicastAddress) {}
-            @OptIn(ExperimentalUuidApi::class)
-            override suspend fun lastSeqAuthValue(uuid: Uuid, source: UnicastAddress): ULong? = null
-            @OptIn(ExperimentalUuidApi::class)
-            override fun storeLastSeqAuthValue(uuid: Uuid, source: UnicastAddress, lastSeqAuth: ULong) {}
-            @OptIn(ExperimentalUuidApi::class)
-            override suspend fun previousSeqAuthValue(uuid: Uuid, source: UnicastAddress): ULong? = null
-            @OptIn(ExperimentalUuidApi::class)
-            override fun storePreviousSeqAuthValue(uuid: Uuid, source: UnicastAddress, seqAuth: ULong) {}
-            @OptIn(ExperimentalUuidApi::class)
-            override suspend fun storeLocalProvisioner(uuid: Uuid, localProvisionerUuid: Uuid) {}
-            @OptIn(ExperimentalUuidApi::class)
-            override suspend fun localProvisioner(uuid: Uuid): String? = null
-        }
+        val secure: SecurePropertiesStorage = PersistentSecurePropertiesStorage(ctx)
         kotlinMeshManager = MeshNetworkManager(storage = storage, secureProperties = secure, ioDispatcher = Dispatchers.IO)
 
         // Forward incoming mesh messages to Flutter.
@@ -520,6 +496,95 @@ private data class RawAccessMessage(
     override val opCode: UInt,
     override val parameters: ByteArray
 ) : KmMeshMessage {
+}
+
+/**
+ * Persist secure mesh state (IV index, sequence numbers, SeqAuth values) so that
+ * Access message sending remains stable across app restarts.
+ */
+@OptIn(ExperimentalUuidApi::class, ExperimentalTime::class)
+private class PersistentSecurePropertiesStorage(
+    context: Context,
+) : SecurePropertiesStorage {
+    private val prefs: SharedPreferences =
+        context.getSharedPreferences("nrf_mesh_flutter_secure", Context.MODE_PRIVATE)
+
+    private fun key(prefix: String, networkUuid: Uuid): String = "$prefix:${networkUuid}"
+    private fun key(prefix: String, networkUuid: Uuid, src: UnicastAddress): String =
+        "$prefix:${networkUuid}:${src.address}"
+
+    override suspend fun ivIndex(uuid: Uuid): IvIndex {
+        val idx = prefs.getInt(key("ivIndex", uuid), 0)
+        val active = prefs.getBoolean(key("ivUpdateActive", uuid), false)
+        val transitionMs = prefs.getLong(key("ivTransitionMs", uuid), 0L)
+        return IvIndex(
+            idx.toUInt(),
+            active,
+            Instant.fromEpochMilliseconds(transitionMs),
+        )
+    }
+
+    override suspend fun storeIvIndex(uuid: Uuid, ivIndex: IvIndex) {
+        prefs.edit()
+            .putInt(key("ivIndex", uuid), ivIndex.index.toInt())
+            .putBoolean(key("ivUpdateActive", uuid), ivIndex.isIvUpdateActive)
+            .putLong(
+                key("ivTransitionMs", uuid),
+                ivIndex.transitionDate.toEpochMilliseconds(),
+            )
+            .apply()
+    }
+
+    override suspend fun nextSequenceNumber(uuid: Uuid, address: UnicastAddress): UInt {
+        val v = prefs.getLong(key("seq", uuid, address), 0L)
+        return v.toUInt()
+    }
+
+    override suspend fun storeNextSequenceNumber(uuid: Uuid, address: UnicastAddress, sequenceNumber: UInt) {
+        prefs.edit()
+            .putLong(key("seq", uuid, address), sequenceNumber.toLong())
+            .apply()
+    }
+
+    override suspend fun resetSequenceNumber(uuid: Uuid, address: UnicastAddress) {
+        prefs.edit()
+            .remove(key("seq", uuid, address))
+            .apply()
+    }
+
+    override suspend fun lastSeqAuthValue(uuid: Uuid, source: UnicastAddress): ULong? {
+        val k = key("lastSeqAuth", uuid, source)
+        if (!prefs.contains(k)) return null
+        return prefs.getLong(k, 0L).toULong()
+    }
+
+    override fun storeLastSeqAuthValue(uuid: Uuid, source: UnicastAddress, lastSeqAuth: ULong) {
+        prefs.edit()
+            .putLong(key("lastSeqAuth", uuid, source), lastSeqAuth.toLong())
+            .apply()
+    }
+
+    override suspend fun previousSeqAuthValue(uuid: Uuid, source: UnicastAddress): ULong? {
+        val k = key("prevSeqAuth", uuid, source)
+        if (!prefs.contains(k)) return null
+        return prefs.getLong(k, 0L).toULong()
+    }
+
+    override fun storePreviousSeqAuthValue(uuid: Uuid, source: UnicastAddress, seqAuth: ULong) {
+        prefs.edit()
+            .putLong(key("prevSeqAuth", uuid, source), seqAuth.toLong())
+            .apply()
+    }
+
+    override suspend fun storeLocalProvisioner(uuid: Uuid, localProvisionerUuid: Uuid) {
+        prefs.edit()
+            .putString(key("localProvisioner", uuid), localProvisionerUuid.toString())
+            .apply()
+    }
+
+    override suspend fun localProvisioner(uuid: Uuid): String? {
+        return prefs.getString(key("localProvisioner", uuid), null)
+    }
 }
 
 /**
