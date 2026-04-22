@@ -89,32 +89,71 @@ class PlatoJobsMeshPlugin :
         // Forward incoming mesh messages to Flutter.
         incomingMessagesJob?.cancel()
         incomingMessagesJob = ioScope.launch {
-            kotlinMeshManager?.incomingMeshMessages?.collect { msg ->
-                try {
-                    val bytes = (msg.parameters ?: byteArrayOf()).map { (it.toInt() and 0xFF).toLong() }
-                    val op = try {
-                        // Kotlin generates a mangled accessor for UInt-based opcodes.
-                        val m = msg.javaClass.methods.firstOrNull { it.name.startsWith("getOpCode") }
-                        val v = m?.invoke(msg)
-                        when (v) {
-                            is UInt -> v.toLong()
-                            is Int -> v.toLong()
-                            is Long -> v
-                            else -> 0L
+            val km = kotlinMeshManager ?: return@launch
+
+            // Try to access internal NetworkManager.incomingMeshMessages$core via reflection
+            // to obtain the source address. Fallback to public MeshNetworkManager.incomingMeshMessages.
+            val receivedFlow: kotlinx.coroutines.flow.SharedFlow<Any>? = try {
+                val getNm = km.javaClass.methods.firstOrNull { it.name == "getNetworkManager\$core" }
+                val nm = getNm?.invoke(km) ?: return@launch
+                @Suppress("UNCHECKED_CAST")
+                nm.javaClass.methods.firstOrNull { it.name == "getIncomingMeshMessages\$core" }
+                    ?.invoke(nm) as? kotlinx.coroutines.flow.SharedFlow<Any>
+            } catch (_: Throwable) {
+                null
+            }
+
+            if (receivedFlow != null) {
+                receivedFlow.collect { received ->
+                    try {
+                        val addrObj = received.javaClass.methods.firstOrNull { it.name == "getAddress" }?.invoke(received)
+                        val msgObj = received.javaClass.methods.firstOrNull { it.name == "getMessage" }?.invoke(received)
+                        val src = try {
+                            val m = addrObj?.javaClass?.methods?.firstOrNull { it.name.startsWith("getAddress") }
+                            val v = m?.invoke(addrObj)
+                            when (v) {
+                                is Short -> v.toInt() and 0xFFFF
+                                is Int -> v and 0xFFFF
+                                else -> null
+                            }
+                        } catch (_: Throwable) { null }
+
+                        val bytes = try {
+                            val params = msgObj?.javaClass?.methods?.firstOrNull { it.name == "getParameters" }?.invoke(msgObj) as? ByteArray
+                            (params ?: byteArrayOf()).map { (it.toInt() and 0xFF).toLong() }
+                        } catch (_: Throwable) {
+                            emptyList()
                         }
+
+                        val op = (msgObj as? KmMeshMessage)?.opCode?.toLong() ?: 0L
+                        flutterApi?.onMessageReceived(
+                            MeshMessage(
+                                opcode = op,
+                                address = src?.toLong(),
+                                appKeyIndex = null,
+                                parameters = mapOf("bytes" to bytes),
+                            )
+                        ) {}
                     } catch (_: Throwable) {
-                        0L
+                        // Ignore forwarding failures; do not crash the collector.
                     }
-                    flutterApi?.onMessageReceived(
-                        MeshMessage(
-                            opcode = op,
-                            address = null,
-                            appKeyIndex = null,
-                            parameters = mapOf("bytes" to bytes),
-                        )
-                    ) {}
-                } catch (_: Throwable) {
-                    // Ignore forwarding failures; do not crash the collector.
+                }
+            } else {
+                km.incomingMeshMessages.collect { msg ->
+                    try {
+                        val bytes = (msg.parameters ?: byteArrayOf()).map { (it.toInt() and 0xFF).toLong() }
+                        val op = (msg as? KmMeshMessage)?.opCode?.toLong() ?: 0L
+                        flutterApi?.onMessageReceived(
+                            MeshMessage(
+                                opcode = op,
+                                address = null,
+                                appKeyIndex = null,
+                                parameters = mapOf("bytes" to bytes),
+                            )
+                        ) {}
+                    } catch (_: Throwable) {
+                        // ignore
+                    }
                 }
             }
         }
