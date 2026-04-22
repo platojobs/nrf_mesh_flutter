@@ -24,6 +24,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
 
     public static func register(with registrar: FlutterPluginRegistrar) {
         let instance = PlatoJobsMeshPlugin()
+        instance.meshManager.delegate = instance
         instance.flutterApi = MeshFlutterApi(binaryMessenger: registrar.messenger())
         MeshApiSetup.setUp(binaryMessenger: registrar.messenger(), api: instance)
     }
@@ -145,6 +146,8 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         // Create a new Mesh Network in the Nordic manager and persist it.
         _ = meshManager.clear()
         let network = meshManager.createNewMeshNetwork(withName: name, by: "Provisioner")
+        // Required for correct parsing of incoming Status messages.
+        meshManager.localElements = []
         nordicNetwork = network
         _ = meshManager.save()
         networkName = name
@@ -170,6 +173,8 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         // Prefer loading Mesh DB (Configuration Database Profile 1.0.1) from Nordic storage.
         if (try? meshManager.load()) == true, let loaded = meshManager.meshNetwork {
             nordicNetwork = loaded
+            // Required for correct parsing of incoming Status messages.
+            meshManager.localElements = []
             networkName = loaded.meshName
         } else if let url = defaultFileURL(),
                   (try? importFromURL(url)) == true {
@@ -216,6 +221,8 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         // First try Mesh DB 1.0.1 import; fallback to legacy json.
         if let _ = try? meshManager.import(from: data) {
             nordicNetwork = meshManager.meshNetwork
+            // Required for correct parsing of incoming Status messages.
+            meshManager.localElements = []
             networkName = nordicNetwork?.meshName ?? networkName
             _ = meshManager.save()
             return true
@@ -279,7 +286,76 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         return node
     }
 
-    func sendMessage(message: MeshMessage) throws { }
+    func sendMessage(message: MeshMessage) throws {
+        guard proxyConnected, meshManager.isNetworkCreated else {
+            throw NSError(domain: "nrf_mesh_flutter", code: 400, userInfo: [
+                NSLocalizedDescriptionKey: "Proxy is not connected or Mesh DB not loaded"
+            ])
+        }
+        guard let net = meshManager.meshNetwork else {
+            throw NSError(domain: "nrf_mesh_flutter", code: 500, userInfo: [
+                NSLocalizedDescriptionKey: "Mesh network not available"
+            ])
+        }
+        guard let opcode = message.opcode, let dst = message.address else {
+            throw NSError(domain: "nrf_mesh_flutter", code: 400, userInfo: [
+                NSLocalizedDescriptionKey: "Missing opcode or address"
+            ])
+        }
+        guard let appKeyIndex = message.appKeyIndex else {
+            throw NSError(domain: "nrf_mesh_flutter", code: 400, userInfo: [
+                NSLocalizedDescriptionKey: "Missing appKeyIndex"
+            ])
+        }
+        let keyIndex = KeyIndex(UInt16(truncatingIfNeeded: appKeyIndex))
+        guard let appKey = net.applicationKeys.first(where: { $0.index == keyIndex }) else {
+            throw NSError(domain: "nrf_mesh_flutter", code: 404, userInfo: [
+                NSLocalizedDescriptionKey: "AppKey not found for index \(appKeyIndex)"
+            ])
+        }
+        
+        let rawBytesAny = message.parameters?["bytes"] ?? []
+        let bytes: [UInt8]
+        if let b = rawBytesAny as? [Int64] {
+            bytes = b.map { UInt8(truncatingIfNeeded: $0) }
+        } else if let b = rawBytesAny as? [Int] {
+            bytes = b.map { UInt8(truncatingIfNeeded: $0) }
+        } else if let b = rawBytesAny as? [NSNumber] {
+            bytes = b.map { UInt8(truncatingIfNeeded: $0.intValue) }
+        } else {
+            bytes = []
+        }
+        
+        let msg = RawAccessMessage(opCode: UInt32(truncatingIfNeeded: opcode), parameters: Data(bytes))
+        let destination = MeshAddress(Address(UInt16(truncatingIfNeeded: dst)))
+        
+        // MeshNetworkManager uses async/await; Pigeon HostApi is sync.
+        let sem = DispatchSemaphore(value: 0)
+        var out: Result<Void, Error>?
+        do {
+            _ = try meshManager.send(msg, to: destination, using: appKey) { result in
+                out = result
+                sem.signal()
+            }
+        } catch {
+            throw error
+        }
+        if sem.wait(timeout: .now() + 10.0) == .timedOut {
+            throw NSError(domain: "nrf_mesh_flutter", code: 408, userInfo: [
+                NSLocalizedDescriptionKey: "Send message timeout"
+            ])
+        }
+        switch out {
+        case .success:
+            return
+        case .failure(let err):
+            throw err
+        case .none:
+            throw NSError(domain: "nrf_mesh_flutter", code: 500, userInfo: [
+                NSLocalizedDescriptionKey: "Send message unknown failure"
+            ])
+        }
+    }
     func getNodes() throws -> [ProvisionedNode] { nodes }
     func removeNode(nodeId: String) throws { }
 
@@ -456,6 +532,46 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
 
     func isProxyConnected() throws -> Bool {
         return proxyConnected
+    }
+}
+
+private struct RawAccessMessage: NordicMesh.MeshMessage {
+    let opCode: UInt32
+    let parameters: Data?
+    let security: MeshMessageSecurity = .low
+    let isSegmented: Bool = false
+    
+    init(opCode: UInt32, parameters: Data) {
+        self.opCode = opCode
+        self.parameters = parameters
+    }
+    
+    init?(parameters: Data) {
+        // This type is intended for outbound raw messages only.
+        return nil
+    }
+}
+
+// MARK: - MeshNetworkDelegate (incoming access messages)
+
+extension PlatoJobsMeshPlugin: MeshNetworkDelegate {
+    public func meshNetworkManager(
+        _ manager: MeshNetworkManager,
+        didReceiveMessage message: NordicMesh.MeshMessage,
+        sentFrom source: Address,
+        to destination: MeshAddress
+    ) {
+        let opcode = Int64(message.opCode)
+        let bytes = Array(message.parameters ?? Data()).map { Int64($0) }
+        let pigeon = MeshMessage(
+            opcode: opcode,
+            address: Int64(source),
+            appKeyIndex: nil,
+            parameters: [
+                "bytes": bytes
+            ]
+        )
+        flutterApi?.onMessageReceived(message: pigeon) { _ in }
     }
 }
 
