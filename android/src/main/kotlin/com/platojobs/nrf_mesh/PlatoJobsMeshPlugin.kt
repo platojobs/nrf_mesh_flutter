@@ -8,6 +8,9 @@ import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import no.nordicsemi.kotlin.ble.client.android.CentralManager
@@ -56,6 +59,7 @@ class PlatoJobsMeshPlugin :
     private var proxyConnected: Boolean = false
     private var kotlinMeshManager: MeshNetworkManager? = null
     private var bearer: MeshBearer? = null
+    private var incomingMessagesJob: Job? = null
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         appContext = flutterPluginBinding.applicationContext
@@ -105,12 +109,47 @@ class PlatoJobsMeshPlugin :
             override suspend fun localProvisioner(uuid: Uuid): String? = null
         }
         kotlinMeshManager = MeshNetworkManager(storage = storage, secureProperties = secure, ioDispatcher = Dispatchers.IO)
+
+        // Forward incoming mesh messages to Flutter.
+        incomingMessagesJob?.cancel()
+        incomingMessagesJob = ioScope.launch {
+            kotlinMeshManager?.incomingMeshMessages?.collect { msg ->
+                try {
+                    val bytes = (msg.parameters ?: byteArrayOf()).map { (it.toInt() and 0xFF).toLong() }
+                    val op = try {
+                        // Kotlin generates a mangled accessor for UInt-based opcodes.
+                        val m = msg.javaClass.methods.firstOrNull { it.name.startsWith("getOpCode") }
+                        val v = m?.invoke(msg)
+                        when (v) {
+                            is UInt -> v.toLong()
+                            is Int -> v.toLong()
+                            is Long -> v
+                            else -> 0L
+                        }
+                    } catch (_: Throwable) {
+                        0L
+                    }
+                    flutterApi?.onMessageReceived(
+                        MeshMessage(
+                            opcode = op,
+                            address = null,
+                            appKeyIndex = null,
+                            parameters = mapOf("bytes" to bytes),
+                        )
+                    ) {}
+                } catch (_: Throwable) {
+                    // Ignore forwarding failures; do not crash the collector.
+                }
+            }
+        }
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         MeshApi.setUp(binding.binaryMessenger, null)
         flutterApi = null
         legacyManager = null
+        incomingMessagesJob?.cancel()
+        incomingMessagesJob = null
         kotlinMeshManager = null
         appContext = null
     }
