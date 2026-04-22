@@ -6,6 +6,7 @@ import 'src/models/provisioned_node.dart' as models;
 import 'src/models/unprovisioned_device.dart' as models;
 import 'src/models/mesh_group.dart' as models;
 import 'src/models/mesh_message.dart' as models;
+import 'src/models/raw_access_message.dart' as models;
 import 'src/platform_interface/platojobs_mesh_platform.dart' as platform;
 
 export 'src/models/mesh_network.dart' show MeshNetwork, NetworkKey, AppKey, Provisioner;
@@ -21,6 +22,7 @@ export 'src/models/mesh_message.dart'
         GenericLevelSet,
         GenericOnOffStatus,
         GenericLevelStatus;
+export 'src/models/raw_access_message.dart' show RawAccessMessage;
 export 'src/core/mesh_exceptions.dart'
     show
         PlatoJobsMeshException,
@@ -93,6 +95,25 @@ class PlatoJobsNrfMeshManager {
 
   Future<void> sendMessage(models.MeshMessage message) async {
     return await _meshManagerApi.sendMessage(message);
+  }
+
+  /// Send a raw Access message (opcode + parameters bytes) to [address] using [appKeyIndex].
+  ///
+  /// Prefer this over manually constructing a Pigeon payload map.
+  Future<void> sendAccess({
+    required int opCode,
+    required List<int> parameters,
+    required int address,
+    required int appKeyIndex,
+  }) async {
+    return await _meshManagerApi.sendMessage(
+      models.RawAccessMessage(
+        opCode: opCode,
+        parameters: parameters,
+        address: address,
+        appKeyIndex: appKeyIndex,
+      ),
+    );
   }
 
   Stream<models.MeshMessage> get messageStream {
