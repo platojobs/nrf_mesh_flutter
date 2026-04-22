@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 
 import 'package:nrf_mesh_flutter/nrf_mesh_flutter.dart';
+import 'real_p1_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -217,6 +218,17 @@ class _MyAppState extends State<MyApp> {
                   ElevatedButton(
                     onPressed: _configDemo,
                     child: const Text('Config Demo'),
+                  ),
+                  const SizedBox(width: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const RealP1Page(),
+                        ),
+                      );
+                    },
+                    child: const Text('P1 Real Flow'),
                   ),
                 ],
               ),

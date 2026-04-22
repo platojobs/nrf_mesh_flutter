@@ -677,7 +677,7 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
 + (instancetype)makeWithOpcode:(NSInteger )opcode
     address:(NSInteger )address
     appKeyIndex:(NSInteger )appKeyIndex
-    parameters:(NSDictionary<NSString *, dynamic *> *)parameters {
+    parameters:(NSDictionary<NSString *, id> *)parameters {
   MeshMessage* pigeonResult = [[MeshMessage alloc] init];
   pigeonResult.opcode = opcode;
   pigeonResult.address = address;
