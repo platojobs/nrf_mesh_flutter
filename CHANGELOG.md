@@ -1,6 +1,7 @@
-## 2.1.0
+## 3.0.0
 
 ### Features
+- P2: iOS now forwards incoming Access messages (via `MeshNetworkDelegate`) into Dart `messageStream`, and implements real `sendMessage(...)` over GATT Proxy using an AppKey + destination address.
 - iOS: real GATT Proxy connection via `NordicMesh` / `GattBearer`, `MeshNetworkManager` import/export of Mesh Configuration Database 1.0.1, and real Foundation Config messages (bind/unbind AppKey, subscription add/delete, publication set) when a proxy is connected.
 - Android: when a proxy is connected, real config send no longer falls back to in-memory state on failure; errors surface to the app. When not on a live path, legacy in-memory config remains for UI dev.
 - Example: new **P1 Real Flow** page (`real_p1_page.dart`) to import mesh JSON, scan, connect proxy, and run bind/sub/pub with a log console.
