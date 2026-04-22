@@ -1,3 +1,5 @@
+import 'raw_access_message.dart';
+
 abstract class MeshMessage {
   /// Opcode as hex string (e.g. `0x8201`).
   final String opcode;
@@ -41,6 +43,13 @@ abstract class MeshMessage {
         return GenericOnOffStatus.fromMap(map);
       case 'GenericLevelStatus':
         return GenericLevelStatus.fromMap(map);
+      case 'RawAccessMessage':
+        return RawAccessMessage(
+          opCode: map['opCode'],
+          parameters: List<int>.from(map['parameters']),
+          address: map['address'],
+          appKeyIndex: map['appKeyIndex'],
+        );
       default:
         return UnknownMessage(
           opcode: map['opcode'],
