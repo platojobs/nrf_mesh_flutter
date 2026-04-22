@@ -14,6 +14,7 @@ class _RealP1PageState extends State<RealP1Page> {
   final _mesh = PlatoJobsNrfMeshManager.instance;
 
   StreamSubscription<UnprovisionedDevice>? _scanSub;
+  StreamSubscription<MeshMessage>? _msgSub;
   final List<UnprovisionedDevice> _proxies = [];
   bool _scanning = false;
   bool _connecting = false;
@@ -29,11 +30,28 @@ class _RealP1PageState extends State<RealP1Page> {
   final _pubAddressCtrl = TextEditingController(text: '0xC000');
   final _ttlCtrl = TextEditingController(text: '5');
 
+  // Access (P2)
+  final _accessDstCtrl = TextEditingController(text: '0xC000');
+  final _accessAppKeyIndexCtrl = TextEditingController(text: '0');
+  final _levelCtrl = TextEditingController(text: '0');
+
   final List<String> _logs = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _msgSub = _mesh.messageStream.listen(
+      (m) => _log(
+        'RX ${m.runtimeType} opcode=${m.opcode} addr=${m.address} appKeyIndex=${m.appKeyIndex} params=${m.parameters}',
+      ),
+      onError: (e) => _log('messageStream error: $e'),
+    );
+  }
 
   @override
   void dispose() {
     _scanSub?.cancel();
+    _msgSub?.cancel();
     _importPathCtrl.dispose();
     _proxyUnicastCtrl.dispose();
     _elementAddressCtrl.dispose();
@@ -42,6 +60,9 @@ class _RealP1PageState extends State<RealP1Page> {
     _subAddressCtrl.dispose();
     _pubAddressCtrl.dispose();
     _ttlCtrl.dispose();
+    _accessDstCtrl.dispose();
+    _accessAppKeyIndexCtrl.dispose();
+    _levelCtrl.dispose();
     super.dispose();
   }
 
@@ -162,6 +183,31 @@ class _RealP1PageState extends State<RealP1Page> {
       _log('setPublication result=$ok');
     } catch (e) {
       _log('setPublication error: $e');
+    }
+  }
+
+  Future<void> _sendOnOff(bool state) async {
+    try {
+      final dst = _parseInt(_accessDstCtrl.text);
+      final app = _parseInt(_accessAppKeyIndexCtrl.text);
+      _log('Send GenericOnOffSet state=$state dst=0x${dst.toRadixString(16)} appKeyIndex=$app');
+      await _mesh.sendMessage(GenericOnOffSet(state: state, address: dst, appKeyIndex: app));
+      _log('sendMessage(GenericOnOffSet) OK');
+    } catch (e) {
+      _log('sendMessage(GenericOnOffSet) error: $e');
+    }
+  }
+
+  Future<void> _sendLevel() async {
+    try {
+      final dst = _parseInt(_accessDstCtrl.text);
+      final app = _parseInt(_accessAppKeyIndexCtrl.text);
+      final level = int.parse(_levelCtrl.text.trim());
+      _log('Send GenericLevelSet level=$level dst=0x${dst.toRadixString(16)} appKeyIndex=$app');
+      await _mesh.sendMessage(GenericLevelSet(level: level, address: dst, appKeyIndex: app));
+      _log('sendMessage(GenericLevelSet) OK');
+    } catch (e) {
+      _log('sendMessage(GenericLevelSet) error: $e');
     }
   }
 
@@ -360,6 +406,70 @@ class _RealP1PageState extends State<RealP1Page> {
                   }
                 },
                 child: const Text('Reload'),
+              ),
+            ],
+          ),
+          const Divider(height: 32),
+          const Text(
+            'Step 3: Access messages (P2 - send Generic OnOff/Level)',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _accessDstCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Destination (group/unicast)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: _accessAppKeyIndexCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'AppKeyIndex (decimal)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _levelCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Level (int, -32768..32767)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () => _sendOnOff(true),
+                      child: const Text('OnOff: ON'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => _sendOnOff(false),
+                      child: const Text('OnOff: OFF'),
+                    ),
+                    ElevatedButton(
+                      onPressed: _sendLevel,
+                      child: const Text('Level: SET'),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

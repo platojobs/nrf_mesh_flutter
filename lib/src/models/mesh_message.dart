@@ -114,23 +114,33 @@ abstract class MeshMessage {
 
 class GenericOnOffSet extends MeshMessage {
   final bool state;
+  final int tid;
   final int? transitionTime;
   final int? delay;
 
   GenericOnOffSet({
     required this.state,
+    int? tid,
     this.transitionTime,
     this.delay,
     super.address,
     super.appKeyIndex,
-  }) : super(
-          opcode: '0x8201',
-          parameters: _buildParameters(state, transitionTime, delay),
+  })  : tid = (tid ?? DateTime.now().millisecondsSinceEpoch & 0xFF),
+        super(
+          // Generic OnOff Set (acknowledged): 0x8202
+          opcode: '0x8202',
+          parameters: _buildParameters(
+            state,
+            tid ?? DateTime.now().millisecondsSinceEpoch & 0xFF,
+            transitionTime,
+            delay,
+          ),
         );
 
   factory GenericOnOffSet.fromMap(Map<String, dynamic> map) {
     return GenericOnOffSet(
       state: map['state'],
+      tid: map['tid'],
       transitionTime: map['transitionTime'],
       delay: map['delay'],
       address: map['address'],
@@ -142,17 +152,25 @@ class GenericOnOffSet extends MeshMessage {
   Map<String, dynamic> toMap() {
     return super.toMap()..addAll({
       'state': state,
+      'tid': tid,
       'transitionTime': transitionTime,
       'delay': delay,
     });
   }
 
-  static List<int> _buildParameters(bool state, int? transitionTime, int? delay) {
+  static List<int> _buildParameters(
+    bool state,
+    int tid,
+    int? transitionTime,
+    int? delay,
+  ) {
     final params = <int>[];
     params.add(state ? 1 : 0);
+    params.add(tid & 0xFF);
     if (transitionTime != null && delay != null) {
-      // Format transition time and delay according to Mesh spec
-      params.add((transitionTime << 4) | (delay & 0x0F));
+      // Mesh Model spec: optional Transition Time (1B) + Delay (1B, 5ms steps).
+      params.add(transitionTime & 0xFF);
+      params.add(delay & 0xFF);
     }
     return params;
   }
@@ -160,23 +178,33 @@ class GenericOnOffSet extends MeshMessage {
 
 class GenericLevelSet extends MeshMessage {
   final int level;
+  final int tid;
   final int? transitionTime;
   final int? delay;
 
   GenericLevelSet({
     required this.level,
+    int? tid,
     this.transitionTime,
     this.delay,
     super.address,
     super.appKeyIndex,
-  }) : super(
-          opcode: '0x8203',
-          parameters: _buildParameters(level, transitionTime, delay),
+  })  : tid = (tid ?? DateTime.now().millisecondsSinceEpoch & 0xFF),
+        super(
+          // Generic Level Set (acknowledged): 0x8206
+          opcode: '0x8206',
+          parameters: _buildParameters(
+            level,
+            tid ?? DateTime.now().millisecondsSinceEpoch & 0xFF,
+            transitionTime,
+            delay,
+          ),
         );
 
   factory GenericLevelSet.fromMap(Map<String, dynamic> map) {
     return GenericLevelSet(
       level: map['level'],
+      tid: map['tid'],
       transitionTime: map['transitionTime'],
       delay: map['delay'],
       address: map['address'],
@@ -188,18 +216,26 @@ class GenericLevelSet extends MeshMessage {
   Map<String, dynamic> toMap() {
     return super.toMap()..addAll({
       'level': level,
+      'tid': tid,
       'transitionTime': transitionTime,
       'delay': delay,
     });
   }
 
-  static List<int> _buildParameters(int level, int? transitionTime, int? delay) {
+  static List<int> _buildParameters(
+    int level,
+    int tid,
+    int? transitionTime,
+    int? delay,
+  ) {
     final params = <int>[];
     // Convert level to 2-byte little-endian
     params.add(level & 0xFF);
     params.add((level >> 8) & 0xFF);
+    params.add(tid & 0xFF);
     if (transitionTime != null && delay != null) {
-      params.add((transitionTime << 4) | (delay & 0x0F));
+      params.add(transitionTime & 0xFF);
+      params.add(delay & 0xFF);
     }
     return params;
   }
