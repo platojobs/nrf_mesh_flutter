@@ -151,11 +151,11 @@ NS_ASSUME_NONNULL_BEGIN
 + (instancetype)makeWithOpcode:(NSInteger )opcode
     address:(NSInteger )address
     appKeyIndex:(NSInteger )appKeyIndex
-    parameters:(NSDictionary<NSString *, dynamic *> *)parameters;
+    parameters:(NSDictionary<NSString *, id> *)parameters;
 @property(nonatomic, assign) NSInteger  opcode;
 @property(nonatomic, assign) NSInteger  address;
 @property(nonatomic, assign) NSInteger  appKeyIndex;
-@property(nonatomic, copy) NSDictionary<NSString *, dynamic *> * parameters;
+@property(nonatomic, copy) NSDictionary<NSString *, id> * parameters;
 @end
 
 @interface ProvisioningParameters : NSObject

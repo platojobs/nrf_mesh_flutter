@@ -8,7 +8,6 @@ import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import no.nordicsemi.kotlin.ble.client.android.CentralManagerFactory
 import no.nordicsemi.kotlin.ble.environment.android.NativeAndroidEnvironment
@@ -16,8 +15,19 @@ import no.nordicsemi.kotlin.mesh.bearer.gatt.GattBearerImpl
 import no.nordicsemi.kotlin.mesh.core.MeshNetworkManager
 import no.nordicsemi.kotlin.mesh.core.SecurePropertiesStorage
 import no.nordicsemi.kotlin.mesh.core.Storage
+import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigModelAppBind
+import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigModelAppUnbind
+import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigModelPublicationSet
+import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigModelSubscriptionAdd
+import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigModelSubscriptionDelete
 import no.nordicsemi.kotlin.mesh.core.model.IvIndex
+import no.nordicsemi.kotlin.mesh.core.model.MeshAddress
+import no.nordicsemi.kotlin.mesh.core.model.Publish
+import no.nordicsemi.kotlin.mesh.core.model.PublishPeriod
+import no.nordicsemi.kotlin.mesh.core.model.Retransmit
+import no.nordicsemi.kotlin.mesh.core.model.SigModelId
 import no.nordicsemi.kotlin.mesh.core.model.UnicastAddress
+import no.nordicsemi.kotlin.mesh.core.model.isValidKeyIndex
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -152,6 +162,23 @@ class PlatoJobsMeshPlugin :
 
     override fun importNetwork(path: String): Boolean {
         val ctx = appContext ?: return false
+        // Try importing a standard Mesh DB (Configuration Database Profile 1.0.1) using Kotlin Mesh.
+        val km = kotlinMeshManager
+        if (km != null) {
+            try {
+                val f = File(path)
+                val inp = if (f.isAbsolute) f else File(ctx.filesDir, path)
+                if (inp.exists()) {
+                    val bytes = inp.readBytes()
+                    runBlocking { km.import(bytes) }
+                    // Persist into Kotlin storage via manager.save().
+                    runBlocking { km.save() }
+                    return true
+                }
+            } catch (_: Throwable) {
+                // Fall through to legacy JSON import.
+            }
+        }
         return legacyManager?.importFromPath(ctx, path) ?: false
     }
 
@@ -204,16 +231,121 @@ class PlatoJobsMeshPlugin :
 
     // Configuration (P1 - minimal, in-memory)
     override fun bindAppKey(elementAddress: Long, modelId: Long, appKeyIndex: Long): Boolean =
-        legacyManager?.bindAppKey(elementAddress, modelId, appKeyIndex) ?: false
+        try {
+            val km = kotlinMeshManager
+            if (proxyConnected) {
+                requireNotNull(km) { "Kotlin Mesh manager is not initialized" }
+                require(km.export() != null) { "Mesh DB is not loaded (importNetwork first)" }
+                val keyIndex = appKeyIndex.toUShort()
+                require(keyIndex.isValidKeyIndex()) { "Invalid AppKeyIndex" }
+                runBlocking {
+                    km.send(
+                        message = ConfigModelAppBind(
+                            keyIndex = keyIndex,
+                            elementAddress = UnicastAddress(elementAddress.toUShort()),
+                            modelId = SigModelId(modelIdentifier = modelId.toUShort())
+                        ),
+                        destination = elementAddress.toInt(),
+                        initialTtl = null
+                    )
+                    km.save()
+                }
+                true
+            } else {
+                legacyManager?.bindAppKey(elementAddress, modelId, appKeyIndex) ?: false
+            }
+        } catch (t: Throwable) {
+            // If proxy is connected, the caller expects real config path. Surface the error.
+            if (proxyConnected) throw t
+            legacyManager?.bindAppKey(elementAddress, modelId, appKeyIndex) ?: false
+        }
 
     override fun unbindAppKey(elementAddress: Long, modelId: Long, appKeyIndex: Long): Boolean =
-        legacyManager?.unbindAppKey(elementAddress, modelId, appKeyIndex) ?: false
+        try {
+            val km = kotlinMeshManager
+            if (proxyConnected) {
+                requireNotNull(km) { "Kotlin Mesh manager is not initialized" }
+                require(km.export() != null) { "Mesh DB is not loaded (importNetwork first)" }
+                val keyIndex = appKeyIndex.toUShort()
+                require(keyIndex.isValidKeyIndex()) { "Invalid AppKeyIndex" }
+                runBlocking {
+                    km.send(
+                        message = ConfigModelAppUnbind(
+                            keyIndex = keyIndex,
+                            elementAddress = UnicastAddress(elementAddress.toUShort()),
+                            modelId = SigModelId(modelIdentifier = modelId.toUShort())
+                        ),
+                        destination = elementAddress.toInt(),
+                        initialTtl = null
+                    )
+                    km.save()
+                }
+                true
+            } else {
+                legacyManager?.unbindAppKey(elementAddress, modelId, appKeyIndex) ?: false
+            }
+        } catch (t: Throwable) {
+            if (proxyConnected) throw t
+            legacyManager?.unbindAppKey(elementAddress, modelId, appKeyIndex) ?: false
+        }
 
     override fun addSubscription(elementAddress: Long, modelId: Long, address: Long): Boolean =
-        legacyManager?.addSubscription(elementAddress, modelId, address) ?: false
+        try {
+            val km = kotlinMeshManager
+            if (proxyConnected) {
+                requireNotNull(km) { "Kotlin Mesh manager is not initialized" }
+                require(km.export() != null) { "Mesh DB is not loaded (importNetwork first)" }
+                runBlocking {
+                    val sub = MeshAddress.create(address.toInt())
+                    km.send(
+                        message = ConfigModelSubscriptionAdd(
+                            elementAddress = UnicastAddress(elementAddress.toUShort()),
+                            address = sub.address,
+                            modelIdentifier = modelId.toUShort(),
+                            companyIdentifier = null
+                        ),
+                        destination = elementAddress.toInt(),
+                        initialTtl = null
+                    )
+                    km.save()
+                }
+                true
+            } else {
+                legacyManager?.addSubscription(elementAddress, modelId, address) ?: false
+            }
+        } catch (t: Throwable) {
+            if (proxyConnected) throw t
+            legacyManager?.addSubscription(elementAddress, modelId, address) ?: false
+        }
 
     override fun removeSubscription(elementAddress: Long, modelId: Long, address: Long): Boolean =
-        legacyManager?.removeSubscription(elementAddress, modelId, address) ?: false
+        try {
+            val km = kotlinMeshManager
+            if (proxyConnected) {
+                requireNotNull(km) { "Kotlin Mesh manager is not initialized" }
+                require(km.export() != null) { "Mesh DB is not loaded (importNetwork first)" }
+                runBlocking {
+                    val sub = MeshAddress.create(address.toInt())
+                    km.send(
+                        message = ConfigModelSubscriptionDelete(
+                            elementAddress = UnicastAddress(elementAddress.toUShort()),
+                            address = sub.address,
+                            modelIdentifier = modelId.toUShort(),
+                            companyIdentifier = null
+                        ),
+                        destination = elementAddress.toInt(),
+                        initialTtl = null
+                    )
+                    km.save()
+                }
+                true
+            } else {
+                legacyManager?.removeSubscription(elementAddress, modelId, address) ?: false
+            }
+        } catch (t: Throwable) {
+            if (proxyConnected) throw t
+            legacyManager?.removeSubscription(elementAddress, modelId, address) ?: false
+        }
 
     override fun setPublication(
         elementAddress: Long,
@@ -221,7 +353,45 @@ class PlatoJobsMeshPlugin :
         publishAddress: Long,
         appKeyIndex: Long,
         ttl: Long?
-    ): Boolean = legacyManager?.setPublication(elementAddress, modelId, publishAddress, appKeyIndex, ttl) ?: false
+    ): Boolean =
+        try {
+            val km = kotlinMeshManager
+            if (proxyConnected) {
+                requireNotNull(km) { "Kotlin Mesh manager is not initialized" }
+                require(km.export() != null) { "Mesh DB is not loaded (importNetwork first)" }
+                val keyIndex = appKeyIndex.toUShort()
+                require(keyIndex.isValidKeyIndex()) { "Invalid AppKeyIndex" }
+                runBlocking {
+                    val pubAddr =
+                        MeshAddress.create(publishAddress.toInt()) as no.nordicsemi.kotlin.mesh.core.model.PublicationAddress
+                    val publish = Publish(
+                        address = pubAddr,
+                        index = keyIndex,
+                        ttl = (ttl ?: 0L).coerceIn(0, 255).toUByte(),
+                        period = PublishPeriod.disabled,
+                        credentials = no.nordicsemi.kotlin.mesh.core.model.MasterSecurity,
+                        retransmit = Retransmit.disabled
+                    )
+                    km.send(
+                        message = ConfigModelPublicationSet(
+                            companyIdentifier = null,
+                            modelIdentifier = modelId.toUShort(),
+                            elementAddress = UnicastAddress(elementAddress.toUShort()),
+                            publish = publish
+                        ),
+                        destination = elementAddress.toInt(),
+                        initialTtl = null
+                    )
+                    km.save()
+                }
+                true
+            } else {
+                legacyManager?.setPublication(elementAddress, modelId, publishAddress, appKeyIndex, ttl) ?: false
+            }
+        } catch (t: Throwable) {
+            if (proxyConnected) throw t
+            legacyManager?.setPublication(elementAddress, modelId, publishAddress, appKeyIndex, ttl) ?: false
+        }
 
     // Proxy connection (P1 real-transport prerequisite)
     override fun connectProxy(deviceId: String, proxyUnicastAddress: Long): Boolean {

@@ -1,6 +1,9 @@
 # Project specific (not for version control)
 # PROJECT_SPECIFICATIONS.md - Local maintenance doc
 
+# Local scratch / extracted sources (do not commit)
+.tmp/
+
 # Miscellaneous
 *.class
 *.log

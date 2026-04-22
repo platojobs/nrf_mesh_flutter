@@ -1,10 +1,10 @@
 #
 # To learn more about a Podspec see http://guides.cocoapods.org/syntax/podspec.html.
-# Run `pod lib lint platojobs_nrf_mesh.podspec` to validate before publishing.
+# Run `pod lib lint nrf_mesh_flutter.podspec` to validate before publishing.
 #
 Pod::Spec.new do |s|
-  s.name             = 'platojobs_nrf_mesh'
-  s.version          = '0.3.0'
+  s.name             = 'nrf_mesh_flutter'
+  s.version          = '2.0.2'
   s.summary          = 'Flutter plugin for Bluetooth Mesh using Nordic nRF Mesh libraries'
   s.description      = <<-DESC
 Flutter plugin for Bluetooth Mesh using Nordic nRF Mesh libraries.

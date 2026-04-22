@@ -1,3 +1,12 @@
+## 2.0.2
+
+### Features
+- iOS: real GATT Proxy connection via `NordicMesh` / `GattBearer`, `MeshNetworkManager` import/export of Mesh Configuration Database 1.0.1, and real Foundation Config messages (bind/unbind AppKey, subscription add/delete, publication set) when a proxy is connected.
+- Android: when a proxy is connected, real config send no longer falls back to in-memory state on failure; errors surface to the app. When not on a live path, legacy in-memory config remains for UI dev.
+- Example: new **P1 Real Flow** page (`real_p1_page.dart`) to import mesh JSON, scan, connect proxy, and run bind/sub/pub with a log console.
+- iOS: fix Pigeon-generated ObjC `MeshMessage.parameters` type (`id` instead of invalid `dynamic` in headers).
+- iOS: CocoaPods `nrf_mesh_flutter` pod name alignment, `use_frameworks! :linkage => :static` in example for `nRFMeshProvision` static framework.
+
 ## 2.0.1
 
 ### Features
