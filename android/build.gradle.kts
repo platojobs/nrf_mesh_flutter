@@ -38,6 +38,11 @@ android {
 
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_17.toString()
+        freeCompilerArgs += listOf(
+            // Nordic Kotlin BLE client artifacts may contain pre-release Kotlin metadata.
+            // We build with a stable Kotlin compiler; skip the check to allow compilation.
+            "-Xskip-prerelease-check",
+        )
     }
 
     sourceSets {

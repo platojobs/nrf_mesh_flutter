@@ -8,19 +8,24 @@ import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
-import no.nordicsemi.kotlin.ble.client.android.CentralManagerFactory
+import no.nordicsemi.kotlin.ble.client.android.CentralManager
+import no.nordicsemi.kotlin.ble.client.android.native
 import no.nordicsemi.kotlin.ble.environment.android.NativeAndroidEnvironment
+import no.nordicsemi.kotlin.mesh.bearer.MeshBearer
 import no.nordicsemi.kotlin.mesh.bearer.gatt.GattBearerImpl
 import no.nordicsemi.kotlin.mesh.core.MeshNetworkManager
 import no.nordicsemi.kotlin.mesh.core.SecurePropertiesStorage
 import no.nordicsemi.kotlin.mesh.core.Storage
+import no.nordicsemi.kotlin.mesh.core.messages.MeshMessage as KmMeshMessage
 import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigModelAppBind
 import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigModelAppUnbind
 import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigModelPublicationSet
 import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigModelSubscriptionAdd
 import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigModelSubscriptionDelete
 import no.nordicsemi.kotlin.mesh.core.model.IvIndex
+import no.nordicsemi.kotlin.mesh.core.model.ApplicationKey
 import no.nordicsemi.kotlin.mesh.core.model.MeshAddress
 import no.nordicsemi.kotlin.mesh.core.model.Publish
 import no.nordicsemi.kotlin.mesh.core.model.PublishPeriod
@@ -28,6 +33,7 @@ import no.nordicsemi.kotlin.mesh.core.model.Retransmit
 import no.nordicsemi.kotlin.mesh.core.model.SigModelId
 import no.nordicsemi.kotlin.mesh.core.model.UnicastAddress
 import no.nordicsemi.kotlin.mesh.core.model.isValidKeyIndex
+import kotlin.time.ExperimentalTime
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -49,7 +55,7 @@ class PlatoJobsMeshPlugin :
     private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var proxyConnected: Boolean = false
     private var kotlinMeshManager: MeshNetworkManager? = null
-    private var bearer: GattBearerImpl<String, no.nordicsemi.kotlin.ble.client.CentralManager<String, no.nordicsemi.kotlin.ble.client.Peripheral<String, *>, *, *, *>, no.nordicsemi.kotlin.ble.client.Peripheral<String, *>, no.nordicsemi.kotlin.ble.client.Peripheral.Executor<String>, no.nordicsemi.kotlin.ble.client.CentralManager.ScanFilterScope, no.nordicsemi.kotlin.ble.client.ScanResult<*, *>>? = null
+    private var bearer: MeshBearer? = null
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         appContext = flutterPluginBinding.applicationContext
@@ -71,6 +77,7 @@ class PlatoJobsMeshPlugin :
                 f.writeBytes(network)
             }
         }
+        @OptIn(ExperimentalTime::class)
         val secure = object : SecurePropertiesStorage {
             // Minimal in-memory secure properties. Persisting seq/iv will be added later.
             private var iv: IvIndex = IvIndex(0u)
@@ -205,7 +212,35 @@ class PlatoJobsMeshPlugin :
     }
 
     override fun sendMessage(message: MeshMessage) {
-        // Placeholder: no-op
+        val km = kotlinMeshManager
+        if (!proxyConnected) {
+            // Keep legacy behavior for UI/testing when not connected to a Proxy.
+            return
+        }
+        requireNotNull(km) { "Kotlin Mesh manager is not initialized" }
+        require(km.export() != null) { "Mesh DB is not loaded (importNetwork first)" }
+        val opcode = (message.opcode ?: 0L).toInt().toUInt()
+        val dst = (message.address ?: 0L).toInt()
+        val appKeyIndex = (message.appKeyIndex ?: 0L).toUShort()
+        val bytesAny: Any? = message.parameters?.get("bytes")
+        val bytes: ByteArray = (bytesAny as? List<*>)?.mapNotNull { (it as? Number)?.toInt() }
+            ?.map { it.and(0xFF).toByte() }
+            ?.toByteArray()
+            ?: byteArrayOf()
+
+        runBlocking<Unit> {
+            val net: no.nordicsemi.kotlin.mesh.core.model.MeshNetwork = km.meshNetwork.first()
+            val appKey: ApplicationKey = requireNotNull(net.applicationKey(appKeyIndex)) {
+                "AppKey not found for index $appKeyIndex"
+            }
+            km.send(
+                message = RawAccessMessage(opCode = opcode, parameters = bytes),
+                localElement = null,
+                destination = MeshAddress.Companion.create(dst),
+                initialTtl = null,
+                applicationKey = appKey
+            )
+        }
     }
 
     override fun getNodes(): List<ProvisionedNode> = legacyManager?.getNodes() ?: emptyList()
@@ -245,7 +280,7 @@ class PlatoJobsMeshPlugin :
                             elementAddress = UnicastAddress(elementAddress.toUShort()),
                             modelId = SigModelId(modelIdentifier = modelId.toUShort())
                         ),
-                        destination = elementAddress.toInt(),
+                        destination = elementAddress.toUShort(),
                         initialTtl = null
                     )
                     km.save()
@@ -275,7 +310,7 @@ class PlatoJobsMeshPlugin :
                             elementAddress = UnicastAddress(elementAddress.toUShort()),
                             modelId = SigModelId(modelIdentifier = modelId.toUShort())
                         ),
-                        destination = elementAddress.toInt(),
+                        destination = elementAddress.toUShort(),
                         initialTtl = null
                     )
                     km.save()
@@ -304,7 +339,7 @@ class PlatoJobsMeshPlugin :
                             modelIdentifier = modelId.toUShort(),
                             companyIdentifier = null
                         ),
-                        destination = elementAddress.toInt(),
+                        destination = elementAddress.toUShort(),
                         initialTtl = null
                     )
                     km.save()
@@ -333,7 +368,7 @@ class PlatoJobsMeshPlugin :
                             modelIdentifier = modelId.toUShort(),
                             companyIdentifier = null
                         ),
-                        destination = elementAddress.toInt(),
+                        destination = elementAddress.toUShort(),
                         initialTtl = null
                     )
                     km.save()
@@ -379,7 +414,7 @@ class PlatoJobsMeshPlugin :
                             elementAddress = UnicastAddress(elementAddress.toUShort()),
                             publish = publish
                         ),
-                        destination = elementAddress.toInt(),
+                        destination = elementAddress.toUShort(),
                         initialTtl = null
                     )
                     km.save()
@@ -404,7 +439,10 @@ class PlatoJobsMeshPlugin :
                     context = ctx,
                     isNeverForLocationFlagSet = true
                 )
-                val central = CentralManagerFactory.native(environment = env, scope = ioScope)
+                val central = no.nordicsemi.kotlin.ble.client.android.CentralManager.Factory.native(
+                    environment = env,
+                    scope = ioScope
+                )
                 val peripheral = central.getPeripheralsById(listOf(deviceId)).first()
                 val b = GattBearerImpl(
                     peripheral = peripheral,
@@ -437,6 +475,12 @@ class PlatoJobsMeshPlugin :
     }
 
     override fun isProxyConnected(): Boolean = proxyConnected
+}
+
+private data class RawAccessMessage(
+    override val opCode: UInt,
+    override val parameters: ByteArray
+) : KmMeshMessage {
 }
 
 /**
@@ -617,7 +661,9 @@ class MeshManager {
         o.put("nodeId", n.nodeId)
         o.put("name", n.name)
         o.put("unicastAddress", n.unicastAddress)
-        o.put("uuid", JSONArray(n.uuid ?: emptyList()))
+        val uuidArr = JSONArray()
+        for (b in (n.uuid ?: emptyList())) uuidArr.put(b)
+        o.put("uuid", uuidArr)
         o.put("provisioned", n.provisioned)
         val elements = JSONArray()
         for (e in n.elements ?: emptyList()) {
@@ -630,8 +676,12 @@ class MeshManager {
                 mo.put("modelName", m.modelName)
                 mo.put("publishable", m.publishable)
                 mo.put("subscribable", m.subscribable)
-                mo.put("boundAppKeyIndexes", JSONArray(m.boundAppKeyIndexes ?: emptyList()))
-                mo.put("subscriptions", JSONArray(m.subscriptions ?: emptyList()))
+                val boundArr = JSONArray()
+                for (v in (m.boundAppKeyIndexes ?: emptyList())) boundArr.put(v)
+                mo.put("boundAppKeyIndexes", boundArr)
+                val subsArr = JSONArray()
+                for (v in (m.subscriptions ?: emptyList())) subsArr.put(v)
+                mo.put("subscriptions", subsArr)
                 val pub = m.publication
                 if (pub != null) {
                     val po = JSONObject()
