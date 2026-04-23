@@ -4,6 +4,7 @@ import '../models/mesh_group.dart';
 import '../models/mesh_message.dart';
 import '../models/mesh_network.dart';
 import '../models/provisioned_node.dart';
+import '../models/rx_access_message.dart';
 import '../models/unprovisioned_device.dart';
 import '../platform_interface/platojobs_mesh_platform.dart';
 
@@ -77,6 +78,8 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
       StreamController<UnprovisionedDevice>.broadcast();
   final StreamController<MeshMessage> _messageController =
       StreamController<MeshMessage>.broadcast();
+  final StreamController<RxAccessMessage> _rxAccessController =
+      StreamController<RxAccessMessage>.broadcast();
   final StreamController<MeshMessage> _sentMessageController =
       StreamController<MeshMessage>.broadcast();
 
@@ -272,6 +275,9 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
   Stream<MeshMessage> get messageStream => _messageController.stream;
 
   @override
+  Stream<RxAccessMessage> get rxAccessMessageStream => _rxAccessController.stream;
+
+  @override
   Future<List<ProvisionedNode>> getNodes() async => List.unmodifiable(_nodes);
 
   @override
@@ -444,6 +450,15 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
   /// Test helper: emit a fake incoming mesh message.
   void emitIncomingMessage(MeshMessage message) {
     _messageController.add(message);
+    _rxAccessController.add(
+      RxAccessMessage(
+        opcode: int.tryParse(message.opcode.replaceFirst('0x', ''), radix: 16) ?? 0,
+        parameters: message.parameters,
+        source: message.address,
+        destination: null,
+        metadataStatus: message.address == null ? RxMetadataStatus.unavailable : RxMetadataStatus.available,
+      ),
+    );
   }
 
   /// Test helper: emit an error on scan stream.

@@ -107,6 +107,11 @@ int _deepHash(Object? value) {
 }
 
 
+enum RxMetadataStatus {
+  available,
+  unavailable,
+}
+
 class MeshNetwork {
   MeshNetwork({
     this.networkId,
@@ -732,6 +737,69 @@ class MeshMessage {
   int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
 }
 
+class RxAccessMessage {
+  RxAccessMessage({
+    this.opcode,
+    this.parameters,
+    this.source,
+    this.destination,
+    this.metadataStatus,
+  });
+
+  int? opcode;
+
+  /// Access message parameters (raw bytes).
+  List<int>? parameters;
+
+  /// Best-effort source address (unicast), if available.
+  int? source;
+
+  /// Best-effort destination address, if available.
+  int? destination;
+
+  RxMetadataStatus? metadataStatus;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      opcode,
+      parameters,
+      source,
+      destination,
+      metadataStatus,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static RxAccessMessage decode(Object result) {
+    result as List<Object?>;
+    return RxAccessMessage(
+      opcode: result[0] as int?,
+      parameters: (result[1] as List<Object?>?)?.cast<int>(),
+      source: result[2] as int?,
+      destination: result[3] as int?,
+      metadataStatus: result[4] as RxMetadataStatus?,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! RxAccessMessage || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(opcode, other.opcode) && _deepEquals(parameters, other.parameters) && _deepEquals(source, other.source) && _deepEquals(destination, other.destination) && _deepEquals(metadataStatus, other.metadataStatus);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+}
+
 class ProvisioningParameters {
   ProvisioningParameters({
     this.deviceName,
@@ -895,47 +963,53 @@ class _PigeonCodec extends StandardMessageCodec {
     if (value is int) {
       buffer.putUint8(4);
       buffer.putInt64(value);
-    }    else if (value is MeshNetwork) {
+    }    else if (value is RxMetadataStatus) {
       buffer.putUint8(129);
-      writeValue(buffer, value.encode());
-    }    else if (value is NetworkKey) {
+      writeValue(buffer, value.index);
+    }    else if (value is MeshNetwork) {
       buffer.putUint8(130);
       writeValue(buffer, value.encode());
-    }    else if (value is AppKey) {
+    }    else if (value is NetworkKey) {
       buffer.putUint8(131);
       writeValue(buffer, value.encode());
-    }    else if (value is Provisioner) {
+    }    else if (value is AppKey) {
       buffer.putUint8(132);
       writeValue(buffer, value.encode());
-    }    else if (value is UnprovisionedDevice) {
+    }    else if (value is Provisioner) {
       buffer.putUint8(133);
       writeValue(buffer, value.encode());
-    }    else if (value is ProvisionedNode) {
+    }    else if (value is UnprovisionedDevice) {
       buffer.putUint8(134);
       writeValue(buffer, value.encode());
-    }    else if (value is Element) {
+    }    else if (value is ProvisionedNode) {
       buffer.putUint8(135);
       writeValue(buffer, value.encode());
-    }    else if (value is Model) {
+    }    else if (value is Element) {
       buffer.putUint8(136);
       writeValue(buffer, value.encode());
-    }    else if (value is Publication) {
+    }    else if (value is Model) {
       buffer.putUint8(137);
       writeValue(buffer, value.encode());
-    }    else if (value is MeshGroup) {
+    }    else if (value is Publication) {
       buffer.putUint8(138);
       writeValue(buffer, value.encode());
-    }    else if (value is MeshMessage) {
+    }    else if (value is MeshGroup) {
       buffer.putUint8(139);
       writeValue(buffer, value.encode());
-    }    else if (value is ProvisioningParameters) {
+    }    else if (value is MeshMessage) {
       buffer.putUint8(140);
       writeValue(buffer, value.encode());
-    }    else if (value is GenericOnOffSet) {
+    }    else if (value is RxAccessMessage) {
       buffer.putUint8(141);
       writeValue(buffer, value.encode());
-    }    else if (value is GenericLevelSet) {
+    }    else if (value is ProvisioningParameters) {
       buffer.putUint8(142);
+      writeValue(buffer, value.encode());
+    }    else if (value is GenericOnOffSet) {
+      buffer.putUint8(143);
+      writeValue(buffer, value.encode());
+    }    else if (value is GenericLevelSet) {
+      buffer.putUint8(144);
       writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
@@ -946,32 +1020,37 @@ class _PigeonCodec extends StandardMessageCodec {
   Object? readValueOfType(int type, ReadBuffer buffer) {
     switch (type) {
       case 129:
-        return MeshNetwork.decode(readValue(buffer)!);
+        final value = readValue(buffer) as int?;
+        return value == null ? null : RxMetadataStatus.values[value];
       case 130:
-        return NetworkKey.decode(readValue(buffer)!);
+        return MeshNetwork.decode(readValue(buffer)!);
       case 131:
-        return AppKey.decode(readValue(buffer)!);
+        return NetworkKey.decode(readValue(buffer)!);
       case 132:
-        return Provisioner.decode(readValue(buffer)!);
+        return AppKey.decode(readValue(buffer)!);
       case 133:
-        return UnprovisionedDevice.decode(readValue(buffer)!);
+        return Provisioner.decode(readValue(buffer)!);
       case 134:
-        return ProvisionedNode.decode(readValue(buffer)!);
+        return UnprovisionedDevice.decode(readValue(buffer)!);
       case 135:
-        return Element.decode(readValue(buffer)!);
+        return ProvisionedNode.decode(readValue(buffer)!);
       case 136:
-        return Model.decode(readValue(buffer)!);
+        return Element.decode(readValue(buffer)!);
       case 137:
-        return Publication.decode(readValue(buffer)!);
+        return Model.decode(readValue(buffer)!);
       case 138:
-        return MeshGroup.decode(readValue(buffer)!);
+        return Publication.decode(readValue(buffer)!);
       case 139:
-        return MeshMessage.decode(readValue(buffer)!);
+        return MeshGroup.decode(readValue(buffer)!);
       case 140:
-        return ProvisioningParameters.decode(readValue(buffer)!);
+        return MeshMessage.decode(readValue(buffer)!);
       case 141:
-        return GenericOnOffSet.decode(readValue(buffer)!);
+        return RxAccessMessage.decode(readValue(buffer)!);
       case 142:
+        return ProvisioningParameters.decode(readValue(buffer)!);
+      case 143:
+        return GenericOnOffSet.decode(readValue(buffer)!);
+      case 144:
         return GenericLevelSet.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
@@ -1485,6 +1564,12 @@ abstract class MeshFlutterApi {
 
   void onMessageReceived(MeshMessage message);
 
+  /// A richer, forward-compatible RX event that carries best-effort metadata.
+  ///
+  /// This stream is controlled by this plugin's contract (rather than relying on
+  /// internal/native library details) so apps can build stable logging and routing.
+  void onRxAccessMessage(RxAccessMessage event);
+
   static void setUp(MeshFlutterApi? api, {BinaryMessenger? binaryMessenger, String messageChannelSuffix = '',}) {
     messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
     {
@@ -1520,6 +1605,27 @@ abstract class MeshFlutterApi {
           final MeshMessage arg_message = args[0]! as MeshMessage;
           try {
             api.onMessageReceived(arg_message);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          }
+        });
+      }
+    }
+    {
+      final pigeonVar_channel = BasicMessageChannel<Object?>(
+          'dev.flutter.pigeon.nrf_mesh_flutter.MeshFlutterApi.onRxAccessMessage$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          final List<Object?> args = message! as List<Object?>;
+          final RxAccessMessage arg_event = args[0]! as RxAccessMessage;
+          try {
+            api.onRxAccessMessage(arg_event);
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);

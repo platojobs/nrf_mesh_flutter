@@ -586,6 +586,16 @@ extension PlatoJobsMeshPlugin: MeshNetworkDelegate {
             ]
         )
         flutterApi?.onMessageReceived(message: pigeon) { _ in }
+
+        flutterApi?.onRxAccessMessage(
+            event: RxAccessMessage(
+                opcode: opcode,
+                parameters: bytes,
+                source: Int64(source),
+                destination: Int64(destination.address),
+                metadataStatus: .available
+            )
+        ) { _ in }
     }
 }
 

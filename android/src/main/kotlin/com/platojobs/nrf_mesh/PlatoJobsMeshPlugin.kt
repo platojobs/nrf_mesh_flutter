@@ -144,6 +144,16 @@ class PlatoJobsMeshPlugin :
                                 parameters = mapOf("bytes" to bytes),
                             )
                         ) {}
+
+                        flutterApi?.onRxAccessMessage(
+                            RxAccessMessage(
+                                opcode = op,
+                                parameters = bytes,
+                                source = src?.toLong(),
+                                destination = null,
+                                metadataStatus = RxMetadataStatus.AVAILABLE,
+                            )
+                        ) {}
                     } catch (_: Throwable) {
                         // Ignore forwarding failures; do not crash the collector.
                     }
@@ -160,6 +170,16 @@ class PlatoJobsMeshPlugin :
                                 address = null,
                                 appKeyIndex = null,
                                 parameters = mapOf("bytes" to bytes),
+                            )
+                        ) {}
+
+                        flutterApi?.onRxAccessMessage(
+                            RxAccessMessage(
+                                opcode = op,
+                                parameters = bytes,
+                                source = null,
+                                destination = null,
+                                metadataStatus = RxMetadataStatus.UNAVAILABLE,
                             )
                         ) {}
                     } catch (_: Throwable) {

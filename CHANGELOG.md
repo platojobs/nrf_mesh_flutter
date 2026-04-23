@@ -1,3 +1,10 @@
+## 3.8.0
+
+### Features
+- API: add `rxAccessMessageStream` (Dart) to expose a stable RX event contract with best-effort metadata (source/destination) alongside raw opcode/parameters.
+- iOS: forward RX access events with source + destination via `MeshNetworkDelegate`.
+- Android: forward RX access events; metadata is best-effort (source is only available when experimental metadata extraction is enabled).
+
 ## 3.7.0
 
 ### Features

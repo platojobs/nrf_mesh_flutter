@@ -195,6 +195,17 @@ class FlutterError (
   val details: Any? = null
 ) : RuntimeException()
 
+enum class RxMetadataStatus(val raw: Int) {
+  AVAILABLE(0),
+  UNAVAILABLE(1);
+
+  companion object {
+    fun ofRaw(raw: Int): RxMetadataStatus? {
+      return values().firstOrNull { it.raw == raw }
+    }
+  }
+}
+
 /** Generated class from Pigeon that represents data sent in messages. */
 data class MeshNetwork (
   val networkId: String? = null,
@@ -718,6 +729,59 @@ data class MeshMessage (
 }
 
 /** Generated class from Pigeon that represents data sent in messages. */
+data class RxAccessMessage (
+  val opcode: Long? = null,
+  /** Access message parameters (raw bytes). */
+  val parameters: List<Long>? = null,
+  /** Best-effort source address (unicast), if available. */
+  val source: Long? = null,
+  /** Best-effort destination address, if available. */
+  val destination: Long? = null,
+  val metadataStatus: RxMetadataStatus? = null
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): RxAccessMessage {
+      val opcode = pigeonVar_list[0] as Long?
+      val parameters = pigeonVar_list[1] as List<Long>?
+      val source = pigeonVar_list[2] as Long?
+      val destination = pigeonVar_list[3] as Long?
+      val metadataStatus = pigeonVar_list[4] as RxMetadataStatus?
+      return RxAccessMessage(opcode, parameters, source, destination, metadataStatus)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      opcode,
+      parameters,
+      source,
+      destination,
+      metadataStatus,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as RxAccessMessage
+    return PigeonGeneratedPigeonUtils.deepEquals(this.opcode, other.opcode) && PigeonGeneratedPigeonUtils.deepEquals(this.parameters, other.parameters) && PigeonGeneratedPigeonUtils.deepEquals(this.source, other.source) && PigeonGeneratedPigeonUtils.deepEquals(this.destination, other.destination) && PigeonGeneratedPigeonUtils.deepEquals(this.metadataStatus, other.metadataStatus)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + PigeonGeneratedPigeonUtils.deepHash(this.opcode)
+    result = 31 * result + PigeonGeneratedPigeonUtils.deepHash(this.parameters)
+    result = 31 * result + PigeonGeneratedPigeonUtils.deepHash(this.source)
+    result = 31 * result + PigeonGeneratedPigeonUtils.deepHash(this.destination)
+    result = 31 * result + PigeonGeneratedPigeonUtils.deepHash(this.metadataStatus)
+    return result
+  }
+}
+
+/** Generated class from Pigeon that represents data sent in messages. */
 data class ProvisioningParameters (
   val deviceName: String? = null,
   val oobMethod: Long? = null,
@@ -850,71 +914,81 @@ private open class PigeonGeneratedPigeonCodec : StandardMessageCodec() {
   override fun readValueOfType(type: Byte, buffer: ByteBuffer): Any? {
     return when (type) {
       129.toByte() -> {
-        return (readValue(buffer) as? List<Any?>)?.let {
-          MeshNetwork.fromList(it)
+        return (readValue(buffer) as Long?)?.let {
+          RxMetadataStatus.ofRaw(it.toInt())
         }
       }
       130.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          NetworkKey.fromList(it)
+          MeshNetwork.fromList(it)
         }
       }
       131.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          AppKey.fromList(it)
+          NetworkKey.fromList(it)
         }
       }
       132.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          Provisioner.fromList(it)
+          AppKey.fromList(it)
         }
       }
       133.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          UnprovisionedDevice.fromList(it)
+          Provisioner.fromList(it)
         }
       }
       134.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          ProvisionedNode.fromList(it)
+          UnprovisionedDevice.fromList(it)
         }
       }
       135.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          Element.fromList(it)
+          ProvisionedNode.fromList(it)
         }
       }
       136.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          Model.fromList(it)
+          Element.fromList(it)
         }
       }
       137.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          Publication.fromList(it)
+          Model.fromList(it)
         }
       }
       138.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          MeshGroup.fromList(it)
+          Publication.fromList(it)
         }
       }
       139.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          MeshMessage.fromList(it)
+          MeshGroup.fromList(it)
         }
       }
       140.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          ProvisioningParameters.fromList(it)
+          MeshMessage.fromList(it)
         }
       }
       141.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          GenericOnOffSet.fromList(it)
+          RxAccessMessage.fromList(it)
         }
       }
       142.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          ProvisioningParameters.fromList(it)
+        }
+      }
+      143.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          GenericOnOffSet.fromList(it)
+        }
+      }
+      144.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
           GenericLevelSet.fromList(it)
         }
@@ -924,60 +998,68 @@ private open class PigeonGeneratedPigeonCodec : StandardMessageCodec() {
   }
   override fun writeValue(stream: ByteArrayOutputStream, value: Any?)   {
     when (value) {
-      is MeshNetwork -> {
+      is RxMetadataStatus -> {
         stream.write(129)
-        writeValue(stream, value.toList())
+        writeValue(stream, value.raw.toLong())
       }
-      is NetworkKey -> {
+      is MeshNetwork -> {
         stream.write(130)
         writeValue(stream, value.toList())
       }
-      is AppKey -> {
+      is NetworkKey -> {
         stream.write(131)
         writeValue(stream, value.toList())
       }
-      is Provisioner -> {
+      is AppKey -> {
         stream.write(132)
         writeValue(stream, value.toList())
       }
-      is UnprovisionedDevice -> {
+      is Provisioner -> {
         stream.write(133)
         writeValue(stream, value.toList())
       }
-      is ProvisionedNode -> {
+      is UnprovisionedDevice -> {
         stream.write(134)
         writeValue(stream, value.toList())
       }
-      is Element -> {
+      is ProvisionedNode -> {
         stream.write(135)
         writeValue(stream, value.toList())
       }
-      is Model -> {
+      is Element -> {
         stream.write(136)
         writeValue(stream, value.toList())
       }
-      is Publication -> {
+      is Model -> {
         stream.write(137)
         writeValue(stream, value.toList())
       }
-      is MeshGroup -> {
+      is Publication -> {
         stream.write(138)
         writeValue(stream, value.toList())
       }
-      is MeshMessage -> {
+      is MeshGroup -> {
         stream.write(139)
         writeValue(stream, value.toList())
       }
-      is ProvisioningParameters -> {
+      is MeshMessage -> {
         stream.write(140)
         writeValue(stream, value.toList())
       }
-      is GenericOnOffSet -> {
+      is RxAccessMessage -> {
         stream.write(141)
         writeValue(stream, value.toList())
       }
-      is GenericLevelSet -> {
+      is ProvisioningParameters -> {
         stream.write(142)
+        writeValue(stream, value.toList())
+      }
+      is GenericOnOffSet -> {
+        stream.write(143)
+        writeValue(stream, value.toList())
+      }
+      is GenericLevelSet -> {
+        stream.write(144)
         writeValue(stream, value.toList())
       }
       else -> super.writeValue(stream, value)
@@ -1506,6 +1588,29 @@ class MeshFlutterApi(private val binaryMessenger: BinaryMessenger, private val m
     val channelName = "dev.flutter.pigeon.nrf_mesh_flutter.MeshFlutterApi.onMessageReceived$separatedMessageChannelSuffix"
     val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
     channel.send(listOf(messageArg)) {
+      if (it is List<*>) {
+        if (it.size > 1) {
+          callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
+        } else {
+          callback(Result.success(Unit))
+        }
+      } else {
+        callback(Result.failure(PigeonGeneratedPigeonUtils.createConnectionError(channelName)))
+      } 
+    }
+  }
+  /**
+   * A richer, forward-compatible RX event that carries best-effort metadata.
+   *
+   * This stream is controlled by this plugin's contract (rather than relying on
+   * internal/native library details) so apps can build stable logging and routing.
+   */
+  fun onRxAccessMessage(eventArg: RxAccessMessage, callback: (Result<Unit>) -> Unit)
+{
+    val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+    val channelName = "dev.flutter.pigeon.nrf_mesh_flutter.MeshFlutterApi.onRxAccessMessage$separatedMessageChannelSuffix"
+    val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
+    channel.send(listOf(eventArg)) {
       if (it is List<*>) {
         if (it.size > 1) {
           callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
