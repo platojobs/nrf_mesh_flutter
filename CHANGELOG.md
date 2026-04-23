@@ -1,3 +1,8 @@
+## 3.6.1
+
+### Docs
+- CHANGELOG: switch to English-only release notes (remove Chinese section in 3.5.0 and translate remaining Chinese entry).
+
 ## 3.6.0
 
 ### Features
@@ -18,9 +23,6 @@
 - **Android — persistent secure state (PR-2)**: replace in-memory `SecurePropertiesStorage` with `SharedPreferences`-backed persistence for IV Index (including update flag / transition timing where applicable), per-source sequence numbers, SeqAuth-related values, and local provisioner identity so Access-layer sending stays consistent across process restarts.
 - **Android — richer incoming metadata (PR-1)**: when possible, subscribe to internal `incomingMeshMessages` via reflection to obtain `ReceivedMessage`-style envelopes and forward **source addresses** together with opcode/parameters into Dart `messageStream`; falls back to the public flow if reflection is unavailable.
 - **Dart — explicit raw Access API (PR-3)**: add `RawAccessMessage` with validation (opcode UInt32, parameter bytes, unicast/group destination, 12-bit AppKey index) plus `PlatoJobsNrfMeshManager.sendAccess(...)`; extend `MeshMessage.fromMap` for round-tripping; add unit tests.
-
-### 更新说明（中文）
-本版本在 **3.0.x 真链路收发** 基础上做了三类强化：**(1) Android** 将 Nordic Kotlin Mesh 所需的 IV/序号等安全属性写入本地存储，避免冷启动后重复发送导致的安全计数不同步或与对端不匹配；**(2) Android** 尽力在 `messageStream` 中附带 **源地址**（在库内部 API 可用时），便于业务层区分多节点上报；**(3) Dart** 提供 **`RawAccessMessage` + `sendAccess`**，用强类型与校验替代隐式 `parameters['bytes']` 约定，降低误用 opcode/地址/AppKeyIndex 的概率。升级后建议重新跑一次集成流程（导入 Mesh DB → 连接 Proxy → Config / Access）以验证持久化状态与日志中的源地址是否符合预期。
 
 ## 3.0.1
 
@@ -98,7 +100,7 @@
 ## 1.0.3
 
 ### Docs
-- 修正 `CHANGELOG.md` 版本顺序与格式（按版本号从新到旧）。
+- Fix `CHANGELOG.md` ordering and formatting (latest first).
 
 ## 1.0.2
 

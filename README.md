@@ -25,8 +25,12 @@ Add `nrf_mesh_flutter` to your `pubspec.yaml`:
 dependencies:
   flutter:
     sdk: flutter
-  nrf_mesh_flutter: ^3.6.0
+  nrf_mesh_flutter: ^3.6.1
 ```
+
+## Release notes language
+
+Release notes in `CHANGELOG.md` are maintained in **English only**.
 
 ## Recommended: sending raw Access messages
 
