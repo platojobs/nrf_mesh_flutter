@@ -21,6 +21,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
 
     // Bluetooth Mesh Proxy Service UUID (0x1828)
     private let meshProxyService = CBUUID(string: "1828")
+    private let meshProvisioningService = CBUUID(string: "1827")
 
     public static func register(with registrar: FlutterPluginRegistrar) {
         let instance = PlatoJobsMeshPlugin()
@@ -233,7 +234,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
     func startScan() throws {
         scanning = true
         if centralManager.state == .poweredOn {
-            centralManager.scanForPeripherals(withServices: [meshProxyService], options: [
+            centralManager.scanForPeripherals(withServices: [meshProxyService, meshProvisioningService], options: [
                 CBCentralManagerScanOptionAllowDuplicatesKey: true
             ])
         }
@@ -660,11 +661,22 @@ extension PlatoJobsMeshPlugin: CBCentralManagerDelegate {
         let deviceId = peripheral.identifier.uuidString
         peripheralsById[deviceId] = peripheral
 
+        let advUuids = (advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID]) ?? []
+        let svc: String
+        if advUuids.contains(meshProvisioningService) {
+            svc = "1827"
+        } else if advUuids.contains(meshProxyService) {
+            svc = "1828"
+        } else {
+            svc = ""
+        }
+
         let dev = UnprovisionedDevice(
             deviceId: deviceId,
             name: peripheral.name ?? "Proxy",
             rssi: Int64(RSSI.intValue),
-            uuid: [] // Not a mesh UUID; keep empty for now.
+            uuid: [], // Not a mesh UUID; keep empty for now.
+            serviceUuid: svc
         )
         flutterApi?.onDeviceDiscovered(device: dev) { _ in }
     }

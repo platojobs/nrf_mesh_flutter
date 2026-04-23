@@ -392,6 +392,8 @@ struct UnprovisionedDevice: Hashable {
   var name: String? = nil
   var rssi: Int64? = nil
   var uuid: [Int64]? = nil
+  /// Best-effort primary service UUID discovered (e.g. "1827" provisioning or "1828" proxy).
+  var serviceUuid: String? = nil
 
 
   // swift-format-ignore: AlwaysUseLowerCamelCase
@@ -400,12 +402,14 @@ struct UnprovisionedDevice: Hashable {
     let name: String? = nilOrValue(pigeonVar_list[1])
     let rssi: Int64? = nilOrValue(pigeonVar_list[2])
     let uuid: [Int64]? = nilOrValue(pigeonVar_list[3])
+    let serviceUuid: String? = nilOrValue(pigeonVar_list[4])
 
     return UnprovisionedDevice(
       deviceId: deviceId,
       name: name,
       rssi: rssi,
-      uuid: uuid
+      uuid: uuid,
+      serviceUuid: serviceUuid
     )
   }
   func toList() -> [Any?] {
@@ -414,13 +418,14 @@ struct UnprovisionedDevice: Hashable {
       name,
       rssi,
       uuid,
+      serviceUuid,
     ]
   }
   static func == (lhs: UnprovisionedDevice, rhs: UnprovisionedDevice) -> Bool {
     if Swift.type(of: lhs) != Swift.type(of: rhs) {
       return false
     }
-    return deepEqualsPigeonGenerated(lhs.deviceId, rhs.deviceId) && deepEqualsPigeonGenerated(lhs.name, rhs.name) && deepEqualsPigeonGenerated(lhs.rssi, rhs.rssi) && deepEqualsPigeonGenerated(lhs.uuid, rhs.uuid)
+    return deepEqualsPigeonGenerated(lhs.deviceId, rhs.deviceId) && deepEqualsPigeonGenerated(lhs.name, rhs.name) && deepEqualsPigeonGenerated(lhs.rssi, rhs.rssi) && deepEqualsPigeonGenerated(lhs.uuid, rhs.uuid) && deepEqualsPigeonGenerated(lhs.serviceUuid, rhs.serviceUuid)
   }
 
   func hash(into hasher: inout Hasher) {
@@ -429,6 +434,7 @@ struct UnprovisionedDevice: Hashable {
     deepHashPigeonGenerated(value: name, hasher: &hasher)
     deepHashPigeonGenerated(value: rssi, hasher: &hasher)
     deepHashPigeonGenerated(value: uuid, hasher: &hasher)
+    deepHashPigeonGenerated(value: serviceUuid, hasher: &hasher)
   }
 }
 

@@ -25,7 +25,7 @@ Add `nrf_mesh_flutter` to your `pubspec.yaml`:
 dependencies:
   flutter:
     sdk: flutter
-  nrf_mesh_flutter: ^3.9.2
+  nrf_mesh_flutter: ^3.9.3
 ```
 
 ## Release notes language

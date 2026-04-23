@@ -143,6 +143,8 @@ class UnprovisionedDevice {
   String? name;
   int? rssi;
   List<int>? uuid;
+  /// Best-effort primary service UUID discovered (e.g. "1827" provisioning or "1828" proxy).
+  String? serviceUuid;
 }
 
 class ProvisionedNode {
