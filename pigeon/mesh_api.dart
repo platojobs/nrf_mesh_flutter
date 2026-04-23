@@ -30,6 +30,15 @@ abstract class MeshApi {
     ProvisioningParameters params,
   );
 
+  /// Provide user input required by Output OOB (numeric).
+  ///
+  /// Used when provisioning emits an OOB input request that requires the user to enter a value
+  /// shown on the device.
+  bool provideProvisioningOobNumeric(String deviceId, int value);
+
+  /// Provide user input required by Output OOB (alphanumeric).
+  bool provideProvisioningOobAlphaNumeric(String deviceId, String value);
+
   // Message sending
   void sendMessage(MeshMessage message);
 

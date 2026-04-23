@@ -19,6 +19,9 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Changelog consistency
+        run: dart run tool/changelog_check.dart
+
       - name: Format (fail if changed)
         run: dart format --set-exit-if-changed .
 

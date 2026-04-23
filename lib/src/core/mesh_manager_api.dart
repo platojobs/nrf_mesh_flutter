@@ -99,6 +99,14 @@ class MeshManagerApi {
     return _platform.provisioningEventStream;
   }
 
+  Future<bool> provideProvisioningOobNumeric(String deviceId, int value) async {
+    return await _guard(() => _platform.provideProvisioningOobNumeric(deviceId, value));
+  }
+
+  Future<bool> provideProvisioningOobAlphaNumeric(String deviceId, String value) async {
+    return await _guard(() => _platform.provideProvisioningOobAlphaNumeric(deviceId, value));
+  }
+
   /// Whether the native side can reliably populate source address for incoming Access messages.
   Future<bool> supportsRxSourceAddress() async {
     return await _guard(() => _platform.supportsRxSourceAddress());

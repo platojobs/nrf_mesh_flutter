@@ -1,10 +1,27 @@
-## 3.9.3
+## 4.0.0
 
-### Fixes
-- Docs: fix `CHANGELOG.md` ordering (latest first).
+### Breaking changes
+- API: add interactive Output OOB continuation methods:
+  - `provideProvisioningOobNumeric(deviceId, value)`
+  - `provideProvisioningOobAlphaNumeric(deviceId, value)`
+
+### Features
+- Android: full provisioning flow (Kotlin Mesh `ProvisioningManager`) over PB-GATT (`0x1827`) with persistent Mesh DB updates.
+- Android: `getNodes()` now returns nodes from the Kotlin Mesh DB when available.
 
 ### Improvements
-- iOS: include best-effort `serviceUuid` in scan results and scan for both provisioning (`0x1827`) and proxy (`0x1828`) services.
+- Provisioning: `provisioningEventStream` is now driven by native provisioning states (capabilities, auth actions, completion, failures).
+
+## 3.11.0
+
+### Features
+- Android: implement PB-GATT provisioning connection management via `connectProvisioning` / `disconnectProvisioning` / `isProvisioningConnected` (Mesh Provisioning Service `0x1827`).
+
+### Improvements
+- CI: add a PR check to enforce `CHANGELOG.md` ordering (latest first) and ensure the top changelog version matches `pubspec.yaml`.
+
+### Fixes
+- Docs: ensure the latest version stays at the top of `CHANGELOG.md`.
 
 ## 3.10.0
 
@@ -12,6 +29,14 @@
 - Provisioning (foundation): add `connectProvisioning` / `disconnectProvisioning` / `isProvisioningConnected`.
   - iOS: implements PB-GATT connection + provisioning service discovery and emits progress via `provisioningEventStream`.
   - Android: not implemented yet (returns false).
+
+## 3.9.3
+
+### Fixes
+- Docs: fix `CHANGELOG.md` ordering (latest first).
+
+### Improvements
+- iOS: include best-effort `serviceUuid` in scan results and scan for both provisioning (`0x1827`) and proxy (`0x1828`) services.
 
 ## 3.9.2
 

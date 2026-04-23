@@ -615,6 +615,15 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         return provisioningConnected
     }
 
+    func provideProvisioningOobNumeric(deviceId: String, value: Int64) throws -> Bool {
+        // iOS full interactive Output OOB continuation is not implemented yet.
+        return false
+    }
+
+    func provideProvisioningOobAlphaNumeric(deviceId: String, value: String) throws -> Bool {
+        return false
+    }
+
     func supportsRxSourceAddress() throws -> Bool {
         // iOS delegate provides `sentFrom source` for incoming Access messages.
         return true
