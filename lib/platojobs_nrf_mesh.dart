@@ -220,14 +220,130 @@ class PlatoJobsNrfMeshManager {
 
 class ProvisioningParameters {
   final String deviceName;
-  final int? oobMethod;
+  /// OOB method code used by native implementations.
+  ///
+  /// Convention:
+  /// - 0: no OOB
+  /// - 1: static OOB
+  /// - 2: output OOB (device outputs, user enters)
+  /// - 3: input OOB (user provides, device inputs)
+  final int oobMethod;
+
+  /// OOB payload (format depends on [oobMethod]).
+  ///
+  /// - static OOB: hex string (no `0x` prefix), even-length, 1..32 bytes.
+  /// - output/input OOB: digits or ASCII string depending on UI flow.
   final String? oobData;
   final bool enablePrivacy;
 
-  ProvisioningParameters({
+  ProvisioningParameters._({
     required this.deviceName,
-    this.oobMethod,
     this.oobData,
+    required this.oobMethod,
     this.enablePrivacy = false,
-  });
+  }) {
+    _validate();
+  }
+
+  /// Backward-compatible constructor.
+  ///
+  /// Prefer using the typed factories like [noOob] / [staticOob].
+  factory ProvisioningParameters({
+    required String deviceName,
+    int? oobMethod,
+    String? oobData,
+    bool enablePrivacy = false,
+  }) {
+    return ProvisioningParameters._(
+      deviceName: deviceName,
+      oobMethod: oobMethod ?? 0,
+      oobData: oobData,
+      enablePrivacy: enablePrivacy,
+    );
+  }
+
+  factory ProvisioningParameters.noOob({
+    required String deviceName,
+    bool enablePrivacy = false,
+  }) {
+    return ProvisioningParameters._(
+      deviceName: deviceName,
+      oobMethod: 0,
+      oobData: null,
+      enablePrivacy: enablePrivacy,
+    );
+  }
+
+  factory ProvisioningParameters.staticOob({
+    required String deviceName,
+    required String hex,
+    bool enablePrivacy = false,
+  }) {
+    return ProvisioningParameters._(
+      deviceName: deviceName,
+      oobMethod: 1,
+      oobData: hex,
+      enablePrivacy: enablePrivacy,
+    );
+  }
+
+  /// Output OOB means the device outputs a value (number/text) and user enters it in the app.
+  factory ProvisioningParameters.outputOob({
+    required String deviceName,
+    String? data,
+    bool enablePrivacy = false,
+  }) {
+    return ProvisioningParameters._(
+      deviceName: deviceName,
+      oobMethod: 2,
+      oobData: data,
+      enablePrivacy: enablePrivacy,
+    );
+  }
+
+  /// Input OOB means the app provides a value (number/text) and the device inputs it.
+  factory ProvisioningParameters.inputOob({
+    required String deviceName,
+    String? data,
+    bool enablePrivacy = false,
+  }) {
+    return ProvisioningParameters._(
+      deviceName: deviceName,
+      oobMethod: 3,
+      oobData: data,
+      enablePrivacy: enablePrivacy,
+    );
+  }
+
+  void _validate() {
+    if (deviceName.trim().isEmpty) {
+      throw ArgumentError.value(deviceName, 'deviceName', 'Must not be empty.');
+    }
+    if (oobMethod < 0 || oobMethod > 3) {
+      throw ArgumentError.value(oobMethod, 'oobMethod', 'Must be 0..3.');
+    }
+    if (oobMethod == 0) {
+      if (oobData != null && oobData!.isNotEmpty) {
+        throw ArgumentError.value(oobData, 'oobData', 'Must be null/empty when no OOB is used.');
+      }
+      return;
+    }
+    if (oobMethod == 1) {
+      final v = oobData ?? '';
+      if (v.isEmpty) {
+        throw ArgumentError('Static OOB requires non-empty hex payload.');
+      }
+      final hex = v.startsWith('0x') ? v.substring(2) : v;
+      final isHex = RegExp(r'^[0-9a-fA-F]+$').hasMatch(hex);
+      if (!isHex || (hex.length % 2 != 0)) {
+        throw ArgumentError.value(v, 'oobData', 'Static OOB must be even-length hex (no separators).');
+      }
+      final bytesLen = hex.length ~/ 2;
+      if (bytesLen < 1 || bytesLen > 32) {
+        throw ArgumentError.value(v, 'oobData', 'Static OOB must be 1..32 bytes.');
+      }
+      return;
+    }
+    // output/input OOB: data may be null initially; UI flow can fill it later.
+  }
 }

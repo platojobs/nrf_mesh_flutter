@@ -192,16 +192,16 @@ class MeshManagerApi {
 /// Provisioning parameters for mesh devices
 class ProvisioningParameters {
   final String deviceName;
-  final int? oobMethod;
+  final int oobMethod;
   final String? oobData;
   final bool enablePrivacy;
 
   ProvisioningParameters({
     required this.deviceName,
-    this.oobMethod,
+    int? oobMethod,
     this.oobData,
     this.enablePrivacy = false,
-  });
+  }) : oobMethod = oobMethod ?? 0;
 
   Map<String, dynamic> toMap() {
     return {

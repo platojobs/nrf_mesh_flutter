@@ -7,13 +7,13 @@ void main() {
   test('provisioning parameters creation', () {
     final params = ProvisioningParameters(
       deviceName: 'Test Device',
-      oobMethod: 1,
-      oobData: 'test data',
+      oobMethod: 0,
+      oobData: null,
       enablePrivacy: true,
     );
     expect(params.deviceName, 'Test Device');
-    expect(params.oobMethod, 1);
-    expect(params.oobData, 'test data');
+    expect(params.oobMethod, 0);
+    expect(params.oobData, null);
     expect(params.enablePrivacy, true);
   });
 }
