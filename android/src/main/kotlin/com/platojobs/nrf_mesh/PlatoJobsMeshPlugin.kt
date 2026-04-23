@@ -296,6 +296,38 @@ class PlatoJobsMeshPlugin :
             )
         ) {}
 
+        flutterApi?.onProvisioningEvent(
+            ProvisioningEvent(
+                deviceId = device.deviceId,
+                type = ProvisioningEventType.CAPABILITIES_RECEIVED,
+                message = "Capabilities received (best-effort)",
+                progress = 5L,
+                attentionTimer = null,
+            )
+        ) {}
+
+        when (params.oobMethod?.toInt() ?: 0) {
+            2 -> flutterApi?.onProvisioningEvent(
+                ProvisioningEvent(
+                    deviceId = device.deviceId,
+                    type = ProvisioningEventType.OOB_INPUT_REQUESTED,
+                    message = "Output OOB: please enter the value displayed on the device",
+                    progress = 10L,
+                    attentionTimer = null,
+                )
+            ) {}
+            3 -> flutterApi?.onProvisioningEvent(
+                ProvisioningEvent(
+                    deviceId = device.deviceId,
+                    type = ProvisioningEventType.OOB_OUTPUT_REQUESTED,
+                    message = "Input OOB: provide a value to be entered on the device",
+                    progress = 10L,
+                    attentionTimer = null,
+                )
+            ) {}
+            else -> {}
+        }
+
         val out = legacyManager?.provision(device, params) ?: ProvisionedNode(
             nodeId = device.deviceId ?: "",
             name = params.deviceName,

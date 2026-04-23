@@ -253,6 +253,33 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
             attentionTimer: nil
         )) { _ in }
 
+        flutterApi?.onProvisioningEvent(event: ProvisioningEvent(
+            deviceId: device.deviceId,
+            type: .capabilitiesReceived,
+            message: "Capabilities received (best-effort)",
+            progress: 5,
+            attentionTimer: nil
+        )) { _ in }
+
+        let method = Int(params.oobMethod ?? 0)
+        if method == 2 {
+            flutterApi?.onProvisioningEvent(event: ProvisioningEvent(
+                deviceId: device.deviceId,
+                type: .oobInputRequested,
+                message: "Output OOB: please enter the value displayed on the device",
+                progress: 10,
+                attentionTimer: nil
+            )) { _ in }
+        } else if method == 3 {
+            flutterApi?.onProvisioningEvent(event: ProvisioningEvent(
+                deviceId: device.deviceId,
+                type: .oobOutputRequested,
+                message: "Input OOB: provide a value to be entered on the device",
+                progress: 10,
+                attentionTimer: nil
+            )) { _ in }
+        }
+
         let unicast = nextUnicast
         nextUnicast += 1
 
