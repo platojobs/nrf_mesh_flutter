@@ -1,3 +1,11 @@
+## 3.5.1
+
+### Docs
+- README: recommend using `sendAccess(...)` (`RawAccessMessage`) for raw Access payloads and clarify that `messageStream` `address` can be null on some platforms.
+
+### CI
+- Add GitHub Actions workflow to enforce formatting, analysis, tests, and `pub publish --dry-run` on PRs and main.
+
 ## 3.5.0
 
 ### Features
