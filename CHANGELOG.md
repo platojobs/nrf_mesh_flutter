@@ -1,3 +1,8 @@
+## 3.9.0
+
+### Features
+- Provisioning: add `provisioningEventStream` to expose lifecycle events (start/complete/failure and future OOB prompts). Native implementations currently emit best-effort events; this establishes a stable contract for upcoming full provisioning support.
+
 ## 3.8.0
 
 ### Features

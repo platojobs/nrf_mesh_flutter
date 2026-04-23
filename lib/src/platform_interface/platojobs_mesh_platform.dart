@@ -58,6 +58,9 @@ abstract class PlatoJobsMeshBridge {
   /// A richer RX stream with best-effort metadata (source/destination).
   Stream<rx_models.RxAccessMessage> get rxAccessMessageStream;
 
+  /// Provisioning lifecycle events (progress + OOB prompts).
+  Stream<pigeon.ProvisioningEvent> get provisioningEventStream;
+
   Future<List<node_models.ProvisionedNode>> getNodes();
 
   Future<void> removeNode(String nodeId);
@@ -105,6 +108,8 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
       StreamController<msg_models.MeshMessage>.broadcast();
   final StreamController<rx_models.RxAccessMessage> _rxAccessStreamController =
       StreamController<rx_models.RxAccessMessage>.broadcast();
+  final StreamController<pigeon.ProvisioningEvent> _provStreamController =
+      StreamController<pigeon.ProvisioningEvent>.broadcast();
 
   @override
   Future<void> initialize() async {
@@ -146,6 +151,9 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
                   : rx_models.RxMetadataStatus.unavailable,
             ),
           );
+        },
+        onProvisioningEvent: (event) {
+          _provStreamController.add(event);
         },
       ),
     );
@@ -233,6 +241,11 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
   @override
   Stream<rx_models.RxAccessMessage> get rxAccessMessageStream {
     return _rxAccessStreamController.stream;
+  }
+
+  @override
+  Stream<pigeon.ProvisioningEvent> get provisioningEventStream {
+    return _provStreamController.stream;
   }
 
   @override
@@ -431,14 +444,17 @@ class _PlatoJobsMeshFlutterApiHandler extends pigeon.MeshFlutterApi {
   final Function(pigeon.UnprovisionedDevice) _onDeviceDiscovered;
   final Function(pigeon.MeshMessage) _onMessageReceived;
   final Function(pigeon.RxAccessMessage) _onRxAccessMessage;
+  final Function(pigeon.ProvisioningEvent) _onProvisioningEvent;
 
   _PlatoJobsMeshFlutterApiHandler({
     required Function(pigeon.UnprovisionedDevice) onDeviceDiscovered,
     required Function(pigeon.MeshMessage) onMessageReceived,
     required Function(pigeon.RxAccessMessage) onRxAccessMessage,
+    required Function(pigeon.ProvisioningEvent) onProvisioningEvent,
   }) : _onDeviceDiscovered = onDeviceDiscovered,
        _onMessageReceived = onMessageReceived,
-       _onRxAccessMessage = onRxAccessMessage;
+       _onRxAccessMessage = onRxAccessMessage,
+       _onProvisioningEvent = onProvisioningEvent;
 
   @override
   void onDeviceDiscovered(pigeon.UnprovisionedDevice device) {
@@ -453,5 +469,10 @@ class _PlatoJobsMeshFlutterApiHandler extends pigeon.MeshFlutterApi {
   @override
   void onRxAccessMessage(pigeon.RxAccessMessage event) {
     _onRxAccessMessage(event);
+  }
+
+  @override
+  void onProvisioningEvent(pigeon.ProvisioningEvent event) {
+    _onProvisioningEvent(event);
   }
 }

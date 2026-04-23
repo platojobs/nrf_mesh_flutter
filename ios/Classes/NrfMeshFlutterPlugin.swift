@@ -245,6 +245,14 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
     }
 
     func provisionDevice(device: UnprovisionedDevice, params: ProvisioningParameters) throws -> ProvisionedNode {
+        flutterApi?.onProvisioningEvent(event: ProvisioningEvent(
+            deviceId: device.deviceId,
+            type: .started,
+            message: "Provisioning started",
+            progress: 0,
+            attentionTimer: nil
+        )) { _ in }
+
         let unicast = nextUnicast
         nextUnicast += 1
 
@@ -283,6 +291,14 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
             provisioned: true
         )
         nodes.append(node)
+
+        flutterApi?.onProvisioningEvent(event: ProvisioningEvent(
+            deviceId: device.deviceId,
+            type: .provisioningCompleted,
+            message: "Provisioning completed",
+            progress: 100,
+            attentionTimer: nil
+        )) { _ in }
         return node
     }
 

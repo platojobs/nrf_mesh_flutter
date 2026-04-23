@@ -102,6 +102,9 @@ abstract class MeshFlutterApi {
   /// This stream is controlled by this plugin's contract (rather than relying on
   /// internal/native library details) so apps can build stable logging and routing.
   void onRxAccessMessage(RxAccessMessage event);
+
+  /// Provisioning lifecycle events (progress + OOB prompts).
+  void onProvisioningEvent(ProvisioningEvent event);
 }
 
 // Data models
@@ -211,6 +214,23 @@ class ProvisioningParameters {
   int? oobMethod;
   String? oobData;
   bool? enablePrivacy;
+}
+
+enum ProvisioningEventType {
+  started,
+  capabilitiesReceived,
+  oobInputRequested,
+  oobOutputRequested,
+  provisioningCompleted,
+  failed,
+}
+
+class ProvisioningEvent {
+  String? deviceId;
+  ProvisioningEventType? type;
+  String? message;
+  int? progress; // 0..100 best-effort
+  int? attentionTimer;
 }
 
 class GenericOnOffSet {

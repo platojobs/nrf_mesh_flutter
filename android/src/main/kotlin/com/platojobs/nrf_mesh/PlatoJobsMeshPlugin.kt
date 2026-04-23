@@ -286,7 +286,17 @@ class PlatoJobsMeshPlugin :
         device: UnprovisionedDevice,
         params: ProvisioningParameters
     ): ProvisionedNode {
-        return legacyManager?.provision(device, params) ?: ProvisionedNode(
+        flutterApi?.onProvisioningEvent(
+            ProvisioningEvent(
+                deviceId = device.deviceId,
+                type = ProvisioningEventType.STARTED,
+                message = "Provisioning started",
+                progress = 0L,
+                attentionTimer = null,
+            )
+        ) {}
+
+        val out = legacyManager?.provision(device, params) ?: ProvisionedNode(
             nodeId = device.deviceId ?: "",
             name = params.deviceName,
             unicastAddress = 1L,
@@ -294,6 +304,16 @@ class PlatoJobsMeshPlugin :
             elements = emptyList(),
             provisioned = true
         )
+        flutterApi?.onProvisioningEvent(
+            ProvisioningEvent(
+                deviceId = device.deviceId,
+                type = ProvisioningEventType.PROVISIONING_COMPLETED,
+                message = "Provisioning completed",
+                progress = 100L,
+                attentionTimer = null,
+            )
+        ) {}
+        return out
     }
 
     override fun sendMessage(message: MeshMessage) {

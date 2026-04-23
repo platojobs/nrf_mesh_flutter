@@ -9,6 +9,7 @@ import '../models/rx_access_message.dart' as rx_models;
 import 'command_queue.dart';
 import 'mesh_exceptions.dart';
 import '../platform_interface/platojobs_mesh_platform.dart' as platform;
+import '../platform_interface/pigeon_generated.dart' as pigeon;
 
 class MeshManagerApi {
   platform.PlatoJobsMeshBridge get _platform => platform.PlatoJobsMeshBridge.instance;
@@ -92,6 +93,10 @@ class MeshManagerApi {
   /// Stream of received Access messages with best-effort metadata.
   Stream<rx_models.RxAccessMessage> get rxAccessMessageStream {
     return _platform.rxAccessMessageStream;
+  }
+
+  Stream<pigeon.ProvisioningEvent> get provisioningEventStream {
+    return _platform.provisioningEventStream;
   }
 
   /// Whether the native side can reliably populate source address for incoming Access messages.

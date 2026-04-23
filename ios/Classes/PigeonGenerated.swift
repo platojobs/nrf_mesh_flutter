@@ -183,6 +183,15 @@ enum RxMetadataStatus: Int {
   case unavailable = 1
 }
 
+enum ProvisioningEventType: Int {
+  case started = 0
+  case capabilitiesReceived = 1
+  case oobInputRequested = 2
+  case oobOutputRequested = 3
+  case provisioningCompleted = 4
+  case failed = 5
+}
+
 /// Generated class from Pigeon that represents data sent in messages.
 struct MeshNetwork: Hashable {
   var networkId: String? = nil
@@ -810,6 +819,57 @@ struct ProvisioningParameters: Hashable {
 }
 
 /// Generated class from Pigeon that represents data sent in messages.
+struct ProvisioningEvent: Hashable {
+  var deviceId: String? = nil
+  var type: ProvisioningEventType? = nil
+  var message: String? = nil
+  var progress: Int64? = nil
+  var attentionTimer: Int64? = nil
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> ProvisioningEvent? {
+    let deviceId: String? = nilOrValue(pigeonVar_list[0])
+    let type: ProvisioningEventType? = nilOrValue(pigeonVar_list[1])
+    let message: String? = nilOrValue(pigeonVar_list[2])
+    let progress: Int64? = nilOrValue(pigeonVar_list[3])
+    let attentionTimer: Int64? = nilOrValue(pigeonVar_list[4])
+
+    return ProvisioningEvent(
+      deviceId: deviceId,
+      type: type,
+      message: message,
+      progress: progress,
+      attentionTimer: attentionTimer
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      deviceId,
+      type,
+      message,
+      progress,
+      attentionTimer,
+    ]
+  }
+  static func == (lhs: ProvisioningEvent, rhs: ProvisioningEvent) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return deepEqualsPigeonGenerated(lhs.deviceId, rhs.deviceId) && deepEqualsPigeonGenerated(lhs.type, rhs.type) && deepEqualsPigeonGenerated(lhs.message, rhs.message) && deepEqualsPigeonGenerated(lhs.progress, rhs.progress) && deepEqualsPigeonGenerated(lhs.attentionTimer, rhs.attentionTimer)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("ProvisioningEvent")
+    deepHashPigeonGenerated(value: deviceId, hasher: &hasher)
+    deepHashPigeonGenerated(value: type, hasher: &hasher)
+    deepHashPigeonGenerated(value: message, hasher: &hasher)
+    deepHashPigeonGenerated(value: progress, hasher: &hasher)
+    deepHashPigeonGenerated(value: attentionTimer, hasher: &hasher)
+  }
+}
+
+/// Generated class from Pigeon that represents data sent in messages.
 struct GenericOnOffSet: Hashable {
   var state: Bool? = nil
   var transitionTime: Int64? = nil
@@ -901,34 +961,42 @@ private class PigeonGeneratedPigeonCodecReader: FlutterStandardReader {
       }
       return nil
     case 130:
-      return MeshNetwork.fromList(self.readValue() as! [Any?])
+      let enumResultAsInt: Int? = nilOrValue(self.readValue() as! Int?)
+      if let enumResultAsInt = enumResultAsInt {
+        return ProvisioningEventType(rawValue: enumResultAsInt)
+      }
+      return nil
     case 131:
-      return NetworkKey.fromList(self.readValue() as! [Any?])
+      return MeshNetwork.fromList(self.readValue() as! [Any?])
     case 132:
-      return AppKey.fromList(self.readValue() as! [Any?])
+      return NetworkKey.fromList(self.readValue() as! [Any?])
     case 133:
-      return Provisioner.fromList(self.readValue() as! [Any?])
+      return AppKey.fromList(self.readValue() as! [Any?])
     case 134:
-      return UnprovisionedDevice.fromList(self.readValue() as! [Any?])
+      return Provisioner.fromList(self.readValue() as! [Any?])
     case 135:
-      return ProvisionedNode.fromList(self.readValue() as! [Any?])
+      return UnprovisionedDevice.fromList(self.readValue() as! [Any?])
     case 136:
-      return Element.fromList(self.readValue() as! [Any?])
+      return ProvisionedNode.fromList(self.readValue() as! [Any?])
     case 137:
-      return Model.fromList(self.readValue() as! [Any?])
+      return Element.fromList(self.readValue() as! [Any?])
     case 138:
-      return Publication.fromList(self.readValue() as! [Any?])
+      return Model.fromList(self.readValue() as! [Any?])
     case 139:
-      return MeshGroup.fromList(self.readValue() as! [Any?])
+      return Publication.fromList(self.readValue() as! [Any?])
     case 140:
-      return MeshMessage.fromList(self.readValue() as! [Any?])
+      return MeshGroup.fromList(self.readValue() as! [Any?])
     case 141:
-      return RxAccessMessage.fromList(self.readValue() as! [Any?])
+      return MeshMessage.fromList(self.readValue() as! [Any?])
     case 142:
-      return ProvisioningParameters.fromList(self.readValue() as! [Any?])
+      return RxAccessMessage.fromList(self.readValue() as! [Any?])
     case 143:
-      return GenericOnOffSet.fromList(self.readValue() as! [Any?])
+      return ProvisioningParameters.fromList(self.readValue() as! [Any?])
     case 144:
+      return ProvisioningEvent.fromList(self.readValue() as! [Any?])
+    case 145:
+      return GenericOnOffSet.fromList(self.readValue() as! [Any?])
+    case 146:
       return GenericLevelSet.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
@@ -941,50 +1009,56 @@ private class PigeonGeneratedPigeonCodecWriter: FlutterStandardWriter {
     if let value = value as? RxMetadataStatus {
       super.writeByte(129)
       super.writeValue(value.rawValue)
-    } else if let value = value as? MeshNetwork {
+    } else if let value = value as? ProvisioningEventType {
       super.writeByte(130)
-      super.writeValue(value.toList())
-    } else if let value = value as? NetworkKey {
+      super.writeValue(value.rawValue)
+    } else if let value = value as? MeshNetwork {
       super.writeByte(131)
       super.writeValue(value.toList())
-    } else if let value = value as? AppKey {
+    } else if let value = value as? NetworkKey {
       super.writeByte(132)
       super.writeValue(value.toList())
-    } else if let value = value as? Provisioner {
+    } else if let value = value as? AppKey {
       super.writeByte(133)
       super.writeValue(value.toList())
-    } else if let value = value as? UnprovisionedDevice {
+    } else if let value = value as? Provisioner {
       super.writeByte(134)
       super.writeValue(value.toList())
-    } else if let value = value as? ProvisionedNode {
+    } else if let value = value as? UnprovisionedDevice {
       super.writeByte(135)
       super.writeValue(value.toList())
-    } else if let value = value as? Element {
+    } else if let value = value as? ProvisionedNode {
       super.writeByte(136)
       super.writeValue(value.toList())
-    } else if let value = value as? Model {
+    } else if let value = value as? Element {
       super.writeByte(137)
       super.writeValue(value.toList())
-    } else if let value = value as? Publication {
+    } else if let value = value as? Model {
       super.writeByte(138)
       super.writeValue(value.toList())
-    } else if let value = value as? MeshGroup {
+    } else if let value = value as? Publication {
       super.writeByte(139)
       super.writeValue(value.toList())
-    } else if let value = value as? MeshMessage {
+    } else if let value = value as? MeshGroup {
       super.writeByte(140)
       super.writeValue(value.toList())
-    } else if let value = value as? RxAccessMessage {
+    } else if let value = value as? MeshMessage {
       super.writeByte(141)
       super.writeValue(value.toList())
-    } else if let value = value as? ProvisioningParameters {
+    } else if let value = value as? RxAccessMessage {
       super.writeByte(142)
       super.writeValue(value.toList())
-    } else if let value = value as? GenericOnOffSet {
+    } else if let value = value as? ProvisioningParameters {
       super.writeByte(143)
       super.writeValue(value.toList())
-    } else if let value = value as? GenericLevelSet {
+    } else if let value = value as? ProvisioningEvent {
       super.writeByte(144)
+      super.writeValue(value.toList())
+    } else if let value = value as? GenericOnOffSet {
+      super.writeByte(145)
+      super.writeValue(value.toList())
+    } else if let value = value as? GenericLevelSet {
+      super.writeByte(146)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -1456,6 +1530,8 @@ protocol MeshFlutterApiProtocol {
   /// This stream is controlled by this plugin's contract (rather than relying on
   /// internal/native library details) so apps can build stable logging and routing.
   func onRxAccessMessage(event eventArg: RxAccessMessage, completion: @escaping (Result<Void, PigeonError>) -> Void)
+  /// Provisioning lifecycle events (progress + OOB prompts).
+  func onProvisioningEvent(event eventArg: ProvisioningEvent, completion: @escaping (Result<Void, PigeonError>) -> Void)
 }
 class MeshFlutterApi: MeshFlutterApiProtocol {
   private let binaryMessenger: FlutterBinaryMessenger
@@ -1509,6 +1585,25 @@ class MeshFlutterApi: MeshFlutterApiProtocol {
   /// internal/native library details) so apps can build stable logging and routing.
   func onRxAccessMessage(event eventArg: RxAccessMessage, completion: @escaping (Result<Void, PigeonError>) -> Void) {
     let channelName: String = "dev.flutter.pigeon.nrf_mesh_flutter.MeshFlutterApi.onRxAccessMessage\(messageChannelSuffix)"
+    let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
+    channel.sendMessage([eventArg] as [Any?]) { response in
+      guard let listResponse = response as? [Any?] else {
+        completion(.failure(createConnectionError(withChannelName: channelName)))
+        return
+      }
+      if listResponse.count > 1 {
+        let code: String = listResponse[0] as! String
+        let message: String? = nilOrValue(listResponse[1])
+        let details: String? = nilOrValue(listResponse[2])
+        completion(.failure(PigeonError(code: code, message: message, details: details)))
+      } else {
+        completion(.success(()))
+      }
+    }
+  }
+  /// Provisioning lifecycle events (progress + OOB prompts).
+  func onProvisioningEvent(event eventArg: ProvisioningEvent, completion: @escaping (Result<Void, PigeonError>) -> Void) {
+    let channelName: String = "dev.flutter.pigeon.nrf_mesh_flutter.MeshFlutterApi.onProvisioningEvent\(messageChannelSuffix)"
     let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
     channel.sendMessage([eventArg] as [Any?]) { response in
       guard let listResponse = response as? [Any?] else {
