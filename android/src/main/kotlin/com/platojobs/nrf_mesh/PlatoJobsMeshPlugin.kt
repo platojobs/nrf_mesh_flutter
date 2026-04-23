@@ -64,6 +64,7 @@ class PlatoJobsMeshPlugin :
     private var bearer: MeshBearer? = null
     private var incomingMessagesJob: Job? = null
     private var rxSourceAddressSupported: Boolean = false
+    private var experimentalRxMetadataEnabled: Boolean = false
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         appContext = flutterPluginBinding.applicationContext
@@ -95,17 +96,21 @@ class PlatoJobsMeshPlugin :
         incomingMessagesJob = ioScope.launch {
             val km = kotlinMeshManager ?: return@launch
 
-            // Try to access internal NetworkManager.incomingMeshMessages$core via reflection
-            // to obtain the source address. Fallback to public MeshNetworkManager.incomingMeshMessages.
-            val receivedFlow: kotlinx.coroutines.flow.SharedFlow<Any>? = try {
-                val getNm = km.javaClass.methods.firstOrNull { it.name == "getNetworkManager\$core" }
-                val nm = getNm?.invoke(km) ?: return@launch
-                @Suppress("UNCHECKED_CAST")
-                nm.javaClass.methods.firstOrNull { it.name == "getIncomingMeshMessages\$core" }
-                    ?.invoke(nm) as? kotlinx.coroutines.flow.SharedFlow<Any>
-            } catch (_: Throwable) {
-                null
-            }
+            // Default: use public API only. Experimental mode may extract source address via reflection.
+            val receivedFlow: kotlinx.coroutines.flow.SharedFlow<Any>? =
+                if (!experimentalRxMetadataEnabled) {
+                    null
+                } else {
+                    try {
+                        val getNm = km.javaClass.methods.firstOrNull { it.name == "getNetworkManager\$core" }
+                        val nm = getNm?.invoke(km) ?: return@launch
+                        @Suppress("UNCHECKED_CAST")
+                        nm.javaClass.methods.firstOrNull { it.name == "getIncomingMeshMessages\$core" }
+                            ?.invoke(nm) as? kotlinx.coroutines.flow.SharedFlow<Any>
+                    } catch (_: Throwable) {
+                        null
+                    }
+                }
 
             if (receivedFlow != null) {
                 rxSourceAddressSupported = true
@@ -540,6 +545,10 @@ class PlatoJobsMeshPlugin :
 
     override fun clearSecureStorage() {
         secureStorage?.clearAll()
+    }
+
+    override fun setExperimentalRxMetadataEnabled(enabled: Boolean) {
+        experimentalRxMetadataEnabled = enabled
     }
 }
 

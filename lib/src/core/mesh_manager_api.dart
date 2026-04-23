@@ -98,6 +98,10 @@ class MeshManagerApi {
     return await _guard(() => _platform.clearSecureStorage());
   }
 
+  Future<void> setExperimentalRxMetadataEnabled(bool enabled) async {
+    return await _guard(() => _platform.setExperimentalRxMetadataEnabled(enabled));
+  }
+
   // Node management
   /// Get all provisioned nodes
   Future<List<models.ProvisionedNode>> getNodes() async {

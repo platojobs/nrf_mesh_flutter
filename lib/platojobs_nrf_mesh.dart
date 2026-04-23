@@ -130,6 +130,14 @@ class PlatoJobsNrfMeshManager {
     return await _meshManagerApi.clearSecureStorage();
   }
 
+  /// Android-only: enable/disable experimental RX metadata extraction.
+  ///
+  /// When enabled, Android may use internal APIs (via reflection) to extract the
+  /// source address for incoming Access messages.
+  Future<void> setExperimentalRxMetadataEnabled(bool enabled) async {
+    return await _meshManagerApi.setExperimentalRxMetadataEnabled(enabled);
+  }
+
   Future<List<models.ProvisionedNode>> getNodes() async {
     return await _meshManagerApi.getNodes();
   }

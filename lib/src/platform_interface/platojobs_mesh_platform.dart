@@ -88,6 +88,9 @@ abstract class PlatoJobsMeshBridge {
 
   /// Clear persisted secure mesh state used for stable Access sending.
   Future<void> clearSecureStorage();
+
+  /// Enable/disable experimental RX metadata extraction on Android.
+  Future<void> setExperimentalRxMetadataEnabled(bool enabled);
 }
 
 class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
@@ -296,6 +299,11 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
   @override
   Future<void> clearSecureStorage() async {
     await _meshApi.clearSecureStorage();
+  }
+
+  @override
+  Future<void> setExperimentalRxMetadataEnabled(bool enabled) async {
+    await _meshApi.setExperimentalRxMetadataEnabled(enabled);
   }
 
   net_models.MeshNetwork _convertToMeshNetwork(pigeon.MeshNetwork pigeonNetwork) {

@@ -1451,6 +1451,31 @@ class MeshApi {
     )
     ;
   }
+
+  /// Enable/disable experimental RX metadata extraction on Android.
+  ///
+  /// When enabled, Android may use internal APIs (via reflection) to extract the
+  /// source address for incoming Access messages. When disabled, Android will
+  /// use only public APIs and `MeshMessage.address` may be null.
+  ///
+  /// On iOS this is a no-op.
+  Future<void> setExperimentalRxMetadataEnabled(bool enabled) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setExperimentalRxMetadataEnabled$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[enabled]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
 }
 
 abstract class MeshFlutterApi {

@@ -383,6 +383,11 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
     // No persisted secure state in the fake bridge.
   }
 
+  @override
+  Future<void> setExperimentalRxMetadataEnabled(bool enabled) async {
+    // No-op for fake bridge.
+  }
+
   void _applyConfigToNodes({
     required int elementAddress,
     required int modelId,

@@ -81,6 +81,15 @@ abstract class MeshApi {
   ///
   /// Intended for debugging and recovery (e.g. when switching Mesh DBs).
   void clearSecureStorage();
+
+  /// Enable/disable experimental RX metadata extraction on Android.
+  ///
+  /// When enabled, Android may use internal APIs (via reflection) to extract the
+  /// source address for incoming Access messages. When disabled, Android will
+  /// use only public APIs and `MeshMessage.address` may be null.
+  ///
+  /// On iOS this is a no-op.
+  void setExperimentalRxMetadataEnabled(bool enabled);
 }
 
 @FlutterApi()
