@@ -213,7 +213,7 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
     dev_models.UnprovisionedDevice device,
     dynamic params,
   ) async {
-    final pigeonDevice = pigeon.UnprovisionedDevice(
+    final pigeonDevice = pigeon.FlutterUnprovisionedDevice(
       deviceId: device.deviceId,
       name: device.name,
       rssi: device.rssi,
@@ -477,13 +477,13 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
 }
 
 class _PlatoJobsMeshFlutterApiHandler extends pigeon.MeshFlutterApi {
-  final Function(pigeon.UnprovisionedDevice) _onDeviceDiscovered;
+  final Function(pigeon.FlutterUnprovisionedDevice) _onDeviceDiscovered;
   final Function(pigeon.MeshMessage) _onMessageReceived;
   final Function(pigeon.RxAccessMessage) _onRxAccessMessage;
   final Function(pigeon.ProvisioningEvent) _onProvisioningEvent;
 
   _PlatoJobsMeshFlutterApiHandler({
-    required Function(pigeon.UnprovisionedDevice) onDeviceDiscovered,
+    required Function(pigeon.FlutterUnprovisionedDevice) onDeviceDiscovered,
     required Function(pigeon.MeshMessage) onMessageReceived,
     required Function(pigeon.RxAccessMessage) onRxAccessMessage,
     required Function(pigeon.ProvisioningEvent) onProvisioningEvent,
@@ -493,7 +493,7 @@ class _PlatoJobsMeshFlutterApiHandler extends pigeon.MeshFlutterApi {
        _onProvisioningEvent = onProvisioningEvent;
 
   @override
-  void onDeviceDiscovered(pigeon.UnprovisionedDevice device) {
+  void onDeviceDiscovered(pigeon.FlutterUnprovisionedDevice device) {
     _onDeviceDiscovered(device);
   }
 

@@ -4,9 +4,9 @@ import NordicMesh
 import CoreBluetooth
 
 public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
-    private let meshManager = MeshNetworkManager(using: LocalStorage(fileName: "nrf_mesh_flutter_meshdata.json"))
+    fileprivate let meshManager = MeshNetworkManager(using: LocalStorage(fileName: "nrf_mesh_flutter_meshdata.json"))
     private var nordicNetwork: NordicMesh.MeshNetwork?
-    private var flutterApi: MeshFlutterApi?
+    fileprivate var flutterApi: MeshFlutterApi?
     private var nodes: [ProvisionedNode] = []
     private var nextUnicast: Int64 = 1
     private var networkName: String = "default"
@@ -20,6 +20,21 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
     private var proxyConnected: Bool = false
     private var provisioningPeripheral: CBPeripheral?
     private var provisioningConnected: Bool = false
+
+    // Provisioning (full flow)
+    fileprivate var provisioningManagersByDeviceId: [String: ProvisioningManager] = [:]
+    fileprivate var provisioningResultByDeviceId: [String: Result<ProvisionedNode, Error>] = [:]
+    fileprivate var provisioningSemaphoresByDeviceId: [String: DispatchSemaphore] = [:]
+    fileprivate var provisioningRequestedParamsByDeviceId: [String: ProvisioningParameters] = [:]
+    fileprivate var provisioningUuidBytesByDeviceId: [String: [Int64]] = [:]
+    fileprivate var provisioningDelegatesByDeviceId: [String: AnyObject] = [:]
+
+    fileprivate enum PendingOob {
+        case numeric(maxDigits: UInt8, callback: (BigUInt) -> Void)
+        case alphanumeric(maxChars: UInt8, callback: (String) -> Void)
+        case staticKey(expectedLength: Int, callback: (Data) -> Void)
+    }
+    fileprivate var pendingOobByDeviceId: [String: PendingOob] = [:]
 
     // Bluetooth Mesh Proxy Service UUID (0x1828)
     private let meshProxyService = CBUUID(string: "1828")
@@ -247,89 +262,103 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         centralManager.stopScan()
     }
 
-    func provisionDevice(device: UnprovisionedDevice, params: ProvisioningParameters) throws -> ProvisionedNode {
+    func provisionDevice(device: FlutterUnprovisionedDevice, params: ProvisioningParameters) throws -> ProvisionedNode {
+        guard meshManager.isNetworkCreated, let meshNetwork = meshManager.meshNetwork else {
+            throw NSError(domain: "nrf_mesh_flutter", code: 400, userInfo: [
+                NSLocalizedDescriptionKey: "Mesh DB is not loaded (createNetwork/importNetwork first)"
+            ])
+        }
+        guard let deviceId = device.deviceId, !deviceId.isEmpty else {
+            throw NSError(domain: "nrf_mesh_flutter", code: 400, userInfo: [
+                NSLocalizedDescriptionKey: "Missing deviceId"
+            ])
+        }
+        guard let uuidBytes = device.uuid, uuidBytes.count == 16 else {
+            throw NSError(domain: "nrf_mesh_flutter", code: 400, userInfo: [
+                NSLocalizedDescriptionKey: "Device UUID must be 16 bytes"
+            ])
+        }
+        guard let peripheral = peripheralsById[deviceId] else {
+            throw NSError(domain: "nrf_mesh_flutter", code: 404, userInfo: [
+                NSLocalizedDescriptionKey: "Peripheral not found for deviceId (scan first)"
+            ])
+        }
+
+        // Convert 16 bytes to UUID.
+        let nsData = Data(uuidBytes.map { UInt8(truncatingIfNeeded: $0) })
+        let uuid = nsData.withUnsafeBytes { raw -> UUID in
+            let b = raw.bindMemory(to: UInt8.self)
+            let a0 = b[0], a1 = b[1], a2 = b[2], a3 = b[3]
+            let a4 = b[4], a5 = b[5]
+            let a6 = b[6], a7 = b[7]
+            let a8 = b[8], a9 = b[9], a10 = b[10], a11 = b[11], a12 = b[12], a13 = b[13], a14 = b[14], a15 = b[15]
+            return UUID(uuid: (a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15))
+        }
+
+        // Create UnprovisionedDevice + bearer.
+        let unprov = NordicMesh.UnprovisionedDevice(name: device.name, uuid: uuid)
+        let bearer = PBGattBearer(target: peripheral)
+        bearer.dataDelegate = meshManager
+        bearer.delegate = self
+        bearer.open()
+
+        // Create provisioning manager.
+        let pm = try meshManager.provision(unprovisionedDevice: unprov, over: bearer)
+        let delegate = ProvisioningDelegateAdapter(plugin: self, deviceId: deviceId)
+        pm.delegate = delegate
+        pm.networkKey = meshNetwork.networkKeys.first
+        pm.unicastAddress = pm.suggestedUnicastAddress
+        provisioningManagersByDeviceId[deviceId] = pm
+        provisioningDelegatesByDeviceId[deviceId] = delegate
+        provisioningResultByDeviceId.removeValue(forKey: deviceId)
+        provisioningRequestedParamsByDeviceId[deviceId] = params
+        provisioningUuidBytesByDeviceId[deviceId] = device.uuid
+        let sem = DispatchSemaphore(value: 0)
+        provisioningSemaphoresByDeviceId[deviceId] = sem
+
         flutterApi?.onProvisioningEvent(event: ProvisioningEvent(
-            deviceId: device.deviceId,
+            deviceId: deviceId,
             type: .started,
             message: "Provisioning started",
             progress: 0,
             attentionTimer: nil
         )) { _ in }
 
-        flutterApi?.onProvisioningEvent(event: ProvisioningEvent(
-            deviceId: device.deviceId,
-            type: .capabilitiesReceived,
-            message: "Capabilities received (best-effort)",
-            progress: 5,
-            attentionTimer: nil
-        )) { _ in }
-
-        let method = Int(params.oobMethod ?? 0)
-        if method == 2 {
-            flutterApi?.onProvisioningEvent(event: ProvisioningEvent(
-                deviceId: device.deviceId,
-                type: .oobInputRequested,
-                message: "Output OOB: please enter the value displayed on the device",
-                progress: 10,
-                attentionTimer: nil
-            )) { _ in }
-        } else if method == 3 {
-            flutterApi?.onProvisioningEvent(event: ProvisioningEvent(
-                deviceId: device.deviceId,
-                type: .oobOutputRequested,
-                message: "Input OOB: provide a value to be entered on the device",
-                progress: 10,
-                attentionTimer: nil
-            )) { _ in }
+        DispatchQueue.global(qos: .userInitiated).async {
+            do {
+                try pm.identify(andAttractFor: 0)
+            } catch {
+                self.provisioningResultByDeviceId[deviceId] = .failure(error)
+                sem.signal()
+            }
         }
 
-        let unicast = nextUnicast
-        nextUnicast += 1
+        // Wait until provisioning completes (delegate will signal result).
+        let deadline: DispatchTime = .now() + 120.0
+        if sem.wait(timeout: deadline) == .timedOut {
+            provisioningManagersByDeviceId.removeValue(forKey: deviceId)
+            pendingOobByDeviceId.removeValue(forKey: deviceId)
+            throw NSError(domain: "nrf_mesh_flutter", code: 408, userInfo: [
+                NSLocalizedDescriptionKey: "Provisioning timeout"
+            ])
+        }
 
-        let elementAddress = unicast
-        let genericOnOffServer: Int64 = 0x1000
-        let genericLevelServer: Int64 = 0x1002
-
-        var onOff = Model()
-        onOff.modelId = genericOnOffServer
-        onOff.modelName = "Generic OnOff Server"
-        onOff.publishable = true
-        onOff.subscribable = true
-        onOff.boundAppKeyIndexes = []
-        onOff.subscriptions = []
-        onOff.publication = nil
-
-        var level = Model()
-        level.modelId = genericLevelServer
-        level.modelName = "Generic Level Server"
-        level.publishable = true
-        level.subscribable = true
-        level.boundAppKeyIndexes = []
-        level.subscriptions = []
-        level.publication = nil
-
-        var element = Element()
-        element.address = elementAddress
-        element.models = [onOff, level]
-
-        let node = ProvisionedNode(
-            nodeId: device.deviceId ?? "",
-            name: params.deviceName ?? "Node",
-            unicastAddress: unicast,
-            uuid: device.uuid,
-            elements: [element],
-            provisioned: true
-        )
-        nodes.append(node)
-
-        flutterApi?.onProvisioningEvent(event: ProvisioningEvent(
-            deviceId: device.deviceId,
-            type: .provisioningCompleted,
-            message: "Provisioning completed",
-            progress: 100,
-            attentionTimer: nil
-        )) { _ in }
-        return node
+        provisioningManagersByDeviceId.removeValue(forKey: deviceId)
+        pendingOobByDeviceId.removeValue(forKey: deviceId)
+        provisioningRequestedParamsByDeviceId.removeValue(forKey: deviceId)
+        provisioningUuidBytesByDeviceId.removeValue(forKey: deviceId)
+        provisioningSemaphoresByDeviceId.removeValue(forKey: deviceId)
+        provisioningDelegatesByDeviceId.removeValue(forKey: deviceId)
+        switch provisioningResultByDeviceId.removeValue(forKey: deviceId) {
+        case .success(let node):
+            return node
+        case .failure(let err):
+            throw err
+        case .none:
+            throw NSError(domain: "nrf_mesh_flutter", code: 500, userInfo: [
+                NSLocalizedDescriptionKey: "Provisioning unknown failure"
+            ])
+        }
     }
 
     func sendMessage(message: MeshMessage) throws {
@@ -616,12 +645,28 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
     }
 
     func provideProvisioningOobNumeric(deviceId: String, value: Int64) throws -> Bool {
-        // iOS full interactive Output OOB continuation is not implemented yet.
-        return false
+        guard let pending = pendingOobByDeviceId[deviceId] else { return false }
+        switch pending {
+        case .numeric(_, let callback):
+            guard let big = BigUInt(decimalString: String(value)) else { return false }
+            callback(big)
+            pendingOobByDeviceId.removeValue(forKey: deviceId)
+            return true
+        default:
+            return false
+        }
     }
 
     func provideProvisioningOobAlphaNumeric(deviceId: String, value: String) throws -> Bool {
-        return false
+        guard let pending = pendingOobByDeviceId[deviceId] else { return false }
+        switch pending {
+        case .alphanumeric(_, let callback):
+            callback(value)
+            pendingOobByDeviceId.removeValue(forKey: deviceId)
+            return true
+        default:
+            return false
+        }
     }
 
     func supportsRxSourceAddress() throws -> Bool {
@@ -639,6 +684,199 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
     }
 }
 
+private final class ProvisioningDelegateAdapter: ProvisioningDelegate {
+    private weak var plugin: PlatoJobsMeshPlugin?
+    private let deviceId: String
+
+    init(plugin: PlatoJobsMeshPlugin, deviceId: String) {
+        self.plugin = plugin
+        self.deviceId = deviceId
+    }
+
+    func authenticationActionRequired(_ action: AuthAction) {
+        guard let plugin else { return }
+
+        switch action {
+        case .provideStaticKey(let callback):
+            let hex = (plugin.provisioningRequestedParamsByDeviceId[deviceId]?.oobData ?? "")
+                .replacingOccurrences(of: " ", with: "")
+                .replacingOccurrences(of: ":", with: "")
+                .replacingOccurrences(of: "-", with: "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if let data = Data(hexString: hex), !data.isEmpty {
+                callback(data)
+            } else {
+                plugin.pendingOobByDeviceId[deviceId] = .staticKey(expectedLength: 16, callback: callback)
+                plugin.flutterApi?.onProvisioningEvent(event: ProvisioningEvent(
+                    deviceId: deviceId,
+                    type: .oobInputRequested,
+                    message: "Static OOB: missing/invalid hex key (provide 16/32 bytes).",
+                    progress: 20,
+                    attentionTimer: nil
+                )) { _ in }
+            }
+
+        case .provideNumeric(let maxDigits, let outputAction, let callback):
+            plugin.pendingOobByDeviceId[deviceId] = .numeric(maxDigits: maxDigits, callback: callback)
+            plugin.flutterApi?.onProvisioningEvent(event: ProvisioningEvent(
+                deviceId: deviceId,
+                type: .oobInputRequested,
+                message: "Output OOB (numeric): enter the value displayed by the device (maxDigits=\(maxDigits), action=\(outputAction)).",
+                progress: 20,
+                attentionTimer: nil
+            )) { _ in }
+
+        case .provideAlphanumeric(let maxChars, let callback):
+            plugin.pendingOobByDeviceId[deviceId] = .alphanumeric(maxChars: maxChars, callback: callback)
+            plugin.flutterApi?.onProvisioningEvent(event: ProvisioningEvent(
+                deviceId: deviceId,
+                type: .oobInputRequested,
+                message: "Output OOB (alphanumeric): enter the value displayed by the device (maxChars=\(maxChars)).",
+                progress: 20,
+                attentionTimer: nil
+            )) { _ in }
+
+        case .displayNumber(let value, let inputAction):
+            plugin.flutterApi?.onProvisioningEvent(event: ProvisioningEvent(
+                deviceId: deviceId,
+                type: .oobOutputRequested,
+                message: "Input OOB: display this number to the user: \(value) (action=\(inputAction)).",
+                progress: 20,
+                attentionTimer: nil
+            )) { _ in }
+
+        case .displayAlphanumeric(let text):
+            plugin.flutterApi?.onProvisioningEvent(event: ProvisioningEvent(
+                deviceId: deviceId,
+                type: .oobOutputRequested,
+                message: "Input OOB: display this text to the user: \(text).",
+                progress: 20,
+                attentionTimer: nil
+            )) { _ in }
+        }
+    }
+
+    func inputComplete() {
+        plugin?.flutterApi?.onProvisioningEvent(event: ProvisioningEvent(
+            deviceId: deviceId,
+            type: .oobOutputRequested,
+            message: "Input complete",
+            progress: 60,
+            attentionTimer: nil
+        )) { _ in }
+    }
+
+    func provisioningState(of unprovisionedDevice: NordicMesh.UnprovisionedDevice, didChangeTo state: ProvisioningState) {
+        guard let plugin, let pm = plugin.provisioningManagersByDeviceId[deviceId] else { return }
+
+        switch state {
+        case .requestingCapabilities:
+            plugin.flutterApi?.onProvisioningEvent(event: ProvisioningEvent(
+                deviceId: deviceId,
+                type: .started,
+                message: "Requesting capabilities",
+                progress: 1,
+                attentionTimer: nil
+            )) { _ in }
+
+        case .capabilitiesReceived(let caps):
+            plugin.flutterApi?.onProvisioningEvent(event: ProvisioningEvent(
+                deviceId: deviceId,
+                type: .capabilitiesReceived,
+                message: "Capabilities received",
+                progress: 5,
+                attentionTimer: nil
+            )) { _ in }
+
+            let algorithm: Algorithm = caps.algorithms.contains(.BTM_ECDH_P256_HMAC_SHA256_AES_CCM)
+                ? .BTM_ECDH_P256_HMAC_SHA256_AES_CCM
+                : .BTM_ECDH_P256_CMAC_AES128_AES_CCM
+            let publicKey: PublicKey = .noOobPublicKey
+
+            let method = Int(plugin.provisioningRequestedParamsByDeviceId[deviceId]?.oobMethod ?? 0)
+            let auth: AuthenticationMethod
+            switch method {
+            case 1:
+                auth = .staticOob
+            case 2:
+                if caps.outputOobActions.contains(.outputNumeric) {
+                    auth = .outputOob(action: .outputNumeric, size: min(caps.outputOobSize, 8))
+                } else if caps.outputOobActions.contains(.outputAlphanumeric) {
+                    auth = .outputOob(action: .outputAlphanumeric, size: min(caps.outputOobSize, 8))
+                } else {
+                    auth = .noOob
+                }
+            case 3:
+                if caps.inputOobActions.contains(.inputNumeric) {
+                    auth = .inputOob(action: .inputNumeric, size: min(caps.inputOobSize, 8))
+                } else if caps.inputOobActions.contains(.inputAlphanumeric) {
+                    auth = .inputOob(action: .inputAlphanumeric, size: min(caps.inputOobSize, 8))
+                } else if caps.inputOobActions.contains(.push) {
+                    auth = .inputOob(action: .push, size: min(caps.inputOobSize, 1))
+                } else {
+                    auth = .noOob
+                }
+            default:
+                auth = .noOob
+            }
+
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    try pm.provision(usingAlgorithm: algorithm, publicKey: publicKey, authenticationMethod: auth)
+                } catch {
+                    plugin.provisioningResultByDeviceId[self.deviceId] = .failure(error)
+                    plugin.provisioningSemaphoresByDeviceId[self.deviceId]?.signal()
+                }
+            }
+
+        case .provisioning:
+            plugin.flutterApi?.onProvisioningEvent(event: ProvisioningEvent(
+                deviceId: deviceId,
+                type: .started,
+                message: "Provisioning in progress",
+                progress: 40,
+                attentionTimer: nil
+            )) { _ in }
+
+        case .complete:
+            _ = plugin.meshManager.save()
+            let addr: Int64 = Int64(pm.unicastAddress ?? pm.suggestedUnicastAddress ?? 0)
+            let out = ProvisionedNode(
+                nodeId: deviceId,
+                name: unprovisionedDevice.name ?? "Node",
+                unicastAddress: addr,
+                uuid: plugin.provisioningUuidBytesByDeviceId[deviceId] ?? [],
+                elements: [],
+                provisioned: true
+            )
+            plugin.provisioningResultByDeviceId[deviceId] = .success(out)
+            plugin.flutterApi?.onProvisioningEvent(event: ProvisioningEvent(
+                deviceId: deviceId,
+                type: .provisioningCompleted,
+                message: "Provisioning completed",
+                progress: 100,
+                attentionTimer: nil
+            )) { _ in }
+            plugin.provisioningSemaphoresByDeviceId[deviceId]?.signal()
+
+        case .failed(let error):
+            plugin.provisioningResultByDeviceId[deviceId] = .failure(error)
+            plugin.flutterApi?.onProvisioningEvent(event: ProvisioningEvent(
+                deviceId: deviceId,
+                type: .failed,
+                message: "Provisioning failed: \(error.localizedDescription)",
+                progress: nil,
+                attentionTimer: nil
+            )) { _ in }
+            plugin.provisioningSemaphoresByDeviceId[deviceId]?.signal()
+
+        case .ready:
+            break
+        }
+    }
+}
+
+
 private struct RawAccessMessage: NordicMesh.MeshMessage {
     let opCode: UInt32
     let parameters: Data?
@@ -653,6 +891,24 @@ private struct RawAccessMessage: NordicMesh.MeshMessage {
     init?(parameters: Data) {
         // This type is intended for outbound raw messages only.
         return nil
+    }
+}
+
+private extension Data {
+    init?(hexString: String) {
+        let s = hexString.trimmingCharacters(in: .whitespacesAndNewlines)
+        if s.isEmpty { return nil }
+        guard s.count % 2 == 0 else { return nil }
+        var data = Data(capacity: s.count / 2)
+        var i = s.startIndex
+        while i < s.endIndex {
+            let j = s.index(i, offsetBy: 2)
+            let byteString = s[i..<j]
+            guard let byte = UInt8(byteString, radix: 16) else { return nil }
+            data.append(byte)
+            i = j
+        }
+        self = data
     }
 }
 
@@ -717,7 +973,7 @@ extension PlatoJobsMeshPlugin: CBCentralManagerDelegate {
             svc = ""
         }
 
-        let dev = UnprovisionedDevice(
+        let dev = FlutterUnprovisionedDevice(
             deviceId: deviceId,
             name: peripheral.name ?? "Proxy",
             rssi: Int64(RSSI.intValue),

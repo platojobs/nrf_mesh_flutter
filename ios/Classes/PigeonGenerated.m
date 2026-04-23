@@ -117,6 +117,26 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
   return (result == [NSNull null]) ? nil : result;
 }
 
+@implementation RxMetadataStatusBox
+- (instancetype)initWithValue:(RxMetadataStatus)value {
+  self = [super init];
+  if (self) {
+    _value = value;
+  }
+  return self;
+}
+@end
+
+@implementation ProvisioningEventTypeBox
+- (instancetype)initWithValue:(ProvisioningEventType)value {
+  self = [super init];
+  if (self) {
+    _value = value;
+  }
+  return self;
+}
+@end
+
 @interface MeshNetwork ()
 + (MeshNetwork *)fromList:(NSArray<id> *)list;
 + (nullable MeshNetwork *)nullableFromList:(NSArray<id> *)list;
@@ -141,9 +161,9 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
 - (NSArray<id> *)toList;
 @end
 
-@interface UnprovisionedDevice ()
-+ (UnprovisionedDevice *)fromList:(NSArray<id> *)list;
-+ (nullable UnprovisionedDevice *)nullableFromList:(NSArray<id> *)list;
+@interface FlutterUnprovisionedDevice ()
++ (FlutterUnprovisionedDevice *)fromList:(NSArray<id> *)list;
++ (nullable FlutterUnprovisionedDevice *)nullableFromList:(NSArray<id> *)list;
 - (NSArray<id> *)toList;
 @end
 
@@ -165,6 +185,12 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
 - (NSArray<id> *)toList;
 @end
 
+@interface Publication ()
++ (Publication *)fromList:(NSArray<id> *)list;
++ (nullable Publication *)nullableFromList:(NSArray<id> *)list;
+- (NSArray<id> *)toList;
+@end
+
 @interface MeshGroup ()
 + (MeshGroup *)fromList:(NSArray<id> *)list;
 + (nullable MeshGroup *)nullableFromList:(NSArray<id> *)list;
@@ -177,9 +203,21 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
 - (NSArray<id> *)toList;
 @end
 
+@interface RxAccessMessage ()
++ (RxAccessMessage *)fromList:(NSArray<id> *)list;
++ (nullable RxAccessMessage *)nullableFromList:(NSArray<id> *)list;
+- (NSArray<id> *)toList;
+@end
+
 @interface ProvisioningParameters ()
 + (ProvisioningParameters *)fromList:(NSArray<id> *)list;
 + (nullable ProvisioningParameters *)nullableFromList:(NSArray<id> *)list;
+- (NSArray<id> *)toList;
+@end
+
+@interface ProvisioningEvent ()
++ (ProvisioningEvent *)fromList:(NSArray<id> *)list;
++ (nullable ProvisioningEvent *)nullableFromList:(NSArray<id> *)list;
 - (NSArray<id> *)toList;
 @end
 
@@ -196,13 +234,13 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
 @end
 
 @implementation MeshNetwork
-+ (instancetype)makeWithNetworkId:(NSString *)networkId
-    name:(NSString *)name
-    networkKeys:(NSArray<NetworkKey *> *)networkKeys
-    appKeys:(NSArray<AppKey *> *)appKeys
-    nodes:(NSArray<ProvisionedNode *> *)nodes
-    groups:(NSArray<MeshGroup *> *)groups
-    provisioner:(Provisioner *)provisioner {
++ (instancetype)makeWithNetworkId:(nullable NSString *)networkId
+    name:(nullable NSString *)name
+    networkKeys:(nullable NSArray<NetworkKey *> *)networkKeys
+    appKeys:(nullable NSArray<AppKey *> *)appKeys
+    nodes:(nullable NSArray<ProvisionedNode *> *)nodes
+    groups:(nullable NSArray<MeshGroup *> *)groups
+    provisioner:(nullable Provisioner *)provisioner {
   MeshNetwork* pigeonResult = [[MeshNetwork alloc] init];
   pigeonResult.networkId = networkId;
   pigeonResult.name = name;
@@ -263,10 +301,10 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
 @end
 
 @implementation NetworkKey
-+ (instancetype)makeWithKeyId:(NSString *)keyId
-    key:(NSString *)key
-    index:(NSInteger )index
-    enabled:(BOOL )enabled {
++ (instancetype)makeWithKeyId:(nullable NSString *)keyId
+    key:(nullable NSString *)key
+    index:(nullable NSNumber *)index
+    enabled:(nullable NSNumber *)enabled {
   NetworkKey* pigeonResult = [[NetworkKey alloc] init];
   pigeonResult.keyId = keyId;
   pigeonResult.key = key;
@@ -278,8 +316,8 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
   NetworkKey *pigeonResult = [[NetworkKey alloc] init];
   pigeonResult.keyId = GetNullableObjectAtIndex(list, 0);
   pigeonResult.key = GetNullableObjectAtIndex(list, 1);
-  pigeonResult.index = [GetNullableObjectAtIndex(list, 2) integerValue];
-  pigeonResult.enabled = [GetNullableObjectAtIndex(list, 3) boolValue];
+  pigeonResult.index = GetNullableObjectAtIndex(list, 2);
+  pigeonResult.enabled = GetNullableObjectAtIndex(list, 3);
   return pigeonResult;
 }
 + (nullable NetworkKey *)nullableFromList:(NSArray<id> *)list {
@@ -289,8 +327,8 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
   return @[
     self.keyId ?: [NSNull null],
     self.key ?: [NSNull null],
-    @(self.index),
-    @(self.enabled),
+    self.index ?: [NSNull null],
+    self.enabled ?: [NSNull null],
   ];
 }
 - (BOOL)isEqual:(id)object {
@@ -301,24 +339,24 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
     return NO;
   }
   NetworkKey *other = (NetworkKey *)object;
-  return FLTPigeonDeepEquals(self.keyId, other.keyId) && FLTPigeonDeepEquals(self.key, other.key) && self.index == other.index && self.enabled == other.enabled;
+  return FLTPigeonDeepEquals(self.keyId, other.keyId) && FLTPigeonDeepEquals(self.key, other.key) && FLTPigeonDeepEquals(self.index, other.index) && FLTPigeonDeepEquals(self.enabled, other.enabled);
 }
 
 - (NSUInteger)hash {
   NSUInteger result = [self class].hash;
   result = result * 31 + FLTPigeonDeepHash(self.keyId);
   result = result * 31 + FLTPigeonDeepHash(self.key);
-  result = result * 31 + @(self.index).hash;
-  result = result * 31 + @(self.enabled).hash;
+  result = result * 31 + FLTPigeonDeepHash(self.index);
+  result = result * 31 + FLTPigeonDeepHash(self.enabled);
   return result;
 }
 @end
 
 @implementation AppKey
-+ (instancetype)makeWithKeyId:(NSString *)keyId
-    key:(NSString *)key
-    index:(NSInteger )index
-    enabled:(BOOL )enabled {
++ (instancetype)makeWithKeyId:(nullable NSString *)keyId
+    key:(nullable NSString *)key
+    index:(nullable NSNumber *)index
+    enabled:(nullable NSNumber *)enabled {
   AppKey* pigeonResult = [[AppKey alloc] init];
   pigeonResult.keyId = keyId;
   pigeonResult.key = key;
@@ -330,8 +368,8 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
   AppKey *pigeonResult = [[AppKey alloc] init];
   pigeonResult.keyId = GetNullableObjectAtIndex(list, 0);
   pigeonResult.key = GetNullableObjectAtIndex(list, 1);
-  pigeonResult.index = [GetNullableObjectAtIndex(list, 2) integerValue];
-  pigeonResult.enabled = [GetNullableObjectAtIndex(list, 3) boolValue];
+  pigeonResult.index = GetNullableObjectAtIndex(list, 2);
+  pigeonResult.enabled = GetNullableObjectAtIndex(list, 3);
   return pigeonResult;
 }
 + (nullable AppKey *)nullableFromList:(NSArray<id> *)list {
@@ -341,8 +379,8 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
   return @[
     self.keyId ?: [NSNull null],
     self.key ?: [NSNull null],
-    @(self.index),
-    @(self.enabled),
+    self.index ?: [NSNull null],
+    self.enabled ?: [NSNull null],
   ];
 }
 - (BOOL)isEqual:(id)object {
@@ -353,23 +391,23 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
     return NO;
   }
   AppKey *other = (AppKey *)object;
-  return FLTPigeonDeepEquals(self.keyId, other.keyId) && FLTPigeonDeepEquals(self.key, other.key) && self.index == other.index && self.enabled == other.enabled;
+  return FLTPigeonDeepEquals(self.keyId, other.keyId) && FLTPigeonDeepEquals(self.key, other.key) && FLTPigeonDeepEquals(self.index, other.index) && FLTPigeonDeepEquals(self.enabled, other.enabled);
 }
 
 - (NSUInteger)hash {
   NSUInteger result = [self class].hash;
   result = result * 31 + FLTPigeonDeepHash(self.keyId);
   result = result * 31 + FLTPigeonDeepHash(self.key);
-  result = result * 31 + @(self.index).hash;
-  result = result * 31 + @(self.enabled).hash;
+  result = result * 31 + FLTPigeonDeepHash(self.index);
+  result = result * 31 + FLTPigeonDeepHash(self.enabled);
   return result;
 }
 @end
 
 @implementation Provisioner
-+ (instancetype)makeWithName:(NSString *)name
-    provisionerId:(NSString *)provisionerId
-    addressRange:(NSArray<NSNumber *> *)addressRange {
++ (instancetype)makeWithName:(nullable NSString *)name
+    provisionerId:(nullable NSString *)provisionerId
+    addressRange:(nullable NSArray<NSNumber *> *)addressRange {
   Provisioner* pigeonResult = [[Provisioner alloc] init];
   pigeonResult.name = name;
   pigeonResult.provisionerId = provisionerId;
@@ -413,35 +451,39 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
 }
 @end
 
-@implementation UnprovisionedDevice
-+ (instancetype)makeWithDeviceId:(NSString *)deviceId
-    name:(NSString *)name
-    rssi:(NSInteger )rssi
-    uuid:(NSArray<NSNumber *> *)uuid {
-  UnprovisionedDevice* pigeonResult = [[UnprovisionedDevice alloc] init];
+@implementation FlutterUnprovisionedDevice
++ (instancetype)makeWithDeviceId:(nullable NSString *)deviceId
+    name:(nullable NSString *)name
+    rssi:(nullable NSNumber *)rssi
+    uuid:(nullable NSArray<NSNumber *> *)uuid
+    serviceUuid:(nullable NSString *)serviceUuid {
+  FlutterUnprovisionedDevice* pigeonResult = [[FlutterUnprovisionedDevice alloc] init];
   pigeonResult.deviceId = deviceId;
   pigeonResult.name = name;
   pigeonResult.rssi = rssi;
   pigeonResult.uuid = uuid;
+  pigeonResult.serviceUuid = serviceUuid;
   return pigeonResult;
 }
-+ (UnprovisionedDevice *)fromList:(NSArray<id> *)list {
-  UnprovisionedDevice *pigeonResult = [[UnprovisionedDevice alloc] init];
++ (FlutterUnprovisionedDevice *)fromList:(NSArray<id> *)list {
+  FlutterUnprovisionedDevice *pigeonResult = [[FlutterUnprovisionedDevice alloc] init];
   pigeonResult.deviceId = GetNullableObjectAtIndex(list, 0);
   pigeonResult.name = GetNullableObjectAtIndex(list, 1);
-  pigeonResult.rssi = [GetNullableObjectAtIndex(list, 2) integerValue];
+  pigeonResult.rssi = GetNullableObjectAtIndex(list, 2);
   pigeonResult.uuid = GetNullableObjectAtIndex(list, 3);
+  pigeonResult.serviceUuid = GetNullableObjectAtIndex(list, 4);
   return pigeonResult;
 }
-+ (nullable UnprovisionedDevice *)nullableFromList:(NSArray<id> *)list {
-  return (list) ? [UnprovisionedDevice fromList:list] : nil;
++ (nullable FlutterUnprovisionedDevice *)nullableFromList:(NSArray<id> *)list {
+  return (list) ? [FlutterUnprovisionedDevice fromList:list] : nil;
 }
 - (NSArray<id> *)toList {
   return @[
     self.deviceId ?: [NSNull null],
     self.name ?: [NSNull null],
-    @(self.rssi),
+    self.rssi ?: [NSNull null],
     self.uuid ?: [NSNull null],
+    self.serviceUuid ?: [NSNull null],
   ];
 }
 - (BOOL)isEqual:(id)object {
@@ -451,27 +493,28 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
   if (![object isKindOfClass:[self class]]) {
     return NO;
   }
-  UnprovisionedDevice *other = (UnprovisionedDevice *)object;
-  return FLTPigeonDeepEquals(self.deviceId, other.deviceId) && FLTPigeonDeepEquals(self.name, other.name) && self.rssi == other.rssi && FLTPigeonDeepEquals(self.uuid, other.uuid);
+  FlutterUnprovisionedDevice *other = (FlutterUnprovisionedDevice *)object;
+  return FLTPigeonDeepEquals(self.deviceId, other.deviceId) && FLTPigeonDeepEquals(self.name, other.name) && FLTPigeonDeepEquals(self.rssi, other.rssi) && FLTPigeonDeepEquals(self.uuid, other.uuid) && FLTPigeonDeepEquals(self.serviceUuid, other.serviceUuid);
 }
 
 - (NSUInteger)hash {
   NSUInteger result = [self class].hash;
   result = result * 31 + FLTPigeonDeepHash(self.deviceId);
   result = result * 31 + FLTPigeonDeepHash(self.name);
-  result = result * 31 + @(self.rssi).hash;
+  result = result * 31 + FLTPigeonDeepHash(self.rssi);
   result = result * 31 + FLTPigeonDeepHash(self.uuid);
+  result = result * 31 + FLTPigeonDeepHash(self.serviceUuid);
   return result;
 }
 @end
 
 @implementation ProvisionedNode
-+ (instancetype)makeWithNodeId:(NSString *)nodeId
-    name:(NSString *)name
-    unicastAddress:(NSInteger )unicastAddress
-    uuid:(NSArray<NSNumber *> *)uuid
-    elements:(NSArray<Element *> *)elements
-    provisioned:(BOOL )provisioned {
++ (instancetype)makeWithNodeId:(nullable NSString *)nodeId
+    name:(nullable NSString *)name
+    unicastAddress:(nullable NSNumber *)unicastAddress
+    uuid:(nullable NSArray<NSNumber *> *)uuid
+    elements:(nullable NSArray<Element *> *)elements
+    provisioned:(nullable NSNumber *)provisioned {
   ProvisionedNode* pigeonResult = [[ProvisionedNode alloc] init];
   pigeonResult.nodeId = nodeId;
   pigeonResult.name = name;
@@ -485,10 +528,10 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
   ProvisionedNode *pigeonResult = [[ProvisionedNode alloc] init];
   pigeonResult.nodeId = GetNullableObjectAtIndex(list, 0);
   pigeonResult.name = GetNullableObjectAtIndex(list, 1);
-  pigeonResult.unicastAddress = [GetNullableObjectAtIndex(list, 2) integerValue];
+  pigeonResult.unicastAddress = GetNullableObjectAtIndex(list, 2);
   pigeonResult.uuid = GetNullableObjectAtIndex(list, 3);
   pigeonResult.elements = GetNullableObjectAtIndex(list, 4);
-  pigeonResult.provisioned = [GetNullableObjectAtIndex(list, 5) boolValue];
+  pigeonResult.provisioned = GetNullableObjectAtIndex(list, 5);
   return pigeonResult;
 }
 + (nullable ProvisionedNode *)nullableFromList:(NSArray<id> *)list {
@@ -498,10 +541,10 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
   return @[
     self.nodeId ?: [NSNull null],
     self.name ?: [NSNull null],
-    @(self.unicastAddress),
+    self.unicastAddress ?: [NSNull null],
     self.uuid ?: [NSNull null],
     self.elements ?: [NSNull null],
-    @(self.provisioned),
+    self.provisioned ?: [NSNull null],
   ];
 }
 - (BOOL)isEqual:(id)object {
@@ -512,24 +555,24 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
     return NO;
   }
   ProvisionedNode *other = (ProvisionedNode *)object;
-  return FLTPigeonDeepEquals(self.nodeId, other.nodeId) && FLTPigeonDeepEquals(self.name, other.name) && self.unicastAddress == other.unicastAddress && FLTPigeonDeepEquals(self.uuid, other.uuid) && FLTPigeonDeepEquals(self.elements, other.elements) && self.provisioned == other.provisioned;
+  return FLTPigeonDeepEquals(self.nodeId, other.nodeId) && FLTPigeonDeepEquals(self.name, other.name) && FLTPigeonDeepEquals(self.unicastAddress, other.unicastAddress) && FLTPigeonDeepEquals(self.uuid, other.uuid) && FLTPigeonDeepEquals(self.elements, other.elements) && FLTPigeonDeepEquals(self.provisioned, other.provisioned);
 }
 
 - (NSUInteger)hash {
   NSUInteger result = [self class].hash;
   result = result * 31 + FLTPigeonDeepHash(self.nodeId);
   result = result * 31 + FLTPigeonDeepHash(self.name);
-  result = result * 31 + @(self.unicastAddress).hash;
+  result = result * 31 + FLTPigeonDeepHash(self.unicastAddress);
   result = result * 31 + FLTPigeonDeepHash(self.uuid);
   result = result * 31 + FLTPigeonDeepHash(self.elements);
-  result = result * 31 + @(self.provisioned).hash;
+  result = result * 31 + FLTPigeonDeepHash(self.provisioned);
   return result;
 }
 @end
 
 @implementation Element
-+ (instancetype)makeWithAddress:(NSInteger )address
-    models:(NSArray<Model *> *)models {
++ (instancetype)makeWithAddress:(nullable NSNumber *)address
+    models:(nullable NSArray<Model *> *)models {
   Element* pigeonResult = [[Element alloc] init];
   pigeonResult.address = address;
   pigeonResult.models = models;
@@ -537,7 +580,7 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
 }
 + (Element *)fromList:(NSArray<id> *)list {
   Element *pigeonResult = [[Element alloc] init];
-  pigeonResult.address = [GetNullableObjectAtIndex(list, 0) integerValue];
+  pigeonResult.address = GetNullableObjectAtIndex(list, 0);
   pigeonResult.models = GetNullableObjectAtIndex(list, 1);
   return pigeonResult;
 }
@@ -546,7 +589,7 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
 }
 - (NSArray<id> *)toList {
   return @[
-    @(self.address),
+    self.address ?: [NSNull null],
     self.models ?: [NSNull null],
   ];
 }
@@ -558,35 +601,44 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
     return NO;
   }
   Element *other = (Element *)object;
-  return self.address == other.address && FLTPigeonDeepEquals(self.models, other.models);
+  return FLTPigeonDeepEquals(self.address, other.address) && FLTPigeonDeepEquals(self.models, other.models);
 }
 
 - (NSUInteger)hash {
   NSUInteger result = [self class].hash;
-  result = result * 31 + @(self.address).hash;
+  result = result * 31 + FLTPigeonDeepHash(self.address);
   result = result * 31 + FLTPigeonDeepHash(self.models);
   return result;
 }
 @end
 
 @implementation Model
-+ (instancetype)makeWithModelId:(NSInteger )modelId
-    modelName:(NSString *)modelName
-    publishable:(BOOL )publishable
-    subscribable:(BOOL )subscribable {
++ (instancetype)makeWithModelId:(nullable NSNumber *)modelId
+    modelName:(nullable NSString *)modelName
+    publishable:(nullable NSNumber *)publishable
+    subscribable:(nullable NSNumber *)subscribable
+    boundAppKeyIndexes:(nullable NSArray<NSNumber *> *)boundAppKeyIndexes
+    subscriptions:(nullable NSArray<NSNumber *> *)subscriptions
+    publication:(nullable Publication *)publication {
   Model* pigeonResult = [[Model alloc] init];
   pigeonResult.modelId = modelId;
   pigeonResult.modelName = modelName;
   pigeonResult.publishable = publishable;
   pigeonResult.subscribable = subscribable;
+  pigeonResult.boundAppKeyIndexes = boundAppKeyIndexes;
+  pigeonResult.subscriptions = subscriptions;
+  pigeonResult.publication = publication;
   return pigeonResult;
 }
 + (Model *)fromList:(NSArray<id> *)list {
   Model *pigeonResult = [[Model alloc] init];
-  pigeonResult.modelId = [GetNullableObjectAtIndex(list, 0) integerValue];
+  pigeonResult.modelId = GetNullableObjectAtIndex(list, 0);
   pigeonResult.modelName = GetNullableObjectAtIndex(list, 1);
-  pigeonResult.publishable = [GetNullableObjectAtIndex(list, 2) boolValue];
-  pigeonResult.subscribable = [GetNullableObjectAtIndex(list, 3) boolValue];
+  pigeonResult.publishable = GetNullableObjectAtIndex(list, 2);
+  pigeonResult.subscribable = GetNullableObjectAtIndex(list, 3);
+  pigeonResult.boundAppKeyIndexes = GetNullableObjectAtIndex(list, 4);
+  pigeonResult.subscriptions = GetNullableObjectAtIndex(list, 5);
+  pigeonResult.publication = GetNullableObjectAtIndex(list, 6);
   return pigeonResult;
 }
 + (nullable Model *)nullableFromList:(NSArray<id> *)list {
@@ -594,10 +646,13 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
 }
 - (NSArray<id> *)toList {
   return @[
-    @(self.modelId),
+    self.modelId ?: [NSNull null],
     self.modelName ?: [NSNull null],
-    @(self.publishable),
-    @(self.subscribable),
+    self.publishable ?: [NSNull null],
+    self.subscribable ?: [NSNull null],
+    self.boundAppKeyIndexes ?: [NSNull null],
+    self.subscriptions ?: [NSNull null],
+    self.publication ?: [NSNull null],
   ];
 }
 - (BOOL)isEqual:(id)object {
@@ -608,24 +663,74 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
     return NO;
   }
   Model *other = (Model *)object;
-  return self.modelId == other.modelId && FLTPigeonDeepEquals(self.modelName, other.modelName) && self.publishable == other.publishable && self.subscribable == other.subscribable;
+  return FLTPigeonDeepEquals(self.modelId, other.modelId) && FLTPigeonDeepEquals(self.modelName, other.modelName) && FLTPigeonDeepEquals(self.publishable, other.publishable) && FLTPigeonDeepEquals(self.subscribable, other.subscribable) && FLTPigeonDeepEquals(self.boundAppKeyIndexes, other.boundAppKeyIndexes) && FLTPigeonDeepEquals(self.subscriptions, other.subscriptions) && FLTPigeonDeepEquals(self.publication, other.publication);
 }
 
 - (NSUInteger)hash {
   NSUInteger result = [self class].hash;
-  result = result * 31 + @(self.modelId).hash;
+  result = result * 31 + FLTPigeonDeepHash(self.modelId);
   result = result * 31 + FLTPigeonDeepHash(self.modelName);
-  result = result * 31 + @(self.publishable).hash;
-  result = result * 31 + @(self.subscribable).hash;
+  result = result * 31 + FLTPigeonDeepHash(self.publishable);
+  result = result * 31 + FLTPigeonDeepHash(self.subscribable);
+  result = result * 31 + FLTPigeonDeepHash(self.boundAppKeyIndexes);
+  result = result * 31 + FLTPigeonDeepHash(self.subscriptions);
+  result = result * 31 + FLTPigeonDeepHash(self.publication);
+  return result;
+}
+@end
+
+@implementation Publication
++ (instancetype)makeWithAddress:(nullable NSNumber *)address
+    appKeyIndex:(nullable NSNumber *)appKeyIndex
+    ttl:(nullable NSNumber *)ttl {
+  Publication* pigeonResult = [[Publication alloc] init];
+  pigeonResult.address = address;
+  pigeonResult.appKeyIndex = appKeyIndex;
+  pigeonResult.ttl = ttl;
+  return pigeonResult;
+}
++ (Publication *)fromList:(NSArray<id> *)list {
+  Publication *pigeonResult = [[Publication alloc] init];
+  pigeonResult.address = GetNullableObjectAtIndex(list, 0);
+  pigeonResult.appKeyIndex = GetNullableObjectAtIndex(list, 1);
+  pigeonResult.ttl = GetNullableObjectAtIndex(list, 2);
+  return pigeonResult;
+}
++ (nullable Publication *)nullableFromList:(NSArray<id> *)list {
+  return (list) ? [Publication fromList:list] : nil;
+}
+- (NSArray<id> *)toList {
+  return @[
+    self.address ?: [NSNull null],
+    self.appKeyIndex ?: [NSNull null],
+    self.ttl ?: [NSNull null],
+  ];
+}
+- (BOOL)isEqual:(id)object {
+  if (self == object) {
+    return YES;
+  }
+  if (![object isKindOfClass:[self class]]) {
+    return NO;
+  }
+  Publication *other = (Publication *)object;
+  return FLTPigeonDeepEquals(self.address, other.address) && FLTPigeonDeepEquals(self.appKeyIndex, other.appKeyIndex) && FLTPigeonDeepEquals(self.ttl, other.ttl);
+}
+
+- (NSUInteger)hash {
+  NSUInteger result = [self class].hash;
+  result = result * 31 + FLTPigeonDeepHash(self.address);
+  result = result * 31 + FLTPigeonDeepHash(self.appKeyIndex);
+  result = result * 31 + FLTPigeonDeepHash(self.ttl);
   return result;
 }
 @end
 
 @implementation MeshGroup
-+ (instancetype)makeWithGroupId:(NSString *)groupId
-    name:(NSString *)name
-    address:(NSInteger )address
-    nodeIds:(NSArray<NSString *> *)nodeIds {
++ (instancetype)makeWithGroupId:(nullable NSString *)groupId
+    name:(nullable NSString *)name
+    address:(nullable NSNumber *)address
+    nodeIds:(nullable NSArray<NSString *> *)nodeIds {
   MeshGroup* pigeonResult = [[MeshGroup alloc] init];
   pigeonResult.groupId = groupId;
   pigeonResult.name = name;
@@ -637,7 +742,7 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
   MeshGroup *pigeonResult = [[MeshGroup alloc] init];
   pigeonResult.groupId = GetNullableObjectAtIndex(list, 0);
   pigeonResult.name = GetNullableObjectAtIndex(list, 1);
-  pigeonResult.address = [GetNullableObjectAtIndex(list, 2) integerValue];
+  pigeonResult.address = GetNullableObjectAtIndex(list, 2);
   pigeonResult.nodeIds = GetNullableObjectAtIndex(list, 3);
   return pigeonResult;
 }
@@ -648,7 +753,7 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
   return @[
     self.groupId ?: [NSNull null],
     self.name ?: [NSNull null],
-    @(self.address),
+    self.address ?: [NSNull null],
     self.nodeIds ?: [NSNull null],
   ];
 }
@@ -660,24 +765,24 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
     return NO;
   }
   MeshGroup *other = (MeshGroup *)object;
-  return FLTPigeonDeepEquals(self.groupId, other.groupId) && FLTPigeonDeepEquals(self.name, other.name) && self.address == other.address && FLTPigeonDeepEquals(self.nodeIds, other.nodeIds);
+  return FLTPigeonDeepEquals(self.groupId, other.groupId) && FLTPigeonDeepEquals(self.name, other.name) && FLTPigeonDeepEquals(self.address, other.address) && FLTPigeonDeepEquals(self.nodeIds, other.nodeIds);
 }
 
 - (NSUInteger)hash {
   NSUInteger result = [self class].hash;
   result = result * 31 + FLTPigeonDeepHash(self.groupId);
   result = result * 31 + FLTPigeonDeepHash(self.name);
-  result = result * 31 + @(self.address).hash;
+  result = result * 31 + FLTPigeonDeepHash(self.address);
   result = result * 31 + FLTPigeonDeepHash(self.nodeIds);
   return result;
 }
 @end
 
 @implementation MeshMessage
-+ (instancetype)makeWithOpcode:(NSInteger )opcode
-    address:(NSInteger )address
-    appKeyIndex:(NSInteger )appKeyIndex
-    parameters:(NSDictionary<NSString *, id> *)parameters {
++ (instancetype)makeWithOpcode:(nullable NSNumber *)opcode
+    address:(nullable NSNumber *)address
+    appKeyIndex:(nullable NSNumber *)appKeyIndex
+    parameters:(nullable NSDictionary<NSString *, id> *)parameters {
   MeshMessage* pigeonResult = [[MeshMessage alloc] init];
   pigeonResult.opcode = opcode;
   pigeonResult.address = address;
@@ -687,9 +792,9 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
 }
 + (MeshMessage *)fromList:(NSArray<id> *)list {
   MeshMessage *pigeonResult = [[MeshMessage alloc] init];
-  pigeonResult.opcode = [GetNullableObjectAtIndex(list, 0) integerValue];
-  pigeonResult.address = [GetNullableObjectAtIndex(list, 1) integerValue];
-  pigeonResult.appKeyIndex = [GetNullableObjectAtIndex(list, 2) integerValue];
+  pigeonResult.opcode = GetNullableObjectAtIndex(list, 0);
+  pigeonResult.address = GetNullableObjectAtIndex(list, 1);
+  pigeonResult.appKeyIndex = GetNullableObjectAtIndex(list, 2);
   pigeonResult.parameters = GetNullableObjectAtIndex(list, 3);
   return pigeonResult;
 }
@@ -698,9 +803,9 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
 }
 - (NSArray<id> *)toList {
   return @[
-    @(self.opcode),
-    @(self.address),
-    @(self.appKeyIndex),
+    self.opcode ?: [NSNull null],
+    self.address ?: [NSNull null],
+    self.appKeyIndex ?: [NSNull null],
     self.parameters ?: [NSNull null],
   ];
 }
@@ -712,24 +817,81 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
     return NO;
   }
   MeshMessage *other = (MeshMessage *)object;
-  return self.opcode == other.opcode && self.address == other.address && self.appKeyIndex == other.appKeyIndex && FLTPigeonDeepEquals(self.parameters, other.parameters);
+  return FLTPigeonDeepEquals(self.opcode, other.opcode) && FLTPigeonDeepEquals(self.address, other.address) && FLTPigeonDeepEquals(self.appKeyIndex, other.appKeyIndex) && FLTPigeonDeepEquals(self.parameters, other.parameters);
 }
 
 - (NSUInteger)hash {
   NSUInteger result = [self class].hash;
-  result = result * 31 + @(self.opcode).hash;
-  result = result * 31 + @(self.address).hash;
-  result = result * 31 + @(self.appKeyIndex).hash;
+  result = result * 31 + FLTPigeonDeepHash(self.opcode);
+  result = result * 31 + FLTPigeonDeepHash(self.address);
+  result = result * 31 + FLTPigeonDeepHash(self.appKeyIndex);
   result = result * 31 + FLTPigeonDeepHash(self.parameters);
   return result;
 }
 @end
 
+@implementation RxAccessMessage
++ (instancetype)makeWithOpcode:(nullable NSNumber *)opcode
+    parameters:(nullable NSArray<NSNumber *> *)parameters
+    source:(nullable NSNumber *)source
+    destination:(nullable NSNumber *)destination
+    metadataStatus:(nullable RxMetadataStatusBox *)metadataStatus {
+  RxAccessMessage* pigeonResult = [[RxAccessMessage alloc] init];
+  pigeonResult.opcode = opcode;
+  pigeonResult.parameters = parameters;
+  pigeonResult.source = source;
+  pigeonResult.destination = destination;
+  pigeonResult.metadataStatus = metadataStatus;
+  return pigeonResult;
+}
++ (RxAccessMessage *)fromList:(NSArray<id> *)list {
+  RxAccessMessage *pigeonResult = [[RxAccessMessage alloc] init];
+  pigeonResult.opcode = GetNullableObjectAtIndex(list, 0);
+  pigeonResult.parameters = GetNullableObjectAtIndex(list, 1);
+  pigeonResult.source = GetNullableObjectAtIndex(list, 2);
+  pigeonResult.destination = GetNullableObjectAtIndex(list, 3);
+  pigeonResult.metadataStatus = GetNullableObjectAtIndex(list, 4);
+  return pigeonResult;
+}
++ (nullable RxAccessMessage *)nullableFromList:(NSArray<id> *)list {
+  return (list) ? [RxAccessMessage fromList:list] : nil;
+}
+- (NSArray<id> *)toList {
+  return @[
+    self.opcode ?: [NSNull null],
+    self.parameters ?: [NSNull null],
+    self.source ?: [NSNull null],
+    self.destination ?: [NSNull null],
+    self.metadataStatus ?: [NSNull null],
+  ];
+}
+- (BOOL)isEqual:(id)object {
+  if (self == object) {
+    return YES;
+  }
+  if (![object isKindOfClass:[self class]]) {
+    return NO;
+  }
+  RxAccessMessage *other = (RxAccessMessage *)object;
+  return FLTPigeonDeepEquals(self.opcode, other.opcode) && FLTPigeonDeepEquals(self.parameters, other.parameters) && FLTPigeonDeepEquals(self.source, other.source) && FLTPigeonDeepEquals(self.destination, other.destination) && FLTPigeonDeepEquals(self.metadataStatus, other.metadataStatus);
+}
+
+- (NSUInteger)hash {
+  NSUInteger result = [self class].hash;
+  result = result * 31 + FLTPigeonDeepHash(self.opcode);
+  result = result * 31 + FLTPigeonDeepHash(self.parameters);
+  result = result * 31 + FLTPigeonDeepHash(self.source);
+  result = result * 31 + FLTPigeonDeepHash(self.destination);
+  result = result * 31 + FLTPigeonDeepHash(self.metadataStatus);
+  return result;
+}
+@end
+
 @implementation ProvisioningParameters
-+ (instancetype)makeWithDeviceName:(NSString *)deviceName
++ (instancetype)makeWithDeviceName:(nullable NSString *)deviceName
     oobMethod:(nullable NSNumber *)oobMethod
     oobData:(nullable NSString *)oobData
-    enablePrivacy:(BOOL )enablePrivacy {
+    enablePrivacy:(nullable NSNumber *)enablePrivacy {
   ProvisioningParameters* pigeonResult = [[ProvisioningParameters alloc] init];
   pigeonResult.deviceName = deviceName;
   pigeonResult.oobMethod = oobMethod;
@@ -742,7 +904,7 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
   pigeonResult.deviceName = GetNullableObjectAtIndex(list, 0);
   pigeonResult.oobMethod = GetNullableObjectAtIndex(list, 1);
   pigeonResult.oobData = GetNullableObjectAtIndex(list, 2);
-  pigeonResult.enablePrivacy = [GetNullableObjectAtIndex(list, 3) boolValue];
+  pigeonResult.enablePrivacy = GetNullableObjectAtIndex(list, 3);
   return pigeonResult;
 }
 + (nullable ProvisioningParameters *)nullableFromList:(NSArray<id> *)list {
@@ -753,7 +915,7 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
     self.deviceName ?: [NSNull null],
     self.oobMethod ?: [NSNull null],
     self.oobData ?: [NSNull null],
-    @(self.enablePrivacy),
+    self.enablePrivacy ?: [NSNull null],
   ];
 }
 - (BOOL)isEqual:(id)object {
@@ -764,7 +926,7 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
     return NO;
   }
   ProvisioningParameters *other = (ProvisioningParameters *)object;
-  return FLTPigeonDeepEquals(self.deviceName, other.deviceName) && FLTPigeonDeepEquals(self.oobMethod, other.oobMethod) && FLTPigeonDeepEquals(self.oobData, other.oobData) && self.enablePrivacy == other.enablePrivacy;
+  return FLTPigeonDeepEquals(self.deviceName, other.deviceName) && FLTPigeonDeepEquals(self.oobMethod, other.oobMethod) && FLTPigeonDeepEquals(self.oobData, other.oobData) && FLTPigeonDeepEquals(self.enablePrivacy, other.enablePrivacy);
 }
 
 - (NSUInteger)hash {
@@ -772,15 +934,72 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
   result = result * 31 + FLTPigeonDeepHash(self.deviceName);
   result = result * 31 + FLTPigeonDeepHash(self.oobMethod);
   result = result * 31 + FLTPigeonDeepHash(self.oobData);
-  result = result * 31 + @(self.enablePrivacy).hash;
+  result = result * 31 + FLTPigeonDeepHash(self.enablePrivacy);
+  return result;
+}
+@end
+
+@implementation ProvisioningEvent
++ (instancetype)makeWithDeviceId:(nullable NSString *)deviceId
+    type:(nullable ProvisioningEventTypeBox *)type
+    message:(nullable NSString *)message
+    progress:(nullable NSNumber *)progress
+    attentionTimer:(nullable NSNumber *)attentionTimer {
+  ProvisioningEvent* pigeonResult = [[ProvisioningEvent alloc] init];
+  pigeonResult.deviceId = deviceId;
+  pigeonResult.type = type;
+  pigeonResult.message = message;
+  pigeonResult.progress = progress;
+  pigeonResult.attentionTimer = attentionTimer;
+  return pigeonResult;
+}
++ (ProvisioningEvent *)fromList:(NSArray<id> *)list {
+  ProvisioningEvent *pigeonResult = [[ProvisioningEvent alloc] init];
+  pigeonResult.deviceId = GetNullableObjectAtIndex(list, 0);
+  pigeonResult.type = GetNullableObjectAtIndex(list, 1);
+  pigeonResult.message = GetNullableObjectAtIndex(list, 2);
+  pigeonResult.progress = GetNullableObjectAtIndex(list, 3);
+  pigeonResult.attentionTimer = GetNullableObjectAtIndex(list, 4);
+  return pigeonResult;
+}
++ (nullable ProvisioningEvent *)nullableFromList:(NSArray<id> *)list {
+  return (list) ? [ProvisioningEvent fromList:list] : nil;
+}
+- (NSArray<id> *)toList {
+  return @[
+    self.deviceId ?: [NSNull null],
+    self.type ?: [NSNull null],
+    self.message ?: [NSNull null],
+    self.progress ?: [NSNull null],
+    self.attentionTimer ?: [NSNull null],
+  ];
+}
+- (BOOL)isEqual:(id)object {
+  if (self == object) {
+    return YES;
+  }
+  if (![object isKindOfClass:[self class]]) {
+    return NO;
+  }
+  ProvisioningEvent *other = (ProvisioningEvent *)object;
+  return FLTPigeonDeepEquals(self.deviceId, other.deviceId) && FLTPigeonDeepEquals(self.type, other.type) && FLTPigeonDeepEquals(self.message, other.message) && FLTPigeonDeepEquals(self.progress, other.progress) && FLTPigeonDeepEquals(self.attentionTimer, other.attentionTimer);
+}
+
+- (NSUInteger)hash {
+  NSUInteger result = [self class].hash;
+  result = result * 31 + FLTPigeonDeepHash(self.deviceId);
+  result = result * 31 + FLTPigeonDeepHash(self.type);
+  result = result * 31 + FLTPigeonDeepHash(self.message);
+  result = result * 31 + FLTPigeonDeepHash(self.progress);
+  result = result * 31 + FLTPigeonDeepHash(self.attentionTimer);
   return result;
 }
 @end
 
 @implementation GenericOnOffSet
-+ (instancetype)makeWithState:(BOOL )state
-    transitionTime:(NSInteger )transitionTime
-    delay:(NSInteger )delay {
++ (instancetype)makeWithState:(nullable NSNumber *)state
+    transitionTime:(nullable NSNumber *)transitionTime
+    delay:(nullable NSNumber *)delay {
   GenericOnOffSet* pigeonResult = [[GenericOnOffSet alloc] init];
   pigeonResult.state = state;
   pigeonResult.transitionTime = transitionTime;
@@ -789,9 +1008,9 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
 }
 + (GenericOnOffSet *)fromList:(NSArray<id> *)list {
   GenericOnOffSet *pigeonResult = [[GenericOnOffSet alloc] init];
-  pigeonResult.state = [GetNullableObjectAtIndex(list, 0) boolValue];
-  pigeonResult.transitionTime = [GetNullableObjectAtIndex(list, 1) integerValue];
-  pigeonResult.delay = [GetNullableObjectAtIndex(list, 2) integerValue];
+  pigeonResult.state = GetNullableObjectAtIndex(list, 0);
+  pigeonResult.transitionTime = GetNullableObjectAtIndex(list, 1);
+  pigeonResult.delay = GetNullableObjectAtIndex(list, 2);
   return pigeonResult;
 }
 + (nullable GenericOnOffSet *)nullableFromList:(NSArray<id> *)list {
@@ -799,9 +1018,9 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
 }
 - (NSArray<id> *)toList {
   return @[
-    @(self.state),
-    @(self.transitionTime),
-    @(self.delay),
+    self.state ?: [NSNull null],
+    self.transitionTime ?: [NSNull null],
+    self.delay ?: [NSNull null],
   ];
 }
 - (BOOL)isEqual:(id)object {
@@ -812,22 +1031,22 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
     return NO;
   }
   GenericOnOffSet *other = (GenericOnOffSet *)object;
-  return self.state == other.state && self.transitionTime == other.transitionTime && self.delay == other.delay;
+  return FLTPigeonDeepEquals(self.state, other.state) && FLTPigeonDeepEquals(self.transitionTime, other.transitionTime) && FLTPigeonDeepEquals(self.delay, other.delay);
 }
 
 - (NSUInteger)hash {
   NSUInteger result = [self class].hash;
-  result = result * 31 + @(self.state).hash;
-  result = result * 31 + @(self.transitionTime).hash;
-  result = result * 31 + @(self.delay).hash;
+  result = result * 31 + FLTPigeonDeepHash(self.state);
+  result = result * 31 + FLTPigeonDeepHash(self.transitionTime);
+  result = result * 31 + FLTPigeonDeepHash(self.delay);
   return result;
 }
 @end
 
 @implementation GenericLevelSet
-+ (instancetype)makeWithLevel:(NSInteger )level
-    transitionTime:(NSInteger )transitionTime
-    delay:(NSInteger )delay {
++ (instancetype)makeWithLevel:(nullable NSNumber *)level
+    transitionTime:(nullable NSNumber *)transitionTime
+    delay:(nullable NSNumber *)delay {
   GenericLevelSet* pigeonResult = [[GenericLevelSet alloc] init];
   pigeonResult.level = level;
   pigeonResult.transitionTime = transitionTime;
@@ -836,9 +1055,9 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
 }
 + (GenericLevelSet *)fromList:(NSArray<id> *)list {
   GenericLevelSet *pigeonResult = [[GenericLevelSet alloc] init];
-  pigeonResult.level = [GetNullableObjectAtIndex(list, 0) integerValue];
-  pigeonResult.transitionTime = [GetNullableObjectAtIndex(list, 1) integerValue];
-  pigeonResult.delay = [GetNullableObjectAtIndex(list, 2) integerValue];
+  pigeonResult.level = GetNullableObjectAtIndex(list, 0);
+  pigeonResult.transitionTime = GetNullableObjectAtIndex(list, 1);
+  pigeonResult.delay = GetNullableObjectAtIndex(list, 2);
   return pigeonResult;
 }
 + (nullable GenericLevelSet *)nullableFromList:(NSArray<id> *)list {
@@ -846,9 +1065,9 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
 }
 - (NSArray<id> *)toList {
   return @[
-    @(self.level),
-    @(self.transitionTime),
-    @(self.delay),
+    self.level ?: [NSNull null],
+    self.transitionTime ?: [NSNull null],
+    self.delay ?: [NSNull null],
   ];
 }
 - (BOOL)isEqual:(id)object {
@@ -859,14 +1078,14 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
     return NO;
   }
   GenericLevelSet *other = (GenericLevelSet *)object;
-  return self.level == other.level && self.transitionTime == other.transitionTime && self.delay == other.delay;
+  return FLTPigeonDeepEquals(self.level, other.level) && FLTPigeonDeepEquals(self.transitionTime, other.transitionTime) && FLTPigeonDeepEquals(self.delay, other.delay);
 }
 
 - (NSUInteger)hash {
   NSUInteger result = [self class].hash;
-  result = result * 31 + @(self.level).hash;
-  result = result * 31 + @(self.transitionTime).hash;
-  result = result * 31 + @(self.delay).hash;
+  result = result * 31 + FLTPigeonDeepHash(self.level);
+  result = result * 31 + FLTPigeonDeepHash(self.transitionTime);
+  result = result * 31 + FLTPigeonDeepHash(self.delay);
   return result;
 }
 @end
@@ -876,31 +1095,45 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
 @implementation nullPigeonGeneratedPigeonCodecReader
 - (nullable id)readValueOfType:(UInt8)type {
   switch (type) {
-    case 129: 
-      return [MeshNetwork fromList:[self readValue]];
-    case 130: 
-      return [NetworkKey fromList:[self readValue]];
+    case 129: {
+      NSNumber *enumAsNumber = [self readValue];
+      return enumAsNumber == nil ? nil : [[RxMetadataStatusBox alloc] initWithValue:[enumAsNumber integerValue]];
+    }
+    case 130: {
+      NSNumber *enumAsNumber = [self readValue];
+      return enumAsNumber == nil ? nil : [[ProvisioningEventTypeBox alloc] initWithValue:[enumAsNumber integerValue]];
+    }
     case 131: 
-      return [AppKey fromList:[self readValue]];
+      return [MeshNetwork fromList:[self readValue]];
     case 132: 
-      return [Provisioner fromList:[self readValue]];
+      return [NetworkKey fromList:[self readValue]];
     case 133: 
-      return [UnprovisionedDevice fromList:[self readValue]];
+      return [AppKey fromList:[self readValue]];
     case 134: 
-      return [ProvisionedNode fromList:[self readValue]];
+      return [Provisioner fromList:[self readValue]];
     case 135: 
-      return [Element fromList:[self readValue]];
+      return [FlutterUnprovisionedDevice fromList:[self readValue]];
     case 136: 
-      return [Model fromList:[self readValue]];
+      return [ProvisionedNode fromList:[self readValue]];
     case 137: 
-      return [MeshGroup fromList:[self readValue]];
+      return [Element fromList:[self readValue]];
     case 138: 
-      return [MeshMessage fromList:[self readValue]];
+      return [Model fromList:[self readValue]];
     case 139: 
-      return [ProvisioningParameters fromList:[self readValue]];
+      return [Publication fromList:[self readValue]];
     case 140: 
-      return [GenericOnOffSet fromList:[self readValue]];
+      return [MeshGroup fromList:[self readValue]];
     case 141: 
+      return [MeshMessage fromList:[self readValue]];
+    case 142: 
+      return [RxAccessMessage fromList:[self readValue]];
+    case 143: 
+      return [ProvisioningParameters fromList:[self readValue]];
+    case 144: 
+      return [ProvisioningEvent fromList:[self readValue]];
+    case 145: 
+      return [GenericOnOffSet fromList:[self readValue]];
+    case 146: 
       return [GenericLevelSet fromList:[self readValue]];
     default:
       return [super readValueOfType:type];
@@ -912,44 +1145,61 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
 @end
 @implementation nullPigeonGeneratedPigeonCodecWriter
 - (void)writeValue:(id)value {
-  if ([value isKindOfClass:[MeshNetwork class]]) {
+  if ([value isKindOfClass:[RxMetadataStatusBox class]]) {
+    RxMetadataStatusBox *box = (RxMetadataStatusBox *)value;
     [self writeByte:129];
-    [self writeValue:[value toList]];
-  } else if ([value isKindOfClass:[NetworkKey class]]) {
+    [self writeValue:(value == nil ? [NSNull null] : [NSNumber numberWithInteger:box.value])];
+  } else if ([value isKindOfClass:[ProvisioningEventTypeBox class]]) {
+    ProvisioningEventTypeBox *box = (ProvisioningEventTypeBox *)value;
     [self writeByte:130];
-    [self writeValue:[value toList]];
-  } else if ([value isKindOfClass:[AppKey class]]) {
+    [self writeValue:(value == nil ? [NSNull null] : [NSNumber numberWithInteger:box.value])];
+  } else if ([value isKindOfClass:[MeshNetwork class]]) {
     [self writeByte:131];
     [self writeValue:[value toList]];
-  } else if ([value isKindOfClass:[Provisioner class]]) {
+  } else if ([value isKindOfClass:[NetworkKey class]]) {
     [self writeByte:132];
     [self writeValue:[value toList]];
-  } else if ([value isKindOfClass:[UnprovisionedDevice class]]) {
+  } else if ([value isKindOfClass:[AppKey class]]) {
     [self writeByte:133];
     [self writeValue:[value toList]];
-  } else if ([value isKindOfClass:[ProvisionedNode class]]) {
+  } else if ([value isKindOfClass:[Provisioner class]]) {
     [self writeByte:134];
     [self writeValue:[value toList]];
-  } else if ([value isKindOfClass:[Element class]]) {
+  } else if ([value isKindOfClass:[FlutterUnprovisionedDevice class]]) {
     [self writeByte:135];
     [self writeValue:[value toList]];
-  } else if ([value isKindOfClass:[Model class]]) {
+  } else if ([value isKindOfClass:[ProvisionedNode class]]) {
     [self writeByte:136];
     [self writeValue:[value toList]];
-  } else if ([value isKindOfClass:[MeshGroup class]]) {
+  } else if ([value isKindOfClass:[Element class]]) {
     [self writeByte:137];
     [self writeValue:[value toList]];
-  } else if ([value isKindOfClass:[MeshMessage class]]) {
+  } else if ([value isKindOfClass:[Model class]]) {
     [self writeByte:138];
     [self writeValue:[value toList]];
-  } else if ([value isKindOfClass:[ProvisioningParameters class]]) {
+  } else if ([value isKindOfClass:[Publication class]]) {
     [self writeByte:139];
     [self writeValue:[value toList]];
-  } else if ([value isKindOfClass:[GenericOnOffSet class]]) {
+  } else if ([value isKindOfClass:[MeshGroup class]]) {
     [self writeByte:140];
     [self writeValue:[value toList]];
-  } else if ([value isKindOfClass:[GenericLevelSet class]]) {
+  } else if ([value isKindOfClass:[MeshMessage class]]) {
     [self writeByte:141];
+    [self writeValue:[value toList]];
+  } else if ([value isKindOfClass:[RxAccessMessage class]]) {
+    [self writeByte:142];
+    [self writeValue:[value toList]];
+  } else if ([value isKindOfClass:[ProvisioningParameters class]]) {
+    [self writeByte:143];
+    [self writeValue:[value toList]];
+  } else if ([value isKindOfClass:[ProvisioningEvent class]]) {
+    [self writeByte:144];
+    [self writeValue:[value toList]];
+  } else if ([value isKindOfClass:[GenericOnOffSet class]]) {
+    [self writeByte:145];
+    [self writeValue:[value toList]];
+  } else if ([value isKindOfClass:[GenericLevelSet class]]) {
+    [self writeByte:146];
     [self writeValue:[value toList]];
   } else {
     [super writeValue:value];
@@ -1118,10 +1368,55 @@ void SetUpMeshApiWithSuffix(id<FlutterBinaryMessenger> binaryMessenger, NSObject
       NSCAssert([api respondsToSelector:@selector(provisionDeviceDevice:params:error:)], @"MeshApi api (%@) doesn't respond to @selector(provisionDeviceDevice:params:error:)", api);
       [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
         NSArray<id> *args = message;
-        UnprovisionedDevice *arg_device = GetNullableObjectAtIndex(args, 0);
+        FlutterUnprovisionedDevice *arg_device = GetNullableObjectAtIndex(args, 0);
         ProvisioningParameters *arg_params = GetNullableObjectAtIndex(args, 1);
         FlutterError *error;
         ProvisionedNode *output = [api provisionDeviceDevice:arg_device params:arg_params error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  /// Provide user input required by Output OOB (numeric).
+  ///
+  /// Used when provisioning emits an OOB input request that requires the user to enter a value
+  /// shown on the device.
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.provideProvisioningOobNumeric", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(provideProvisioningOobNumericDeviceId:value:error:)], @"MeshApi api (%@) doesn't respond to @selector(provideProvisioningOobNumericDeviceId:value:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSString *arg_deviceId = GetNullableObjectAtIndex(args, 0);
+        NSInteger arg_value = [GetNullableObjectAtIndex(args, 1) integerValue];
+        FlutterError *error;
+        NSNumber *output = [api provideProvisioningOobNumericDeviceId:arg_deviceId value:arg_value error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  /// Provide user input required by Output OOB (alphanumeric).
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.provideProvisioningOobAlphaNumeric", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(provideProvisioningOobAlphaNumericDeviceId:value:error:)], @"MeshApi api (%@) doesn't respond to @selector(provideProvisioningOobAlphaNumericDeviceId:value:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSString *arg_deviceId = GetNullableObjectAtIndex(args, 0);
+        NSString *arg_value = GetNullableObjectAtIndex(args, 1);
+        FlutterError *error;
+        NSNumber *output = [api provideProvisioningOobAlphaNumericDeviceId:arg_deviceId value:arg_value error:&error];
         callback(wrapResult(output, error));
       }];
     } else {
@@ -1239,6 +1534,290 @@ void SetUpMeshApiWithSuffix(id<FlutterBinaryMessenger> binaryMessenger, NSObject
       [channel setMessageHandler:nil];
     }
   }
+  /// Bind an AppKey to a model on a given element address.
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.bindAppKey", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(bindAppKeyElementAddress:modelId:appKeyIndex:error:)], @"MeshApi api (%@) doesn't respond to @selector(bindAppKeyElementAddress:modelId:appKeyIndex:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSInteger arg_elementAddress = [GetNullableObjectAtIndex(args, 0) integerValue];
+        NSInteger arg_modelId = [GetNullableObjectAtIndex(args, 1) integerValue];
+        NSInteger arg_appKeyIndex = [GetNullableObjectAtIndex(args, 2) integerValue];
+        FlutterError *error;
+        NSNumber *output = [api bindAppKeyElementAddress:arg_elementAddress modelId:arg_modelId appKeyIndex:arg_appKeyIndex error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  /// Unbind an AppKey from a model on a given element address.
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.unbindAppKey", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(unbindAppKeyElementAddress:modelId:appKeyIndex:error:)], @"MeshApi api (%@) doesn't respond to @selector(unbindAppKeyElementAddress:modelId:appKeyIndex:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSInteger arg_elementAddress = [GetNullableObjectAtIndex(args, 0) integerValue];
+        NSInteger arg_modelId = [GetNullableObjectAtIndex(args, 1) integerValue];
+        NSInteger arg_appKeyIndex = [GetNullableObjectAtIndex(args, 2) integerValue];
+        FlutterError *error;
+        NSNumber *output = [api unbindAppKeyElementAddress:arg_elementAddress modelId:arg_modelId appKeyIndex:arg_appKeyIndex error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  /// Add a subscription address to a model on a given element address.
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.addSubscription", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(addSubscriptionElementAddress:modelId:address:error:)], @"MeshApi api (%@) doesn't respond to @selector(addSubscriptionElementAddress:modelId:address:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSInteger arg_elementAddress = [GetNullableObjectAtIndex(args, 0) integerValue];
+        NSInteger arg_modelId = [GetNullableObjectAtIndex(args, 1) integerValue];
+        NSInteger arg_address = [GetNullableObjectAtIndex(args, 2) integerValue];
+        FlutterError *error;
+        NSNumber *output = [api addSubscriptionElementAddress:arg_elementAddress modelId:arg_modelId address:arg_address error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  /// Remove a subscription address from a model on a given element address.
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeSubscription", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(removeSubscriptionElementAddress:modelId:address:error:)], @"MeshApi api (%@) doesn't respond to @selector(removeSubscriptionElementAddress:modelId:address:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSInteger arg_elementAddress = [GetNullableObjectAtIndex(args, 0) integerValue];
+        NSInteger arg_modelId = [GetNullableObjectAtIndex(args, 1) integerValue];
+        NSInteger arg_address = [GetNullableObjectAtIndex(args, 2) integerValue];
+        FlutterError *error;
+        NSNumber *output = [api removeSubscriptionElementAddress:arg_elementAddress modelId:arg_modelId address:arg_address error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  /// Set publication for a model on a given element address.
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setPublication", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(setPublicationElementAddress:modelId:publishAddress:appKeyIndex:ttl:error:)], @"MeshApi api (%@) doesn't respond to @selector(setPublicationElementAddress:modelId:publishAddress:appKeyIndex:ttl:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSInteger arg_elementAddress = [GetNullableObjectAtIndex(args, 0) integerValue];
+        NSInteger arg_modelId = [GetNullableObjectAtIndex(args, 1) integerValue];
+        NSInteger arg_publishAddress = [GetNullableObjectAtIndex(args, 2) integerValue];
+        NSInteger arg_appKeyIndex = [GetNullableObjectAtIndex(args, 3) integerValue];
+        NSNumber *arg_ttl = GetNullableObjectAtIndex(args, 4);
+        FlutterError *error;
+        NSNumber *output = [api setPublicationElementAddress:arg_elementAddress modelId:arg_modelId publishAddress:arg_publishAddress appKeyIndex:arg_appKeyIndex ttl:arg_ttl error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.connectProxy", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(connectProxyDeviceId:proxyUnicastAddress:error:)], @"MeshApi api (%@) doesn't respond to @selector(connectProxyDeviceId:proxyUnicastAddress:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSString *arg_deviceId = GetNullableObjectAtIndex(args, 0);
+        NSInteger arg_proxyUnicastAddress = [GetNullableObjectAtIndex(args, 1) integerValue];
+        FlutterError *error;
+        NSNumber *output = [api connectProxyDeviceId:arg_deviceId proxyUnicastAddress:arg_proxyUnicastAddress error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.disconnectProxy", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(disconnectProxyWithError:)], @"MeshApi api (%@) doesn't respond to @selector(disconnectProxyWithError:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        FlutterError *error;
+        NSNumber *output = [api disconnectProxyWithError:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.isProxyConnected", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(isProxyConnectedWithError:)], @"MeshApi api (%@) doesn't respond to @selector(isProxyConnectedWithError:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        FlutterError *error;
+        NSNumber *output = [api isProxyConnectedWithError:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.connectProvisioning", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(connectProvisioningDeviceId:error:)], @"MeshApi api (%@) doesn't respond to @selector(connectProvisioningDeviceId:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSString *arg_deviceId = GetNullableObjectAtIndex(args, 0);
+        FlutterError *error;
+        NSNumber *output = [api connectProvisioningDeviceId:arg_deviceId error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.disconnectProvisioning", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(disconnectProvisioningWithError:)], @"MeshApi api (%@) doesn't respond to @selector(disconnectProvisioningWithError:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        FlutterError *error;
+        NSNumber *output = [api disconnectProvisioningWithError:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.isProvisioningConnected", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(isProvisioningConnectedWithError:)], @"MeshApi api (%@) doesn't respond to @selector(isProvisioningConnectedWithError:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        FlutterError *error;
+        NSNumber *output = [api isProvisioningConnectedWithError:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  /// Whether the native implementation can reliably populate `MeshMessage.address`
+  /// (source address) for incoming Access messages.
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.supportsRxSourceAddress", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(supportsRxSourceAddressWithError:)], @"MeshApi api (%@) doesn't respond to @selector(supportsRxSourceAddressWithError:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        FlutterError *error;
+        NSNumber *output = [api supportsRxSourceAddressWithError:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  /// Clear persisted secure mesh state used for stable Access message sending.
+  ///
+  /// Intended for debugging and recovery (e.g. when switching Mesh DBs).
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.clearSecureStorage", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(clearSecureStorageWithError:)], @"MeshApi api (%@) doesn't respond to @selector(clearSecureStorageWithError:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        FlutterError *error;
+        [api clearSecureStorageWithError:&error];
+        callback(wrapResult(nil, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  /// Enable/disable experimental RX metadata extraction on Android.
+  ///
+  /// When enabled, Android may use internal APIs (via reflection) to extract the
+  /// source address for incoming Access messages. When disabled, Android will
+  /// use only public APIs and `MeshMessage.address` may be null.
+  ///
+  /// On iOS this is a no-op.
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setExperimentalRxMetadataEnabled", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(setExperimentalRxMetadataEnabledEnabled:error:)], @"MeshApi api (%@) doesn't respond to @selector(setExperimentalRxMetadataEnabledEnabled:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        BOOL arg_enabled = [GetNullableObjectAtIndex(args, 0) boolValue];
+        FlutterError *error;
+        [api setExperimentalRxMetadataEnabledEnabled:arg_enabled error:&error];
+        callback(wrapResult(nil, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
 }
 @interface MeshFlutterApi ()
 @property(nonatomic, strong) NSObject<FlutterBinaryMessenger> *binaryMessenger;
@@ -1258,7 +1837,7 @@ void SetUpMeshApiWithSuffix(id<FlutterBinaryMessenger> binaryMessenger, NSObject
   }
   return self;
 }
-- (void)onDeviceDiscoveredDevice:(UnprovisionedDevice *)arg_device completion:(void (^)(FlutterError *_Nullable))completion {
+- (void)onDeviceDiscoveredDevice:(FlutterUnprovisionedDevice *)arg_device completion:(void (^)(FlutterError *_Nullable))completion {
   NSString *channelName = [NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshFlutterApi.onDeviceDiscovered", _messageChannelSuffix];
   FlutterBasicMessageChannel *channel =
     [FlutterBasicMessageChannel
@@ -1285,6 +1864,44 @@ void SetUpMeshApiWithSuffix(id<FlutterBinaryMessenger> binaryMessenger, NSObject
       binaryMessenger:self.binaryMessenger
       codec:nullGetPigeonGeneratedCodec()];
   [channel sendMessage:@[arg_message ?: [NSNull null]] reply:^(NSArray<id> *reply) {
+    if (reply != nil) {
+      if (reply.count > 1) {
+        completion([FlutterError errorWithCode:reply[0] message:reply[1] details:reply[2]]);
+      } else {
+        completion(nil);
+      }
+    } else {
+      completion(createConnectionError(channelName));
+    } 
+  }];
+}
+- (void)onRxAccessMessageEvent:(RxAccessMessage *)arg_event completion:(void (^)(FlutterError *_Nullable))completion {
+  NSString *channelName = [NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshFlutterApi.onRxAccessMessage", _messageChannelSuffix];
+  FlutterBasicMessageChannel *channel =
+    [FlutterBasicMessageChannel
+      messageChannelWithName:channelName
+      binaryMessenger:self.binaryMessenger
+      codec:nullGetPigeonGeneratedCodec()];
+  [channel sendMessage:@[arg_event ?: [NSNull null]] reply:^(NSArray<id> *reply) {
+    if (reply != nil) {
+      if (reply.count > 1) {
+        completion([FlutterError errorWithCode:reply[0] message:reply[1] details:reply[2]]);
+      } else {
+        completion(nil);
+      }
+    } else {
+      completion(createConnectionError(channelName));
+    } 
+  }];
+}
+- (void)onProvisioningEventEvent:(ProvisioningEvent *)arg_event completion:(void (^)(FlutterError *_Nullable))completion {
+  NSString *channelName = [NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshFlutterApi.onProvisioningEvent", _messageChannelSuffix];
+  FlutterBasicMessageChannel *channel =
+    [FlutterBasicMessageChannel
+      messageChannelWithName:channelName
+      binaryMessenger:self.binaryMessenger
+      codec:nullGetPigeonGeneratedCodec()];
+  [channel sendMessage:@[arg_event ?: [NSNull null]] reply:^(NSArray<id> *reply) {
     if (reply != nil) {
       if (reply.count > 1) {
         completion([FlutterError errorWithCode:reply[0] message:reply[1] details:reply[2]]);

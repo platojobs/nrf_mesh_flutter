@@ -386,25 +386,28 @@ struct Provisioner: Hashable {
   }
 }
 
+/// Pigeon transport model for unprovisioned devices.
+///
+/// Named to avoid clashing with Nordic iOS library types.
+///
 /// Generated class from Pigeon that represents data sent in messages.
-struct UnprovisionedDevice: Hashable {
+struct FlutterUnprovisionedDevice: Hashable {
   var deviceId: String? = nil
   var name: String? = nil
   var rssi: Int64? = nil
   var uuid: [Int64]? = nil
-  /// Best-effort primary service UUID discovered (e.g. "1827" provisioning or "1828" proxy).
   var serviceUuid: String? = nil
 
 
   // swift-format-ignore: AlwaysUseLowerCamelCase
-  static func fromList(_ pigeonVar_list: [Any?]) -> UnprovisionedDevice? {
+  static func fromList(_ pigeonVar_list: [Any?]) -> FlutterUnprovisionedDevice? {
     let deviceId: String? = nilOrValue(pigeonVar_list[0])
     let name: String? = nilOrValue(pigeonVar_list[1])
     let rssi: Int64? = nilOrValue(pigeonVar_list[2])
     let uuid: [Int64]? = nilOrValue(pigeonVar_list[3])
     let serviceUuid: String? = nilOrValue(pigeonVar_list[4])
 
-    return UnprovisionedDevice(
+    return FlutterUnprovisionedDevice(
       deviceId: deviceId,
       name: name,
       rssi: rssi,
@@ -421,7 +424,7 @@ struct UnprovisionedDevice: Hashable {
       serviceUuid,
     ]
   }
-  static func == (lhs: UnprovisionedDevice, rhs: UnprovisionedDevice) -> Bool {
+  static func == (lhs: FlutterUnprovisionedDevice, rhs: FlutterUnprovisionedDevice) -> Bool {
     if Swift.type(of: lhs) != Swift.type(of: rhs) {
       return false
     }
@@ -429,7 +432,7 @@ struct UnprovisionedDevice: Hashable {
   }
 
   func hash(into hasher: inout Hasher) {
-    hasher.combine("UnprovisionedDevice")
+    hasher.combine("FlutterUnprovisionedDevice")
     deepHashPigeonGenerated(value: deviceId, hasher: &hasher)
     deepHashPigeonGenerated(value: name, hasher: &hasher)
     deepHashPigeonGenerated(value: rssi, hasher: &hasher)
@@ -981,7 +984,7 @@ private class PigeonGeneratedPigeonCodecReader: FlutterStandardReader {
     case 134:
       return Provisioner.fromList(self.readValue() as! [Any?])
     case 135:
-      return UnprovisionedDevice.fromList(self.readValue() as! [Any?])
+      return FlutterUnprovisionedDevice.fromList(self.readValue() as! [Any?])
     case 136:
       return ProvisionedNode.fromList(self.readValue() as! [Any?])
     case 137:
@@ -1030,7 +1033,7 @@ private class PigeonGeneratedPigeonCodecWriter: FlutterStandardWriter {
     } else if let value = value as? Provisioner {
       super.writeByte(134)
       super.writeValue(value.toList())
-    } else if let value = value as? UnprovisionedDevice {
+    } else if let value = value as? FlutterUnprovisionedDevice {
       super.writeByte(135)
       super.writeValue(value.toList())
     } else if let value = value as? ProvisionedNode {
@@ -1095,7 +1098,7 @@ protocol MeshApi {
   func importNetwork(path: String) throws -> Bool
   func startScan() throws
   func stopScan() throws
-  func provisionDevice(device: UnprovisionedDevice, params: ProvisioningParameters) throws -> ProvisionedNode
+  func provisionDevice(device: FlutterUnprovisionedDevice, params: ProvisioningParameters) throws -> ProvisionedNode
   /// Provide user input required by Output OOB (numeric).
   ///
   /// Used when provisioning emits an OOB input request that requires the user to enter a value
@@ -1249,7 +1252,7 @@ class MeshApiSetup {
     if let api = api {
       provisionDeviceChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
-        let deviceArg = args[0] as! UnprovisionedDevice
+        let deviceArg = args[0] as! FlutterUnprovisionedDevice
         let paramsArg = args[1] as! ProvisioningParameters
         do {
           let result = try api.provisionDevice(device: deviceArg, params: paramsArg)
@@ -1617,7 +1620,7 @@ class MeshApiSetup {
 }
 /// Generated protocol from Pigeon that represents Flutter messages that can be called from Swift.
 protocol MeshFlutterApiProtocol {
-  func onDeviceDiscovered(device deviceArg: UnprovisionedDevice, completion: @escaping (Result<Void, PigeonError>) -> Void)
+  func onDeviceDiscovered(device deviceArg: FlutterUnprovisionedDevice, completion: @escaping (Result<Void, PigeonError>) -> Void)
   func onMessageReceived(message messageArg: MeshMessage, completion: @escaping (Result<Void, PigeonError>) -> Void)
   /// A richer, forward-compatible RX event that carries best-effort metadata.
   ///
@@ -1637,7 +1640,7 @@ class MeshFlutterApi: MeshFlutterApiProtocol {
   var codec: PigeonGeneratedPigeonCodec {
     return PigeonGeneratedPigeonCodec.shared
   }
-  func onDeviceDiscovered(device deviceArg: UnprovisionedDevice, completion: @escaping (Result<Void, PigeonError>) -> Void) {
+  func onDeviceDiscovered(device deviceArg: FlutterUnprovisionedDevice, completion: @escaping (Result<Void, PigeonError>) -> Void) {
     let channelName: String = "dev.flutter.pigeon.nrf_mesh_flutter.MeshFlutterApi.onDeviceDiscovered\(messageChannelSuffix)"
     let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
     channel.sendMessage([deviceArg] as [Any?]) { response in

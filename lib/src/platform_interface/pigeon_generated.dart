@@ -351,8 +351,11 @@ class Provisioner {
   int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
 }
 
-class UnprovisionedDevice {
-  UnprovisionedDevice({
+/// Pigeon transport model for unprovisioned devices.
+///
+/// Named to avoid clashing with Nordic iOS library types.
+class FlutterUnprovisionedDevice {
+  FlutterUnprovisionedDevice({
     this.deviceId,
     this.name,
     this.rssi,
@@ -368,7 +371,6 @@ class UnprovisionedDevice {
 
   List<int>? uuid;
 
-  /// Best-effort primary service UUID discovered (e.g. "1827" provisioning or "1828" proxy).
   String? serviceUuid;
 
   List<Object?> _toList() {
@@ -384,9 +386,9 @@ class UnprovisionedDevice {
   Object encode() {
     return _toList();  }
 
-  static UnprovisionedDevice decode(Object result) {
+  static FlutterUnprovisionedDevice decode(Object result) {
     result as List<Object?>;
-    return UnprovisionedDevice(
+    return FlutterUnprovisionedDevice(
       deviceId: result[0] as String?,
       name: result[1] as String?,
       rssi: result[2] as int?,
@@ -398,7 +400,7 @@ class UnprovisionedDevice {
   @override
   // ignore: avoid_equals_and_hash_code_on_mutable_classes
   bool operator ==(Object other) {
-    if (other is! UnprovisionedDevice || other.runtimeType != runtimeType) {
+    if (other is! FlutterUnprovisionedDevice || other.runtimeType != runtimeType) {
       return false;
     }
     if (identical(this, other)) {
@@ -1056,7 +1058,7 @@ class _PigeonCodec extends StandardMessageCodec {
     }    else if (value is Provisioner) {
       buffer.putUint8(134);
       writeValue(buffer, value.encode());
-    }    else if (value is UnprovisionedDevice) {
+    }    else if (value is FlutterUnprovisionedDevice) {
       buffer.putUint8(135);
       writeValue(buffer, value.encode());
     }    else if (value is ProvisionedNode) {
@@ -1115,7 +1117,7 @@ class _PigeonCodec extends StandardMessageCodec {
       case 134:
         return Provisioner.decode(readValue(buffer)!);
       case 135:
-        return UnprovisionedDevice.decode(readValue(buffer)!);
+        return FlutterUnprovisionedDevice.decode(readValue(buffer)!);
       case 136:
         return ProvisionedNode.decode(readValue(buffer)!);
       case 137:
@@ -1288,7 +1290,7 @@ class MeshApi {
     ;
   }
 
-  Future<ProvisionedNode> provisionDevice(UnprovisionedDevice device, ProvisioningParameters params) async {
+  Future<ProvisionedNode> provisionDevice(FlutterUnprovisionedDevice device, ProvisioningParameters params) async {
     final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.provisionDevice$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
@@ -1746,7 +1748,7 @@ class MeshApi {
 abstract class MeshFlutterApi {
   static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
 
-  void onDeviceDiscovered(UnprovisionedDevice device);
+  void onDeviceDiscovered(FlutterUnprovisionedDevice device);
 
   void onMessageReceived(MeshMessage message);
 
@@ -1770,7 +1772,7 @@ abstract class MeshFlutterApi {
       } else {
         pigeonVar_channel.setMessageHandler((Object? message) async {
           final List<Object?> args = message! as List<Object?>;
-          final UnprovisionedDevice arg_device = args[0]! as UnprovisionedDevice;
+          final FlutterUnprovisionedDevice arg_device = args[0]! as FlutterUnprovisionedDevice;
           try {
             api.onDeviceDiscovered(arg_device);
             return wrapResponse(empty: true);

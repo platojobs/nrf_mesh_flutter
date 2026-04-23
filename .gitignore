@@ -36,3 +36,6 @@ migrate_working_dir/
 .flutter-plugins-dependencies
 /build/
 /coverage/
+
+# Local maintenance doc (tracked optionally; keep ignored by default).
+PROJECT_SPECIFICATIONS.md

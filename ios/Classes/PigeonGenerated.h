@@ -10,187 +10,239 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+typedef NS_ENUM(NSUInteger, RxMetadataStatus) {
+  RxMetadataStatusAvailable = 0,
+  RxMetadataStatusUnavailable = 1,
+};
+
+/// Wrapper for RxMetadataStatus to allow for nullability.
+@interface RxMetadataStatusBox : NSObject
+@property(nonatomic, assign) RxMetadataStatus value;
+- (instancetype)initWithValue:(RxMetadataStatus)value;
+@end
+
+typedef NS_ENUM(NSUInteger, ProvisioningEventType) {
+  ProvisioningEventTypeStarted = 0,
+  ProvisioningEventTypeCapabilitiesReceived = 1,
+  ProvisioningEventTypeOobInputRequested = 2,
+  ProvisioningEventTypeOobOutputRequested = 3,
+  ProvisioningEventTypeProvisioningCompleted = 4,
+  ProvisioningEventTypeFailed = 5,
+};
+
+/// Wrapper for ProvisioningEventType to allow for nullability.
+@interface ProvisioningEventTypeBox : NSObject
+@property(nonatomic, assign) ProvisioningEventType value;
+- (instancetype)initWithValue:(ProvisioningEventType)value;
+@end
+
 @class MeshNetwork;
 @class NetworkKey;
 @class AppKey;
 @class Provisioner;
-@class UnprovisionedDevice;
+@class FlutterUnprovisionedDevice;
 @class ProvisionedNode;
 @class Element;
 @class Model;
+@class Publication;
 @class MeshGroup;
 @class MeshMessage;
+@class RxAccessMessage;
 @class ProvisioningParameters;
+@class ProvisioningEvent;
 @class GenericOnOffSet;
 @class GenericLevelSet;
 
 @interface MeshNetwork : NSObject
-/// `init` unavailable to enforce nonnull fields, see the `make` class method.
-- (instancetype)init NS_UNAVAILABLE;
-+ (instancetype)makeWithNetworkId:(NSString *)networkId
-    name:(NSString *)name
-    networkKeys:(NSArray<NetworkKey *> *)networkKeys
-    appKeys:(NSArray<AppKey *> *)appKeys
-    nodes:(NSArray<ProvisionedNode *> *)nodes
-    groups:(NSArray<MeshGroup *> *)groups
-    provisioner:(Provisioner *)provisioner;
-@property(nonatomic, copy) NSString * networkId;
-@property(nonatomic, copy) NSString * name;
-@property(nonatomic, copy) NSArray<NetworkKey *> * networkKeys;
-@property(nonatomic, copy) NSArray<AppKey *> * appKeys;
-@property(nonatomic, copy) NSArray<ProvisionedNode *> * nodes;
-@property(nonatomic, copy) NSArray<MeshGroup *> * groups;
-@property(nonatomic, strong) Provisioner * provisioner;
++ (instancetype)makeWithNetworkId:(nullable NSString *)networkId
+    name:(nullable NSString *)name
+    networkKeys:(nullable NSArray<NetworkKey *> *)networkKeys
+    appKeys:(nullable NSArray<AppKey *> *)appKeys
+    nodes:(nullable NSArray<ProvisionedNode *> *)nodes
+    groups:(nullable NSArray<MeshGroup *> *)groups
+    provisioner:(nullable Provisioner *)provisioner;
+@property(nonatomic, copy, nullable) NSString * networkId;
+@property(nonatomic, copy, nullable) NSString * name;
+@property(nonatomic, copy, nullable) NSArray<NetworkKey *> * networkKeys;
+@property(nonatomic, copy, nullable) NSArray<AppKey *> * appKeys;
+@property(nonatomic, copy, nullable) NSArray<ProvisionedNode *> * nodes;
+@property(nonatomic, copy, nullable) NSArray<MeshGroup *> * groups;
+@property(nonatomic, strong, nullable) Provisioner * provisioner;
 @end
 
 @interface NetworkKey : NSObject
-/// `init` unavailable to enforce nonnull fields, see the `make` class method.
-- (instancetype)init NS_UNAVAILABLE;
-+ (instancetype)makeWithKeyId:(NSString *)keyId
-    key:(NSString *)key
-    index:(NSInteger )index
-    enabled:(BOOL )enabled;
-@property(nonatomic, copy) NSString * keyId;
-@property(nonatomic, copy) NSString * key;
-@property(nonatomic, assign) NSInteger  index;
-@property(nonatomic, assign) BOOL  enabled;
++ (instancetype)makeWithKeyId:(nullable NSString *)keyId
+    key:(nullable NSString *)key
+    index:(nullable NSNumber *)index
+    enabled:(nullable NSNumber *)enabled;
+@property(nonatomic, copy, nullable) NSString * keyId;
+@property(nonatomic, copy, nullable) NSString * key;
+@property(nonatomic, strong, nullable) NSNumber * index;
+@property(nonatomic, strong, nullable) NSNumber * enabled;
 @end
 
 @interface AppKey : NSObject
-/// `init` unavailable to enforce nonnull fields, see the `make` class method.
-- (instancetype)init NS_UNAVAILABLE;
-+ (instancetype)makeWithKeyId:(NSString *)keyId
-    key:(NSString *)key
-    index:(NSInteger )index
-    enabled:(BOOL )enabled;
-@property(nonatomic, copy) NSString * keyId;
-@property(nonatomic, copy) NSString * key;
-@property(nonatomic, assign) NSInteger  index;
-@property(nonatomic, assign) BOOL  enabled;
++ (instancetype)makeWithKeyId:(nullable NSString *)keyId
+    key:(nullable NSString *)key
+    index:(nullable NSNumber *)index
+    enabled:(nullable NSNumber *)enabled;
+@property(nonatomic, copy, nullable) NSString * keyId;
+@property(nonatomic, copy, nullable) NSString * key;
+@property(nonatomic, strong, nullable) NSNumber * index;
+@property(nonatomic, strong, nullable) NSNumber * enabled;
 @end
 
 @interface Provisioner : NSObject
-/// `init` unavailable to enforce nonnull fields, see the `make` class method.
-- (instancetype)init NS_UNAVAILABLE;
-+ (instancetype)makeWithName:(NSString *)name
-    provisionerId:(NSString *)provisionerId
-    addressRange:(NSArray<NSNumber *> *)addressRange;
-@property(nonatomic, copy) NSString * name;
-@property(nonatomic, copy) NSString * provisionerId;
-@property(nonatomic, copy) NSArray<NSNumber *> * addressRange;
++ (instancetype)makeWithName:(nullable NSString *)name
+    provisionerId:(nullable NSString *)provisionerId
+    addressRange:(nullable NSArray<NSNumber *> *)addressRange;
+@property(nonatomic, copy, nullable) NSString * name;
+@property(nonatomic, copy, nullable) NSString * provisionerId;
+@property(nonatomic, copy, nullable) NSArray<NSNumber *> * addressRange;
 @end
 
-@interface UnprovisionedDevice : NSObject
-/// `init` unavailable to enforce nonnull fields, see the `make` class method.
-- (instancetype)init NS_UNAVAILABLE;
-+ (instancetype)makeWithDeviceId:(NSString *)deviceId
-    name:(NSString *)name
-    rssi:(NSInteger )rssi
-    uuid:(NSArray<NSNumber *> *)uuid;
-@property(nonatomic, copy) NSString * deviceId;
-@property(nonatomic, copy) NSString * name;
-@property(nonatomic, assign) NSInteger  rssi;
-@property(nonatomic, copy) NSArray<NSNumber *> * uuid;
+/// Pigeon transport model for unprovisioned devices.
+///
+/// Named to avoid clashing with Nordic iOS library types.
+@interface FlutterUnprovisionedDevice : NSObject
++ (instancetype)makeWithDeviceId:(nullable NSString *)deviceId
+    name:(nullable NSString *)name
+    rssi:(nullable NSNumber *)rssi
+    uuid:(nullable NSArray<NSNumber *> *)uuid
+    serviceUuid:(nullable NSString *)serviceUuid;
+@property(nonatomic, copy, nullable) NSString * deviceId;
+@property(nonatomic, copy, nullable) NSString * name;
+@property(nonatomic, strong, nullable) NSNumber * rssi;
+@property(nonatomic, copy, nullable) NSArray<NSNumber *> * uuid;
+@property(nonatomic, copy, nullable) NSString * serviceUuid;
 @end
 
 @interface ProvisionedNode : NSObject
-/// `init` unavailable to enforce nonnull fields, see the `make` class method.
-- (instancetype)init NS_UNAVAILABLE;
-+ (instancetype)makeWithNodeId:(NSString *)nodeId
-    name:(NSString *)name
-    unicastAddress:(NSInteger )unicastAddress
-    uuid:(NSArray<NSNumber *> *)uuid
-    elements:(NSArray<Element *> *)elements
-    provisioned:(BOOL )provisioned;
-@property(nonatomic, copy) NSString * nodeId;
-@property(nonatomic, copy) NSString * name;
-@property(nonatomic, assign) NSInteger  unicastAddress;
-@property(nonatomic, copy) NSArray<NSNumber *> * uuid;
-@property(nonatomic, copy) NSArray<Element *> * elements;
-@property(nonatomic, assign) BOOL  provisioned;
++ (instancetype)makeWithNodeId:(nullable NSString *)nodeId
+    name:(nullable NSString *)name
+    unicastAddress:(nullable NSNumber *)unicastAddress
+    uuid:(nullable NSArray<NSNumber *> *)uuid
+    elements:(nullable NSArray<Element *> *)elements
+    provisioned:(nullable NSNumber *)provisioned;
+@property(nonatomic, copy, nullable) NSString * nodeId;
+@property(nonatomic, copy, nullable) NSString * name;
+@property(nonatomic, strong, nullable) NSNumber * unicastAddress;
+@property(nonatomic, copy, nullable) NSArray<NSNumber *> * uuid;
+@property(nonatomic, copy, nullable) NSArray<Element *> * elements;
+@property(nonatomic, strong, nullable) NSNumber * provisioned;
 @end
 
 @interface Element : NSObject
-/// `init` unavailable to enforce nonnull fields, see the `make` class method.
-- (instancetype)init NS_UNAVAILABLE;
-+ (instancetype)makeWithAddress:(NSInteger )address
-    models:(NSArray<Model *> *)models;
-@property(nonatomic, assign) NSInteger  address;
-@property(nonatomic, copy) NSArray<Model *> * models;
++ (instancetype)makeWithAddress:(nullable NSNumber *)address
+    models:(nullable NSArray<Model *> *)models;
+@property(nonatomic, strong, nullable) NSNumber * address;
+@property(nonatomic, copy, nullable) NSArray<Model *> * models;
 @end
 
 @interface Model : NSObject
-/// `init` unavailable to enforce nonnull fields, see the `make` class method.
-- (instancetype)init NS_UNAVAILABLE;
-+ (instancetype)makeWithModelId:(NSInteger )modelId
-    modelName:(NSString *)modelName
-    publishable:(BOOL )publishable
-    subscribable:(BOOL )subscribable;
-@property(nonatomic, assign) NSInteger  modelId;
-@property(nonatomic, copy) NSString * modelName;
-@property(nonatomic, assign) BOOL  publishable;
-@property(nonatomic, assign) BOOL  subscribable;
++ (instancetype)makeWithModelId:(nullable NSNumber *)modelId
+    modelName:(nullable NSString *)modelName
+    publishable:(nullable NSNumber *)publishable
+    subscribable:(nullable NSNumber *)subscribable
+    boundAppKeyIndexes:(nullable NSArray<NSNumber *> *)boundAppKeyIndexes
+    subscriptions:(nullable NSArray<NSNumber *> *)subscriptions
+    publication:(nullable Publication *)publication;
+@property(nonatomic, strong, nullable) NSNumber * modelId;
+@property(nonatomic, copy, nullable) NSString * modelName;
+@property(nonatomic, strong, nullable) NSNumber * publishable;
+@property(nonatomic, strong, nullable) NSNumber * subscribable;
+@property(nonatomic, copy, nullable) NSArray<NSNumber *> * boundAppKeyIndexes;
+@property(nonatomic, copy, nullable) NSArray<NSNumber *> * subscriptions;
+@property(nonatomic, strong, nullable) Publication * publication;
+@end
+
+@interface Publication : NSObject
++ (instancetype)makeWithAddress:(nullable NSNumber *)address
+    appKeyIndex:(nullable NSNumber *)appKeyIndex
+    ttl:(nullable NSNumber *)ttl;
+@property(nonatomic, strong, nullable) NSNumber * address;
+@property(nonatomic, strong, nullable) NSNumber * appKeyIndex;
+@property(nonatomic, strong, nullable) NSNumber * ttl;
 @end
 
 @interface MeshGroup : NSObject
-/// `init` unavailable to enforce nonnull fields, see the `make` class method.
-- (instancetype)init NS_UNAVAILABLE;
-+ (instancetype)makeWithGroupId:(NSString *)groupId
-    name:(NSString *)name
-    address:(NSInteger )address
-    nodeIds:(NSArray<NSString *> *)nodeIds;
-@property(nonatomic, copy) NSString * groupId;
-@property(nonatomic, copy) NSString * name;
-@property(nonatomic, assign) NSInteger  address;
-@property(nonatomic, copy) NSArray<NSString *> * nodeIds;
++ (instancetype)makeWithGroupId:(nullable NSString *)groupId
+    name:(nullable NSString *)name
+    address:(nullable NSNumber *)address
+    nodeIds:(nullable NSArray<NSString *> *)nodeIds;
+@property(nonatomic, copy, nullable) NSString * groupId;
+@property(nonatomic, copy, nullable) NSString * name;
+@property(nonatomic, strong, nullable) NSNumber * address;
+@property(nonatomic, copy, nullable) NSArray<NSString *> * nodeIds;
 @end
 
 @interface MeshMessage : NSObject
-/// `init` unavailable to enforce nonnull fields, see the `make` class method.
-- (instancetype)init NS_UNAVAILABLE;
-+ (instancetype)makeWithOpcode:(NSInteger )opcode
-    address:(NSInteger )address
-    appKeyIndex:(NSInteger )appKeyIndex
-    parameters:(NSDictionary<NSString *, id> *)parameters;
-@property(nonatomic, assign) NSInteger  opcode;
-@property(nonatomic, assign) NSInteger  address;
-@property(nonatomic, assign) NSInteger  appKeyIndex;
-@property(nonatomic, copy) NSDictionary<NSString *, id> * parameters;
++ (instancetype)makeWithOpcode:(nullable NSNumber *)opcode
+    address:(nullable NSNumber *)address
+    appKeyIndex:(nullable NSNumber *)appKeyIndex
+    parameters:(nullable NSDictionary<NSString *, id> *)parameters;
+@property(nonatomic, strong, nullable) NSNumber * opcode;
+@property(nonatomic, strong, nullable) NSNumber * address;
+@property(nonatomic, strong, nullable) NSNumber * appKeyIndex;
+@property(nonatomic, copy, nullable) NSDictionary<NSString *, id> * parameters;
+@end
+
+@interface RxAccessMessage : NSObject
++ (instancetype)makeWithOpcode:(nullable NSNumber *)opcode
+    parameters:(nullable NSArray<NSNumber *> *)parameters
+    source:(nullable NSNumber *)source
+    destination:(nullable NSNumber *)destination
+    metadataStatus:(nullable RxMetadataStatusBox *)metadataStatus;
+@property(nonatomic, strong, nullable) NSNumber * opcode;
+/// Access message parameters (raw bytes).
+@property(nonatomic, copy, nullable) NSArray<NSNumber *> * parameters;
+/// Best-effort source address (unicast), if available.
+@property(nonatomic, strong, nullable) NSNumber * source;
+/// Best-effort destination address, if available.
+@property(nonatomic, strong, nullable) NSNumber * destination;
+@property(nonatomic, strong, nullable) RxMetadataStatusBox * metadataStatus;
 @end
 
 @interface ProvisioningParameters : NSObject
-/// `init` unavailable to enforce nonnull fields, see the `make` class method.
-- (instancetype)init NS_UNAVAILABLE;
-+ (instancetype)makeWithDeviceName:(NSString *)deviceName
++ (instancetype)makeWithDeviceName:(nullable NSString *)deviceName
     oobMethod:(nullable NSNumber *)oobMethod
     oobData:(nullable NSString *)oobData
-    enablePrivacy:(BOOL )enablePrivacy;
-@property(nonatomic, copy) NSString * deviceName;
+    enablePrivacy:(nullable NSNumber *)enablePrivacy;
+@property(nonatomic, copy, nullable) NSString * deviceName;
 @property(nonatomic, strong, nullable) NSNumber * oobMethod;
 @property(nonatomic, copy, nullable) NSString * oobData;
-@property(nonatomic, assign) BOOL  enablePrivacy;
+@property(nonatomic, strong, nullable) NSNumber * enablePrivacy;
+@end
+
+@interface ProvisioningEvent : NSObject
++ (instancetype)makeWithDeviceId:(nullable NSString *)deviceId
+    type:(nullable ProvisioningEventTypeBox *)type
+    message:(nullable NSString *)message
+    progress:(nullable NSNumber *)progress
+    attentionTimer:(nullable NSNumber *)attentionTimer;
+@property(nonatomic, copy, nullable) NSString * deviceId;
+@property(nonatomic, strong, nullable) ProvisioningEventTypeBox * type;
+@property(nonatomic, copy, nullable) NSString * message;
+@property(nonatomic, strong, nullable) NSNumber * progress;
+@property(nonatomic, strong, nullable) NSNumber * attentionTimer;
 @end
 
 @interface GenericOnOffSet : NSObject
-/// `init` unavailable to enforce nonnull fields, see the `make` class method.
-- (instancetype)init NS_UNAVAILABLE;
-+ (instancetype)makeWithState:(BOOL )state
-    transitionTime:(NSInteger )transitionTime
-    delay:(NSInteger )delay;
-@property(nonatomic, assign) BOOL  state;
-@property(nonatomic, assign) NSInteger  transitionTime;
-@property(nonatomic, assign) NSInteger  delay;
++ (instancetype)makeWithState:(nullable NSNumber *)state
+    transitionTime:(nullable NSNumber *)transitionTime
+    delay:(nullable NSNumber *)delay;
+@property(nonatomic, strong, nullable) NSNumber * state;
+@property(nonatomic, strong, nullable) NSNumber * transitionTime;
+@property(nonatomic, strong, nullable) NSNumber * delay;
 @end
 
 @interface GenericLevelSet : NSObject
-/// `init` unavailable to enforce nonnull fields, see the `make` class method.
-- (instancetype)init NS_UNAVAILABLE;
-+ (instancetype)makeWithLevel:(NSInteger )level
-    transitionTime:(NSInteger )transitionTime
-    delay:(NSInteger )delay;
-@property(nonatomic, assign) NSInteger  level;
-@property(nonatomic, assign) NSInteger  transitionTime;
-@property(nonatomic, assign) NSInteger  delay;
++ (instancetype)makeWithLevel:(nullable NSNumber *)level
+    transitionTime:(nullable NSNumber *)transitionTime
+    delay:(nullable NSNumber *)delay;
+@property(nonatomic, strong, nullable) NSNumber * level;
+@property(nonatomic, strong, nullable) NSNumber * transitionTime;
+@property(nonatomic, strong, nullable) NSNumber * delay;
 @end
 
 /// The codec used by all APIs.
@@ -210,7 +262,18 @@ NSObject<FlutterMessageCodec> *nullGetPigeonGeneratedCodec(void);
 - (void)startScanWithError:(FlutterError *_Nullable *_Nonnull)error;
 - (void)stopScanWithError:(FlutterError *_Nullable *_Nonnull)error;
 /// @return `nil` only when `error != nil`.
-- (nullable ProvisionedNode *)provisionDeviceDevice:(UnprovisionedDevice *)device params:(ProvisioningParameters *)params error:(FlutterError *_Nullable *_Nonnull)error;
+- (nullable ProvisionedNode *)provisionDeviceDevice:(FlutterUnprovisionedDevice *)device params:(ProvisioningParameters *)params error:(FlutterError *_Nullable *_Nonnull)error;
+/// Provide user input required by Output OOB (numeric).
+///
+/// Used when provisioning emits an OOB input request that requires the user to enter a value
+/// shown on the device.
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)provideProvisioningOobNumericDeviceId:(NSString *)deviceId value:(NSInteger)value error:(FlutterError *_Nullable *_Nonnull)error;
+/// Provide user input required by Output OOB (alphanumeric).
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)provideProvisioningOobAlphaNumericDeviceId:(NSString *)deviceId value:(NSString *)value error:(FlutterError *_Nullable *_Nonnull)error;
 - (void)sendMessageMessage:(MeshMessage *)message error:(FlutterError *_Nullable *_Nonnull)error;
 /// @return `nil` only when `error != nil`.
 - (nullable NSArray<ProvisionedNode *> *)getNodesWithError:(FlutterError *_Nullable *_Nonnull)error;
@@ -220,6 +283,55 @@ NSObject<FlutterMessageCodec> *nullGetPigeonGeneratedCodec(void);
 /// @return `nil` only when `error != nil`.
 - (nullable NSArray<MeshGroup *> *)getGroupsWithError:(FlutterError *_Nullable *_Nonnull)error;
 - (void)addNodeToGroupNodeId:(NSString *)nodeId groupId:(NSString *)groupId error:(FlutterError *_Nullable *_Nonnull)error;
+/// Bind an AppKey to a model on a given element address.
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)bindAppKeyElementAddress:(NSInteger)elementAddress modelId:(NSInteger)modelId appKeyIndex:(NSInteger)appKeyIndex error:(FlutterError *_Nullable *_Nonnull)error;
+/// Unbind an AppKey from a model on a given element address.
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)unbindAppKeyElementAddress:(NSInteger)elementAddress modelId:(NSInteger)modelId appKeyIndex:(NSInteger)appKeyIndex error:(FlutterError *_Nullable *_Nonnull)error;
+/// Add a subscription address to a model on a given element address.
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)addSubscriptionElementAddress:(NSInteger)elementAddress modelId:(NSInteger)modelId address:(NSInteger)address error:(FlutterError *_Nullable *_Nonnull)error;
+/// Remove a subscription address from a model on a given element address.
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)removeSubscriptionElementAddress:(NSInteger)elementAddress modelId:(NSInteger)modelId address:(NSInteger)address error:(FlutterError *_Nullable *_Nonnull)error;
+/// Set publication for a model on a given element address.
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)setPublicationElementAddress:(NSInteger)elementAddress modelId:(NSInteger)modelId publishAddress:(NSInteger)publishAddress appKeyIndex:(NSInteger)appKeyIndex ttl:(nullable NSNumber *)ttl error:(FlutterError *_Nullable *_Nonnull)error;
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)connectProxyDeviceId:(NSString *)deviceId proxyUnicastAddress:(NSInteger)proxyUnicastAddress error:(FlutterError *_Nullable *_Nonnull)error;
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)disconnectProxyWithError:(FlutterError *_Nullable *_Nonnull)error;
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)isProxyConnectedWithError:(FlutterError *_Nullable *_Nonnull)error;
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)connectProvisioningDeviceId:(NSString *)deviceId error:(FlutterError *_Nullable *_Nonnull)error;
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)disconnectProvisioningWithError:(FlutterError *_Nullable *_Nonnull)error;
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)isProvisioningConnectedWithError:(FlutterError *_Nullable *_Nonnull)error;
+/// Whether the native implementation can reliably populate `MeshMessage.address`
+/// (source address) for incoming Access messages.
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)supportsRxSourceAddressWithError:(FlutterError *_Nullable *_Nonnull)error;
+/// Clear persisted secure mesh state used for stable Access message sending.
+///
+/// Intended for debugging and recovery (e.g. when switching Mesh DBs).
+- (void)clearSecureStorageWithError:(FlutterError *_Nullable *_Nonnull)error;
+/// Enable/disable experimental RX metadata extraction on Android.
+///
+/// When enabled, Android may use internal APIs (via reflection) to extract the
+/// source address for incoming Access messages. When disabled, Android will
+/// use only public APIs and `MeshMessage.address` may be null.
+///
+/// On iOS this is a no-op.
+- (void)setExperimentalRxMetadataEnabledEnabled:(BOOL)enabled error:(FlutterError *_Nullable *_Nonnull)error;
 @end
 
 extern void SetUpMeshApi(id<FlutterBinaryMessenger> binaryMessenger, NSObject<MeshApi> *_Nullable api);
@@ -230,8 +342,15 @@ extern void SetUpMeshApiWithSuffix(id<FlutterBinaryMessenger> binaryMessenger, N
 @interface MeshFlutterApi : NSObject
 - (instancetype)initWithBinaryMessenger:(id<FlutterBinaryMessenger>)binaryMessenger;
 - (instancetype)initWithBinaryMessenger:(id<FlutterBinaryMessenger>)binaryMessenger messageChannelSuffix:(nullable NSString *)messageChannelSuffix;
-- (void)onDeviceDiscoveredDevice:(UnprovisionedDevice *)device completion:(void (^)(FlutterError *_Nullable))completion;
+- (void)onDeviceDiscoveredDevice:(FlutterUnprovisionedDevice *)device completion:(void (^)(FlutterError *_Nullable))completion;
 - (void)onMessageReceivedMessage:(MeshMessage *)message completion:(void (^)(FlutterError *_Nullable))completion;
+/// A richer, forward-compatible RX event that carries best-effort metadata.
+///
+/// This stream is controlled by this plugin's contract (rather than relying on
+/// internal/native library details) so apps can build stable logging and routing.
+- (void)onRxAccessMessageEvent:(RxAccessMessage *)event completion:(void (^)(FlutterError *_Nullable))completion;
+/// Provisioning lifecycle events (progress + OOB prompts).
+- (void)onProvisioningEventEvent:(ProvisioningEvent *)event completion:(void (^)(FlutterError *_Nullable))completion;
 @end
 
 NS_ASSUME_NONNULL_END
