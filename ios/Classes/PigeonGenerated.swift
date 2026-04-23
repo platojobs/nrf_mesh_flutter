@@ -1096,6 +1096,13 @@ protocol MeshApi {
   func startScan() throws
   func stopScan() throws
   func provisionDevice(device: UnprovisionedDevice, params: ProvisioningParameters) throws -> ProvisionedNode
+  /// Provide user input required by Output OOB (numeric).
+  ///
+  /// Used when provisioning emits an OOB input request that requires the user to enter a value
+  /// shown on the device.
+  func provideProvisioningOobNumeric(deviceId: String, value: Int64) throws -> Bool
+  /// Provide user input required by Output OOB (alphanumeric).
+  func provideProvisioningOobAlphaNumeric(deviceId: String, value: String) throws -> Bool
   func sendMessage(message: MeshMessage) throws
   func getNodes() throws -> [ProvisionedNode]
   func removeNode(nodeId: String) throws
@@ -1253,6 +1260,43 @@ class MeshApiSetup {
       }
     } else {
       provisionDeviceChannel.setMessageHandler(nil)
+    }
+    /// Provide user input required by Output OOB (numeric).
+    ///
+    /// Used when provisioning emits an OOB input request that requires the user to enter a value
+    /// shown on the device.
+    let provideProvisioningOobNumericChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.provideProvisioningOobNumeric\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      provideProvisioningOobNumericChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let deviceIdArg = args[0] as! String
+        let valueArg = args[1] as! Int64
+        do {
+          let result = try api.provideProvisioningOobNumeric(deviceId: deviceIdArg, value: valueArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      provideProvisioningOobNumericChannel.setMessageHandler(nil)
+    }
+    /// Provide user input required by Output OOB (alphanumeric).
+    let provideProvisioningOobAlphaNumericChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.provideProvisioningOobAlphaNumeric\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      provideProvisioningOobAlphaNumericChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let deviceIdArg = args[0] as! String
+        let valueArg = args[1] as! String
+        do {
+          let result = try api.provideProvisioningOobAlphaNumeric(deviceId: deviceIdArg, value: valueArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      provideProvisioningOobAlphaNumericChannel.setMessageHandler(nil)
     }
     let sendMessageChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.sendMessage\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {

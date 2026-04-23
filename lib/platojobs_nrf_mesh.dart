@@ -133,6 +133,16 @@ class PlatoJobsNrfMeshManager {
     return _meshManagerApi.provisioningEventStream;
   }
 
+  /// Provide user input required by Output OOB (numeric).
+  Future<bool> provideProvisioningOobNumeric(String deviceId, int value) async {
+    return await _meshManagerApi.provideProvisioningOobNumeric(deviceId, value);
+  }
+
+  /// Provide user input required by Output OOB (alphanumeric).
+  Future<bool> provideProvisioningOobAlphaNumeric(String deviceId, String value) async {
+    return await _meshManagerApi.provideProvisioningOobAlphaNumeric(deviceId, value);
+  }
+
   /// Whether the native side can reliably populate source address for incoming Access messages.
   Future<bool> supportsRxSourceAddress() async {
     return await _meshManagerApi.supportsRxSourceAddress();

@@ -437,6 +437,16 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
   }
 
   @override
+  Future<bool> provideProvisioningOobNumeric(String deviceId, int value) async {
+    return false;
+  }
+
+  @override
+  Future<bool> provideProvisioningOobAlphaNumeric(String deviceId, String value) async {
+    return false;
+  }
+
+  @override
   Future<bool> supportsRxSourceAddress() async {
     // Fake bridge can always include an address in injected messages when desired.
     return true;

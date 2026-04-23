@@ -1,3 +1,5 @@
+@file:OptIn(kotlin.uuid.ExperimentalUuidApi::class)
+
 package com.platojobs.nrf_mesh
 
 import android.content.Context
@@ -11,14 +13,17 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.runBlocking
 import no.nordicsemi.kotlin.ble.client.android.CentralManager
 import no.nordicsemi.kotlin.ble.client.android.native
 import no.nordicsemi.kotlin.ble.environment.android.NativeAndroidEnvironment
 import no.nordicsemi.kotlin.mesh.bearer.MeshBearer
+import no.nordicsemi.kotlin.mesh.bearer.gatt.BaseGattBearer
 import no.nordicsemi.kotlin.mesh.bearer.gatt.GattBearerImpl
+import no.nordicsemi.kotlin.mesh.bearer.gatt.utils.MeshProvisioningService
+import no.nordicsemi.kotlin.mesh.bearer.provisioning.ProvisioningBearer
 import no.nordicsemi.kotlin.mesh.core.MeshNetworkManager
 import no.nordicsemi.kotlin.mesh.core.SecurePropertiesStorage
 import no.nordicsemi.kotlin.mesh.core.Storage
@@ -37,10 +42,19 @@ import no.nordicsemi.kotlin.mesh.core.model.Retransmit
 import no.nordicsemi.kotlin.mesh.core.model.SigModelId
 import no.nordicsemi.kotlin.mesh.core.model.UnicastAddress
 import no.nordicsemi.kotlin.mesh.core.model.isValidKeyIndex
+import no.nordicsemi.kotlin.mesh.provisioning.ProvisioningManager
+import no.nordicsemi.kotlin.mesh.provisioning.ProvisioningState
+import no.nordicsemi.kotlin.mesh.provisioning.AuthenticationMethod
+import no.nordicsemi.kotlin.mesh.provisioning.AuthAction
+import no.nordicsemi.kotlin.mesh.provisioning.UnprovisionedDevice as KmUnprovisionedDevice
+import no.nordicsemi.kotlin.mesh.core.util.Utils
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 /**
  * PlatoJobs nRF Mesh Flutter Plugin for Android
@@ -59,12 +73,22 @@ class PlatoJobsMeshPlugin :
     private var appContext: Context? = null
     private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var proxyConnected: Boolean = false
+    private var provisioningConnected: Boolean = false
     private var kotlinMeshManager: MeshNetworkManager? = null
     private var secureStorage: PersistentSecurePropertiesStorage? = null
     private var bearer: MeshBearer? = null
+    private var provisioningBearer: ProvisioningBearer? = null
     private var incomingMessagesJob: Job? = null
     private var rxSourceAddressSupported: Boolean = false
     private var experimentalRxMetadataEnabled: Boolean = false
+
+    private data class PendingOob(
+        val numeric: AuthAction.ProvideNumeric? = null,
+        val alpha: AuthAction.ProvideAlphaNumeric? = null,
+        val latch: CountDownLatch = CountDownLatch(1),
+    )
+
+    private val pendingOobByDeviceId: MutableMap<String, PendingOob> = ConcurrentHashMap()
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         appContext = flutterPluginBinding.applicationContext
@@ -286,9 +310,34 @@ class PlatoJobsMeshPlugin :
         device: UnprovisionedDevice,
         params: ProvisioningParameters
     ): ProvisionedNode {
+        val km = kotlinMeshManager
+        val bearer = provisioningBearer
+        // If we don't have a provisioning bearer connection, fall back to the legacy fake path.
+        if (km == null || bearer == null || !provisioningConnected) {
+            val out = legacyManager?.provision(device, params) ?: ProvisionedNode(
+                nodeId = device.deviceId ?: "",
+                name = params.deviceName,
+                unicastAddress = 1L,
+                uuid = device.uuid,
+                elements = emptyList(),
+                provisioned = true
+            )
+            flutterApi?.onProvisioningEvent(
+                ProvisioningEvent(
+                    deviceId = device.deviceId,
+                    type = ProvisioningEventType.PROVISIONING_COMPLETED,
+                    message = "Provisioning completed (legacy)",
+                    progress = 100L,
+                    attentionTimer = null,
+                )
+            ) {}
+            return out
+        }
+
+        val deviceId = device.deviceId
         flutterApi?.onProvisioningEvent(
             ProvisioningEvent(
-                deviceId = device.deviceId,
+                deviceId = deviceId,
                 type = ProvisioningEventType.STARTED,
                 message = "Provisioning started",
                 progress = 0L,
@@ -296,56 +345,244 @@ class PlatoJobsMeshPlugin :
             )
         ) {}
 
-        flutterApi?.onProvisioningEvent(
-            ProvisioningEvent(
-                deviceId = device.deviceId,
-                type = ProvisioningEventType.CAPABILITIES_RECEIVED,
-                message = "Capabilities received (best-effort)",
-                progress = 5L,
-                attentionTimer = null,
-            )
-        ) {}
-
-        when (params.oobMethod?.toInt() ?: 0) {
-            2 -> flutterApi?.onProvisioningEvent(
-                ProvisioningEvent(
-                    deviceId = device.deviceId,
-                    type = ProvisioningEventType.OOB_INPUT_REQUESTED,
-                    message = "Output OOB: please enter the value displayed on the device",
-                    progress = 10L,
-                    attentionTimer = null,
-                )
-            ) {}
-            3 -> flutterApi?.onProvisioningEvent(
-                ProvisioningEvent(
-                    deviceId = device.deviceId,
-                    type = ProvisioningEventType.OOB_OUTPUT_REQUESTED,
-                    message = "Input OOB: provide a value to be entered on the device",
-                    progress = 10L,
-                    attentionTimer = null,
-                )
-            ) {}
-            else -> {}
+        @OptIn(ExperimentalUuidApi::class)
+        fun toKotlinUuid(bytes: List<Long>?): Uuid? {
+            if (bytes == null || bytes.size != 16) return null
+            val b = bytes.map { it.toInt().and(0xFF).toByte() }.toByteArray()
+            val msb = java.nio.ByteBuffer.wrap(b, 0, 8).long
+            val lsb = java.nio.ByteBuffer.wrap(b, 8, 8).long
+            return Uuid.fromLongs(msb, lsb)
         }
 
-        val out = legacyManager?.provision(device, params) ?: ProvisionedNode(
-            nodeId = device.deviceId ?: "",
-            name = params.deviceName,
-            unicastAddress = 1L,
+        @OptIn(ExperimentalUuidApi::class)
+        val uuid = toKotlinUuid(device.uuid)
+            ?: throw IllegalArgumentException("Device UUID must be 16 bytes")
+        val kmDevice = KmUnprovisionedDevice(
+            name = device.name ?: (params.deviceName ?: ""),
+            uuid = uuid
+        )
+
+        val meshNetwork = runBlocking { km.meshNetwork.first() }
+        val pm = ProvisioningManager(
+            unprovisionedDevice = kmDevice,
+            meshNetwork = meshNetwork,
+            bearer = bearer,
+            ioDispatcher = Dispatchers.IO
+        )
+
+        val attention: UByte = 0u
+        var provisionedNode: no.nordicsemi.kotlin.mesh.core.model.Node? = null
+        var thrown: Throwable? = null
+
+        runBlocking {
+            try {
+                pm.provision(attentionTimer = attention).collect { state ->
+                    when (state) {
+                        is ProvisioningState.RequestingCapabilities -> {
+                            // keep quiet; we'll report on capabilities
+                        }
+
+                        is ProvisioningState.CapabilitiesReceived -> {
+                            flutterApi?.onProvisioningEvent(
+                                ProvisioningEvent(
+                                    deviceId = deviceId,
+                                    type = ProvisioningEventType.CAPABILITIES_RECEIVED,
+                                    message = "Capabilities received",
+                                    progress = 5L,
+                                    attentionTimer = attention.toLong(),
+                                )
+                            ) {}
+
+                            val method = (params.oobMethod?.toInt() ?: 0)
+                            val cfg = state.parameters
+
+                            when (method) {
+                                0 -> cfg.authMethod = AuthenticationMethod.NoOob
+                                1 -> cfg.authMethod = AuthenticationMethod.StaticOob
+                                // Input/Output OOB selection is constrained by the capabilities list,
+                                // but capabilities are not exposed from ProvisioningParameters (private).
+                                // We'll keep the default method and handle AuthActionRequired below.
+                                else -> {}
+                            }
+
+                            state.start(cfg)
+                        }
+
+                        is ProvisioningState.AuthActionRequired -> {
+                            when (val action = state.action) {
+                                is AuthAction.ProvideStaticKey -> {
+                                    val hex = (params.oobData ?: "").trim()
+                                        .replace(" ", "")
+                                        .replace(":", "")
+                                        .replace("-", "")
+                                    val bytes = hexToBytes(hex)
+                                    flutterApi?.onProvisioningEvent(
+                                        ProvisioningEvent(
+                                            deviceId = deviceId,
+                                            type = ProvisioningEventType.OOB_OUTPUT_REQUESTED,
+                                            message = "Static OOB: using provided key (${bytes.size} bytes)",
+                                            progress = 20L,
+                                            attentionTimer = null,
+                                        )
+                                    ) {}
+                                    action.authenticate(bytes)
+                                }
+
+                                is AuthAction.DisplayNumber -> {
+                                    flutterApi?.onProvisioningEvent(
+                                        ProvisioningEvent(
+                                            deviceId = deviceId,
+                                            type = ProvisioningEventType.OOB_OUTPUT_REQUESTED,
+                                            message = "Input OOB: enter this number on the device: ${action.number}",
+                                            progress = 20L,
+                                            attentionTimer = null,
+                                        )
+                                    ) {}
+                                    // No additional input required; library waits for Input Complete.
+                                }
+
+                                is AuthAction.DisplayAlphaNumeric -> {
+                                    flutterApi?.onProvisioningEvent(
+                                        ProvisioningEvent(
+                                            deviceId = deviceId,
+                                            type = ProvisioningEventType.OOB_OUTPUT_REQUESTED,
+                                            message = "Input OOB: enter this text on the device: ${action.text}",
+                                            progress = 20L,
+                                            attentionTimer = null,
+                                        )
+                                    ) {}
+                                }
+
+                                else -> {
+                                    when (action) {
+                                        is AuthAction.ProvideNumeric -> {
+                                            val id = deviceId ?: uuid.toString()
+                                            val pending = PendingOob(numeric = action)
+                                            pendingOobByDeviceId[id] = pending
+                                            flutterApi?.onProvisioningEvent(
+                                                ProvisioningEvent(
+                                                    deviceId = deviceId,
+                                                    type = ProvisioningEventType.OOB_INPUT_REQUESTED,
+                                                    message = "Output OOB (numeric): enter the value shown on the device (maxDigits=${action.maxNumberOfDigits}).",
+                                                    progress = 20L,
+                                                    attentionTimer = null,
+                                                )
+                                            ) {}
+                                            val ok = pending.latch.await(120, TimeUnit.SECONDS)
+                                            pendingOobByDeviceId.remove(id)
+                                            if (!ok) {
+                                                throw IllegalStateException("Timeout waiting for Output OOB numeric input")
+                                            }
+                                        }
+
+                                        is AuthAction.ProvideAlphaNumeric -> {
+                                            val id = deviceId ?: uuid.toString()
+                                            val pending = PendingOob(alpha = action)
+                                            pendingOobByDeviceId[id] = pending
+                                            flutterApi?.onProvisioningEvent(
+                                                ProvisioningEvent(
+                                                    deviceId = deviceId,
+                                                    type = ProvisioningEventType.OOB_INPUT_REQUESTED,
+                                                    message = "Output OOB (alphanumeric): enter the value shown on the device (maxChars=${action.maxNumberOfCharacters}).",
+                                                    progress = 20L,
+                                                    attentionTimer = null,
+                                                )
+                                            ) {}
+                                            val ok = pending.latch.await(120, TimeUnit.SECONDS)
+                                            pendingOobByDeviceId.remove(id)
+                                            if (!ok) {
+                                                throw IllegalStateException("Timeout waiting for Output OOB alphanumeric input")
+                                            }
+                                        }
+
+                                        else -> throw IllegalStateException("Unsupported auth action: $action")
+                                    }
+                                }
+                            }
+                        }
+
+                        is ProvisioningState.Provisioning -> {
+                            flutterApi?.onProvisioningEvent(
+                                ProvisioningEvent(
+                                    deviceId = deviceId,
+                                    type = ProvisioningEventType.STARTED,
+                                    message = "Provisioning in progress",
+                                    progress = 40L,
+                                    attentionTimer = null,
+                                )
+                            ) {}
+                        }
+
+                        is ProvisioningState.Complete -> {
+                            // Node has already been added to meshNetwork by the ProvisioningManager.
+                            provisionedNode = meshNetwork.nodes.firstOrNull { it.uuid == uuid }
+                            flutterApi?.onProvisioningEvent(
+                                ProvisioningEvent(
+                                    deviceId = deviceId,
+                                    type = ProvisioningEventType.PROVISIONING_COMPLETED,
+                                    message = "Provisioning completed",
+                                    progress = 100L,
+                                    attentionTimer = null,
+                                )
+                            ) {}
+                        }
+
+                        is ProvisioningState.Failed -> {
+                            flutterApi?.onProvisioningEvent(
+                                ProvisioningEvent(
+                                    deviceId = deviceId,
+                                    type = ProvisioningEventType.FAILED,
+                                    message = "Provisioning failed: ${state.error}",
+                                    progress = 0L,
+                                    attentionTimer = null,
+                                )
+                            ) {}
+                            throw state.error
+                        }
+
+                        ProvisioningState.InputComplete -> {
+                            flutterApi?.onProvisioningEvent(
+                                ProvisioningEvent(
+                                    deviceId = deviceId,
+                                    type = ProvisioningEventType.OOB_OUTPUT_REQUESTED,
+                                    message = "Input complete",
+                                    progress = 60L,
+                                    attentionTimer = null,
+                                )
+                            ) {}
+                        }
+                    }
+                }
+
+                // Persist updated Mesh DB.
+                km.save()
+            } catch (t: Throwable) {
+                thrown = t
+            }
+        }
+
+        if (thrown != null) throw thrown!!
+
+        val n = provisionedNode ?: run {
+            // Fallback: return a minimal node even if we couldn't locate it in the network list.
+            return ProvisionedNode(
+                nodeId = deviceId ?: uuid.toString(),
+                name = params.deviceName,
+                unicastAddress = null,
+                uuid = device.uuid,
+                elements = emptyList(),
+                provisioned = true
+            )
+        }
+
+        return ProvisionedNode(
+            nodeId = deviceId ?: uuid.toString(),
+            name = n.name,
+            unicastAddress = n.primaryUnicastAddress.address.toLong(),
             uuid = device.uuid,
             elements = emptyList(),
             provisioned = true
         )
-        flutterApi?.onProvisioningEvent(
-            ProvisioningEvent(
-                deviceId = device.deviceId,
-                type = ProvisioningEventType.PROVISIONING_COMPLETED,
-                message = "Provisioning completed",
-                progress = 100L,
-                attentionTimer = null,
-            )
-        ) {}
-        return out
     }
 
     override fun sendMessage(message: MeshMessage) {
@@ -380,7 +617,29 @@ class PlatoJobsMeshPlugin :
         }
     }
 
-    override fun getNodes(): List<ProvisionedNode> = legacyManager?.getNodes() ?: emptyList()
+    override fun getNodes(): List<ProvisionedNode> {
+        val km = kotlinMeshManager
+        if (km != null) {
+            return try {
+                runBlocking {
+                    val net = km.meshNetwork.first()
+                    net.nodes.map { n ->
+                        ProvisionedNode(
+                            nodeId = n.uuid.toString(),
+                            name = n.name,
+                            unicastAddress = n.primaryUnicastAddress.address.toLong(),
+                            uuid = kotlinUuidToBytes(n.uuid),
+                            elements = emptyList(),
+                            provisioned = true
+                        )
+                    }
+                }
+            } catch (_: Throwable) {
+                legacyManager?.getNodes() ?: emptyList()
+            }
+        }
+        return legacyManager?.getNodes() ?: emptyList()
+    }
 
     override fun removeNode(nodeId: String) {
         // no-op
@@ -614,18 +873,75 @@ class PlatoJobsMeshPlugin :
     override fun isProxyConnected(): Boolean = proxyConnected
 
     override fun connectProvisioning(deviceId: String): Boolean {
-        // Not implemented on Android yet.
-        return false
+        if (provisioningConnected) return true
+        val ctx = appContext ?: return false
+        return try {
+            runBlocking {
+                val env = NativeAndroidEnvironment.getInstance(
+                    context = ctx,
+                    isNeverForLocationFlagSet = true
+                )
+                val central = no.nordicsemi.kotlin.ble.client.android.CentralManager.Factory.native(
+                    environment = env,
+                    scope = ioScope
+                )
+                val peripheral = central.getPeripheralsById(listOf(deviceId)).first()
+                val b = ProvisioningGattBearerImpl(
+                    peripheral = peripheral,
+                    centralManager = central,
+                    ioDispatcher = Dispatchers.IO
+                )
+                provisioningBearer = b
+                b.open()
+                provisioningConnected = true
+            }
+            true
+        } catch (_: Throwable) {
+            provisioningConnected = false
+            provisioningBearer = null
+            false
+        }
     }
 
     override fun disconnectProvisioning(): Boolean {
-        // Not implemented on Android yet.
-        return false
+        return try {
+            runBlocking {
+                provisioningBearer?.close()
+            }
+            provisioningBearer = null
+            provisioningConnected = false
+            true
+        } catch (_: Throwable) {
+            false
+        }
     }
 
     override fun isProvisioningConnected(): Boolean {
-        // Not implemented on Android yet.
-        return false
+        return provisioningConnected
+    }
+
+    override fun provideProvisioningOobNumeric(deviceId: String, value: Long): Boolean {
+        val pending = pendingOobByDeviceId[deviceId] ?: return false
+        val a = pending.numeric ?: return false
+        return try {
+            a.authenticate(value.toUInt())
+            pending.latch.countDown()
+            true
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    override fun provideProvisioningOobAlphaNumeric(deviceId: String, value: String): Boolean {
+        val pending = pendingOobByDeviceId[deviceId] ?: return false
+        val a = pending.alpha ?: return false
+        return try {
+            a.authenticate(value)
+            pending.latch.countDown()
+            true
+        } catch (_: Throwable) {
+            false
+        }
     }
 
     override fun supportsRxSourceAddress(): Boolean = rxSourceAddressSupported
@@ -643,6 +959,53 @@ private data class RawAccessMessage(
     override val opCode: UInt,
     override val parameters: ByteArray
 ) : KmMeshMessage {
+}
+
+private fun hexToBytes(hex: String): ByteArray {
+    val s = hex.trim()
+    require(s.length % 2 == 0) { "Hex string must have even length" }
+    require(s.isNotEmpty()) { "Hex string must not be empty" }
+    val out = ByteArray(s.length / 2)
+    var i = 0
+    while (i < s.length) {
+        val byte = s.substring(i, i + 2).toInt(16)
+        out[i / 2] = byte.and(0xFF).toByte()
+        i += 2
+    }
+    return out
+}
+
+@OptIn(ExperimentalUuidApi::class)
+private fun kotlinUuidToBytes(uuid: Uuid): List<Long> {
+    // toString() -> standard UUID with dashes. Convert to raw 16 bytes.
+    val hex = Utils.run { uuid.encode() } // 32 hex chars
+    val out = ByteArray(16)
+    var i = 0
+    while (i < 32) {
+        val byte = hex.substring(i, i + 2).toInt(16)
+        out[i / 2] = byte.and(0xFF).toByte()
+        i += 2
+    }
+    return out.map { (it.toInt() and 0xFF).toLong() }
+}
+
+private class ProvisioningGattBearerImpl<
+        ID : Any,
+        C : no.nordicsemi.kotlin.ble.client.CentralManager<ID, P, EX, F, SR>,
+        P : no.nordicsemi.kotlin.ble.client.Peripheral<ID, EX>,
+        EX : no.nordicsemi.kotlin.ble.client.Peripheral.Executor<ID>,
+        F : no.nordicsemi.kotlin.ble.client.CentralManager.ScanFilterScope,
+        SR : no.nordicsemi.kotlin.ble.client.ScanResult<*, *>,
+        >(
+    peripheral: P,
+    centralManager: C,
+    ioDispatcher: kotlinx.coroutines.CoroutineDispatcher,
+) : BaseGattBearer<ID, C, P, EX, F, SR>(
+    centralManager = centralManager,
+    peripheral = peripheral,
+    ioDispatcher = ioDispatcher
+), ProvisioningBearer {
+    override val meshService = MeshProvisioningService
 }
 
 /**

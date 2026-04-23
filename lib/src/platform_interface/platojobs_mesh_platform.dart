@@ -94,6 +94,12 @@ abstract class PlatoJobsMeshBridge {
   Future<bool> disconnectProvisioning();
   Future<bool> isProvisioningConnected();
 
+  /// Provide user input required by Output OOB (numeric).
+  Future<bool> provideProvisioningOobNumeric(String deviceId, int value);
+
+  /// Provide user input required by Output OOB (alphanumeric).
+  Future<bool> provideProvisioningOobAlphaNumeric(String deviceId, String value);
+
   /// Whether the native side can reliably populate the source address for
   /// incoming Access messages (`messageStream`).
   Future<bool> supportsRxSourceAddress();
@@ -346,6 +352,16 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
   @override
   Future<bool> isProvisioningConnected() async {
     return await _meshApi.isProvisioningConnected();
+  }
+
+  @override
+  Future<bool> provideProvisioningOobNumeric(String deviceId, int value) async {
+    return await _meshApi.provideProvisioningOobNumeric(deviceId, value);
+  }
+
+  @override
+  Future<bool> provideProvisioningOobAlphaNumeric(String deviceId, String value) async {
+    return await _meshApi.provideProvisioningOobAlphaNumeric(deviceId, value);
   }
 
   @override

@@ -3,6 +3,7 @@ import 'dart:async';
 
 import 'package:nrf_mesh_flutter/nrf_mesh_flutter.dart';
 import 'real_p1_page.dart';
+import 'provisioning_demo_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -229,6 +230,17 @@ class _MyAppState extends State<MyApp> {
                       );
                     },
                     child: const Text('P1 Real Flow'),
+                  ),
+                  const SizedBox(width: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const ProvisioningDemoPage(),
+                        ),
+                      );
+                    },
+                    child: const Text('M1 Provisioning'),
                   ),
                 ],
               ),

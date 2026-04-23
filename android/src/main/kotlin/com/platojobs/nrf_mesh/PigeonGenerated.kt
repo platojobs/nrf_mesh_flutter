@@ -1165,6 +1165,15 @@ interface MeshApi {
   fun startScan()
   fun stopScan()
   fun provisionDevice(device: UnprovisionedDevice, params: ProvisioningParameters): ProvisionedNode
+  /**
+   * Provide user input required by Output OOB (numeric).
+   *
+   * Used when provisioning emits an OOB input request that requires the user to enter a value
+   * shown on the device.
+   */
+  fun provideProvisioningOobNumeric(deviceId: String, value: Long): Boolean
+  /** Provide user input required by Output OOB (alphanumeric). */
+  fun provideProvisioningOobAlphaNumeric(deviceId: String, value: String): Boolean
   fun sendMessage(message: MeshMessage)
   fun getNodes(): List<ProvisionedNode>
   fun removeNode(nodeId: String)
@@ -1340,6 +1349,42 @@ interface MeshApi {
             val paramsArg = args[1] as ProvisioningParameters
             val wrapped: List<Any?> = try {
               listOf(api.provisionDevice(deviceArg, paramsArg))
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.provideProvisioningOobNumeric$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val deviceIdArg = args[0] as String
+            val valueArg = args[1] as Long
+            val wrapped: List<Any?> = try {
+              listOf(api.provideProvisioningOobNumeric(deviceIdArg, valueArg))
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.provideProvisioningOobAlphaNumeric$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val deviceIdArg = args[0] as String
+            val valueArg = args[1] as String
+            val wrapped: List<Any?> = try {
+              listOf(api.provideProvisioningOobAlphaNumeric(deviceIdArg, valueArg))
             } catch (exception: Throwable) {
               PigeonGeneratedPigeonUtils.wrapError(exception)
             }
