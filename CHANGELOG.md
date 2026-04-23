@@ -1,3 +1,8 @@
+## 3.9.1
+
+### Improvements
+- Provisioning: make `ProvisioningParameters` harder to misuse by adding typed factories (`noOob` / `staticOob` / `outputOob` / `inputOob`) and validating static OOB payloads (hex, even length, 1..32 bytes). Backward-compatible constructor remains supported.
+
 ## 3.9.0
 
 ### Features
