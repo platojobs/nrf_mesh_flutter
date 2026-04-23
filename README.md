@@ -25,8 +25,24 @@ Add `nrf_mesh_flutter` to your `pubspec.yaml`:
 dependencies:
   flutter:
     sdk: flutter
-  nrf_mesh_flutter: ^3.5.0
+  nrf_mesh_flutter: ^3.5.1
 ```
+
+## Recommended: sending raw Access messages
+
+If you need to send vendor/custom messages (or want to avoid the implicit `parameters['bytes']` convention), prefer `sendAccess(...)`:
+
+```dart
+await PlatoJobsNrfMeshManager.instance.sendAccess(
+  opCode: 0x8202, // example: Generic OnOff Set (ack)
+  parameters: const [0x01, 0x01], // payload bytes
+  address: 0x0003, // destination (unicast/group/virtual)
+  appKeyIndex: 0,
+);
+```
+
+Notes:
+- `messageStream` may emit messages with `address == null` on some platforms / library versions (when the native side cannot reliably extract the source address). Always handle that case.
 
 ### iOS Configuration
 
