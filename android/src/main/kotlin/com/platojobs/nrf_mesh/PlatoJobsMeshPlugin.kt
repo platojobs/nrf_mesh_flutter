@@ -613,6 +613,21 @@ class PlatoJobsMeshPlugin :
 
     override fun isProxyConnected(): Boolean = proxyConnected
 
+    override fun connectProvisioning(deviceId: String): Boolean {
+        // Not implemented on Android yet.
+        return false
+    }
+
+    override fun disconnectProvisioning(): Boolean {
+        // Not implemented on Android yet.
+        return false
+    }
+
+    override fun isProvisioningConnected(): Boolean {
+        // Not implemented on Android yet.
+        return false
+    }
+
     override fun supportsRxSourceAddress(): Boolean = rxSourceAddressSupported
 
     override fun clearSecureStorage() {

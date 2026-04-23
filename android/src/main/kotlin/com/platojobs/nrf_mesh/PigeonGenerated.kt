@@ -1184,6 +1184,9 @@ interface MeshApi {
   fun connectProxy(deviceId: String, proxyUnicastAddress: Long): Boolean
   fun disconnectProxy(): Boolean
   fun isProxyConnected(): Boolean
+  fun connectProvisioning(deviceId: String): Boolean
+  fun disconnectProvisioning(): Boolean
+  fun isProvisioningConnected(): Boolean
   /**
    * Whether the native implementation can reliably populate `MeshMessage.address`
    * (source address) for incoming Access messages.
@@ -1584,6 +1587,53 @@ interface MeshApi {
           channel.setMessageHandler { _, reply ->
             val wrapped: List<Any?> = try {
               listOf(api.isProxyConnected())
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.connectProvisioning$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val deviceIdArg = args[0] as String
+            val wrapped: List<Any?> = try {
+              listOf(api.connectProvisioning(deviceIdArg))
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.disconnectProvisioning$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            val wrapped: List<Any?> = try {
+              listOf(api.disconnectProvisioning())
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.isProvisioningConnected$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            val wrapped: List<Any?> = try {
+              listOf(api.isProvisioningConnected())
             } catch (exception: Throwable) {
               PigeonGeneratedPigeonUtils.wrapError(exception)
             }

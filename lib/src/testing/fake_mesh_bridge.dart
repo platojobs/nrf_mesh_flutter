@@ -422,6 +422,21 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
   Future<bool> isProxyConnected() async => _proxyConnected;
 
   @override
+  Future<bool> connectProvisioning(String deviceId) async {
+    return false;
+  }
+
+  @override
+  Future<bool> disconnectProvisioning() async {
+    return false;
+  }
+
+  @override
+  Future<bool> isProvisioningConnected() async {
+    return false;
+  }
+
+  @override
   Future<bool> supportsRxSourceAddress() async {
     // Fake bridge can always include an address in injected messages when desired.
     return true;

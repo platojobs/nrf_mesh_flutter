@@ -216,6 +216,18 @@ class PlatoJobsNrfMeshManager {
   Future<bool> isProxyConnected() async {
     return await _meshManagerApi.isProxyConnected();
   }
+
+  Future<bool> connectProvisioning(String deviceId) async {
+    return await _meshManagerApi.connectProvisioning(deviceId);
+  }
+
+  Future<bool> disconnectProvisioning() async {
+    return await _meshManagerApi.disconnectProvisioning();
+  }
+
+  Future<bool> isProvisioningConnected() async {
+    return await _meshManagerApi.isProvisioningConnected();
+  }
 }
 
 class ProvisioningParameters {

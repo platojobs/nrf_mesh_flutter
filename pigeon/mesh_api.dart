@@ -73,6 +73,11 @@ abstract class MeshApi {
   bool disconnectProxy();
   bool isProxyConnected();
 
+  // Provisioning bearer (PB-GATT) connection (foundation for full provisioning).
+  bool connectProvisioning(String deviceId);
+  bool disconnectProvisioning();
+  bool isProvisioningConnected();
+
   /// Whether the native implementation can reliably populate `MeshMessage.address`
   /// (source address) for incoming Access messages.
   bool supportsRxSourceAddress();
