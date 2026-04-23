@@ -6,6 +6,13 @@
 ### Improvements
 - iOS: include best-effort `serviceUuid` in scan results and scan for both provisioning (`0x1827`) and proxy (`0x1828`) services.
 
+## 3.10.0
+
+### Features
+- Provisioning (foundation): add `connectProvisioning` / `disconnectProvisioning` / `isProvisioningConnected`.
+  - iOS: implements PB-GATT connection + provisioning service discovery and emits progress via `provisioningEventStream`.
+  - Android: not implemented yet (returns false).
+
 ## 3.9.2
 
 ### Improvements

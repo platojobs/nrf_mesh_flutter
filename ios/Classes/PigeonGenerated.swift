@@ -1115,6 +1115,9 @@ protocol MeshApi {
   func connectProxy(deviceId: String, proxyUnicastAddress: Int64) throws -> Bool
   func disconnectProxy() throws -> Bool
   func isProxyConnected() throws -> Bool
+  func connectProvisioning(deviceId: String) throws -> Bool
+  func disconnectProvisioning() throws -> Bool
+  func isProvisioningConnected() throws -> Bool
   /// Whether the native implementation can reliably populate `MeshMessage.address`
   /// (source address) for incoming Access messages.
   func supportsRxSourceAddress() throws -> Bool
@@ -1471,6 +1474,47 @@ class MeshApiSetup {
       }
     } else {
       isProxyConnectedChannel.setMessageHandler(nil)
+    }
+    let connectProvisioningChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.connectProvisioning\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      connectProvisioningChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let deviceIdArg = args[0] as! String
+        do {
+          let result = try api.connectProvisioning(deviceId: deviceIdArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      connectProvisioningChannel.setMessageHandler(nil)
+    }
+    let disconnectProvisioningChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.disconnectProvisioning\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      disconnectProvisioningChannel.setMessageHandler { _, reply in
+        do {
+          let result = try api.disconnectProvisioning()
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      disconnectProvisioningChannel.setMessageHandler(nil)
+    }
+    let isProvisioningConnectedChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.isProvisioningConnected\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      isProvisioningConnectedChannel.setMessageHandler { _, reply in
+        do {
+          let result = try api.isProvisioningConnected()
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      isProvisioningConnectedChannel.setMessageHandler(nil)
     }
     /// Whether the native implementation can reliably populate `MeshMessage.address`
     /// (source address) for incoming Access messages.

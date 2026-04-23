@@ -89,6 +89,11 @@ abstract class PlatoJobsMeshBridge {
   Future<bool> disconnectProxy();
   Future<bool> isProxyConnected();
 
+  // Provisioning bearer connection (PB-GATT) foundation.
+  Future<bool> connectProvisioning(String deviceId);
+  Future<bool> disconnectProvisioning();
+  Future<bool> isProvisioningConnected();
+
   /// Whether the native side can reliably populate the source address for
   /// incoming Access messages (`messageStream`).
   Future<bool> supportsRxSourceAddress();
@@ -326,6 +331,21 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
   @override
   Future<bool> isProxyConnected() async {
     return await _meshApi.isProxyConnected();
+  }
+
+  @override
+  Future<bool> connectProvisioning(String deviceId) async {
+    return await _meshApi.connectProvisioning(deviceId);
+  }
+
+  @override
+  Future<bool> disconnectProvisioning() async {
+    return await _meshApi.disconnectProvisioning();
+  }
+
+  @override
+  Future<bool> isProvisioningConnected() async {
+    return await _meshApi.isProvisioningConnected();
   }
 
   @override

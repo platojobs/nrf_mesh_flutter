@@ -18,6 +18,8 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
     private var peripheralsById: [String: CBPeripheral] = [:]
     private var proxyBearer: GattBearer?
     private var proxyConnected: Bool = false
+    private var provisioningPeripheral: CBPeripheral?
+    private var provisioningConnected: Bool = false
 
     // Bluetooth Mesh Proxy Service UUID (0x1828)
     private let meshProxyService = CBUUID(string: "1828")
@@ -578,6 +580,41 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         return proxyConnected
     }
 
+    func connectProvisioning(deviceId: String) throws -> Bool {
+        guard let uuid = UUID(uuidString: deviceId) else { return false }
+        provisioningPeripheral = nil
+        provisioningConnected = false
+
+        let peripherals = centralManager.retrievePeripherals(withIdentifiers: [uuid])
+        guard let p = peripherals.first else { return false }
+        provisioningPeripheral = p
+        p.delegate = self
+        centralManager.connect(p, options: nil)
+
+        flutterApi?.onProvisioningEvent(event: ProvisioningEvent(
+            deviceId: deviceId,
+            type: .started,
+            message: "PB-GATT connecting",
+            progress: 0,
+            attentionTimer: nil
+        )) { _ in }
+
+        return waitUntil(timeoutSeconds: 10.0) { self.provisioningConnected }
+    }
+
+    func disconnectProvisioning() throws -> Bool {
+        if let p = provisioningPeripheral {
+            centralManager.cancelPeripheralConnection(p)
+        }
+        provisioningPeripheral = nil
+        provisioningConnected = false
+        return true
+    }
+
+    func isProvisioningConnected() throws -> Bool {
+        return provisioningConnected
+    }
+
     func supportsRxSourceAddress() throws -> Bool {
         // iOS delegate provides `sentFrom source` for incoming Access messages.
         return true
@@ -648,7 +685,7 @@ extension PlatoJobsMeshPlugin: MeshNetworkDelegate {
 extension PlatoJobsMeshPlugin: CBCentralManagerDelegate {
     public func centralManagerDidUpdateState(_ central: CBCentralManager) {
         if scanning, central.state == .poweredOn {
-            central.scanForPeripherals(withServices: [meshProxyService], options: [
+            central.scanForPeripherals(withServices: [meshProxyService, meshProvisioningService], options: [
                 CBCentralManagerScanOptionAllowDuplicatesKey: true
             ])
         }
@@ -679,6 +716,72 @@ extension PlatoJobsMeshPlugin: CBCentralManagerDelegate {
             serviceUuid: svc
         )
         flutterApi?.onDeviceDiscovered(device: dev) { _ in }
+    }
+}
+
+// MARK: - CBPeripheralDelegate (PB-GATT provisioning bearer groundwork)
+
+extension PlatoJobsMeshPlugin: CBPeripheralDelegate {
+    public func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
+        if peripheral.identifier.uuidString == provisioningPeripheral?.identifier.uuidString {
+            provisioningConnected = true
+            peripheral.discoverServices([meshProvisioningService])
+            flutterApi?.onProvisioningEvent(event: ProvisioningEvent(
+                deviceId: peripheral.identifier.uuidString,
+                type: .capabilitiesReceived,
+                message: "PB-GATT connected; discovering provisioning service",
+                progress: 10,
+                attentionTimer: nil
+            )) { _ in }
+        }
+    }
+
+    public func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
+        if peripheral.identifier.uuidString == provisioningPeripheral?.identifier.uuidString {
+            provisioningConnected = false
+            flutterApi?.onProvisioningEvent(event: ProvisioningEvent(
+                deviceId: peripheral.identifier.uuidString,
+                type: .failed,
+                message: "PB-GATT connect failed: \(error?.localizedDescription ?? "unknown")",
+                progress: nil,
+                attentionTimer: nil
+            )) { _ in }
+        }
+    }
+
+    public func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
+        if peripheral.identifier.uuidString == provisioningPeripheral?.identifier.uuidString {
+            provisioningConnected = false
+            flutterApi?.onProvisioningEvent(event: ProvisioningEvent(
+                deviceId: peripheral.identifier.uuidString,
+                type: .failed,
+                message: "PB-GATT disconnected",
+                progress: nil,
+                attentionTimer: nil
+            )) { _ in }
+        }
+    }
+
+    public func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
+        guard peripheral.identifier.uuidString == provisioningPeripheral?.identifier.uuidString else { return }
+        if let error {
+            flutterApi?.onProvisioningEvent(event: ProvisioningEvent(
+                deviceId: peripheral.identifier.uuidString,
+                type: .failed,
+                message: "Service discovery failed: \(error.localizedDescription)",
+                progress: nil,
+                attentionTimer: nil
+            )) { _ in }
+            return
+        }
+        let hasProvisioning = (peripheral.services ?? []).contains(where: { $0.uuid == meshProvisioningService })
+        flutterApi?.onProvisioningEvent(event: ProvisioningEvent(
+            deviceId: peripheral.identifier.uuidString,
+            type: hasProvisioning ? .capabilitiesReceived : .failed,
+            message: hasProvisioning ? "Provisioning service discovered" : "Provisioning service not found",
+            progress: hasProvisioning ? 20 : nil,
+            attentionTimer: nil
+        )) { _ in }
     }
 }
 

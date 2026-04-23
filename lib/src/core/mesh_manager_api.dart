@@ -187,6 +187,18 @@ class MeshManagerApi {
   Future<bool> isProxyConnected() async {
     return await _guard(() => _platform.isProxyConnected());
   }
+
+  Future<bool> connectProvisioning(String deviceId) async {
+    return await _guard(() => _platform.connectProvisioning(deviceId));
+  }
+
+  Future<bool> disconnectProvisioning() async {
+    return await _guard(() => _platform.disconnectProvisioning());
+  }
+
+  Future<bool> isProvisioningConnected() async {
+    return await _guard(() => _platform.isProvisioningConnected());
+  }
 }
 
 /// Provisioning parameters for mesh devices
