@@ -5,6 +5,7 @@ import '../models/provisioned_node.dart' as models;
 import '../models/unprovisioned_device.dart' as models;
 import '../models/mesh_message.dart' as models;
 import '../models/mesh_group.dart' as models;
+import '../models/rx_access_message.dart' as rx_models;
 import 'command_queue.dart';
 import 'mesh_exceptions.dart';
 import '../platform_interface/platojobs_mesh_platform.dart' as platform;
@@ -86,6 +87,11 @@ class MeshManagerApi {
   /// Stream of received mesh messages
   Stream<models.MeshMessage> get messageStream {
     return _platform.messageStream;
+  }
+
+  /// Stream of received Access messages with best-effort metadata.
+  Stream<rx_models.RxAccessMessage> get rxAccessMessageStream {
+    return _platform.rxAccessMessageStream;
   }
 
   /// Whether the native side can reliably populate source address for incoming Access messages.

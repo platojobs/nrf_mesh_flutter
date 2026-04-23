@@ -96,6 +96,12 @@ abstract class MeshApi {
 abstract class MeshFlutterApi {
   void onDeviceDiscovered(UnprovisionedDevice device);
   void onMessageReceived(MeshMessage message);
+
+  /// A richer, forward-compatible RX event that carries best-effort metadata.
+  ///
+  /// This stream is controlled by this plugin's contract (rather than relying on
+  /// internal/native library details) so apps can build stable logging and routing.
+  void onRxAccessMessage(RxAccessMessage event);
 }
 
 // Data models
@@ -178,6 +184,26 @@ class MeshMessage {
   int? address;
   int? appKeyIndex;
   Map<String, Object?>? parameters;
+}
+
+enum RxMetadataStatus {
+  available,
+  unavailable,
+}
+
+class RxAccessMessage {
+  int? opcode;
+
+  /// Access message parameters (raw bytes).
+  List<int>? parameters;
+
+  /// Best-effort source address (unicast), if available.
+  int? source;
+
+  /// Best-effort destination address, if available.
+  int? destination;
+
+  RxMetadataStatus? metadataStatus;
 }
 
 class ProvisioningParameters {

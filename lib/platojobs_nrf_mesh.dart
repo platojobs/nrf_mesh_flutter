@@ -7,6 +7,7 @@ import 'src/models/unprovisioned_device.dart' as models;
 import 'src/models/mesh_group.dart' as models;
 import 'src/models/mesh_message.dart' as models;
 import 'src/models/raw_access_message.dart' as models;
+import 'src/models/rx_access_message.dart' as rx_models;
 import 'src/platform_interface/platojobs_mesh_platform.dart' as platform;
 
 export 'src/models/mesh_network.dart' show MeshNetwork, NetworkKey, AppKey, Provisioner;
@@ -23,6 +24,7 @@ export 'src/models/mesh_message.dart'
         GenericOnOffStatus,
         GenericLevelStatus;
 export 'src/models/raw_access_message.dart' show RawAccessMessage;
+export 'src/models/rx_access_message.dart' show RxAccessMessage, RxMetadataStatus;
 export 'src/core/mesh_exceptions.dart'
     show
         PlatoJobsMeshException,
@@ -118,6 +120,10 @@ class PlatoJobsNrfMeshManager {
 
   Stream<models.MeshMessage> get messageStream {
     return _meshManagerApi.messageStream;
+  }
+
+  Stream<rx_models.RxAccessMessage> get rxAccessMessageStream {
+    return _meshManagerApi.rxAccessMessageStream;
   }
 
   /// Whether the native side can reliably populate source address for incoming Access messages.

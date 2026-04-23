@@ -6,6 +6,7 @@ import '../models/mesh_group.dart' as group_models;
 import '../models/mesh_message.dart' as msg_models;
 import '../models/mesh_network.dart' as net_models;
 import '../models/provisioned_node.dart' as node_models;
+import '../models/rx_access_message.dart' as rx_models;
 import '../models/unprovisioned_device.dart' as dev_models;
 import 'pigeon_generated.dart' as pigeon;
 
@@ -54,6 +55,9 @@ abstract class PlatoJobsMeshBridge {
 
   Stream<msg_models.MeshMessage> get messageStream;
 
+  /// A richer RX stream with best-effort metadata (source/destination).
+  Stream<rx_models.RxAccessMessage> get rxAccessMessageStream;
+
   Future<List<node_models.ProvisionedNode>> getNodes();
 
   Future<void> removeNode(String nodeId);
@@ -99,6 +103,8 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
       StreamController<dev_models.UnprovisionedDevice>.broadcast();
   final StreamController<msg_models.MeshMessage> _messageStreamController =
       StreamController<msg_models.MeshMessage>.broadcast();
+  final StreamController<rx_models.RxAccessMessage> _rxAccessStreamController =
+      StreamController<rx_models.RxAccessMessage>.broadcast();
 
   @override
   Future<void> initialize() async {
@@ -125,6 +131,19 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
               parameters: parameters,
               address: message.address?.toInt(),
               appKeyIndex: message.appKeyIndex?.toInt(),
+            ),
+          );
+        },
+        onRxAccessMessage: (event) {
+          _rxAccessStreamController.add(
+            rx_models.RxAccessMessage(
+              opcode: event.opcode ?? 0,
+              parameters: (event.parameters ?? const <int>[]).toList(growable: false),
+              source: event.source,
+              destination: event.destination,
+              metadataStatus: event.metadataStatus == pigeon.RxMetadataStatus.available
+                  ? rx_models.RxMetadataStatus.available
+                  : rx_models.RxMetadataStatus.unavailable,
             ),
           );
         },
@@ -209,6 +228,11 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
   @override
   Stream<msg_models.MeshMessage> get messageStream {
     return _messageStreamController.stream;
+  }
+
+  @override
+  Stream<rx_models.RxAccessMessage> get rxAccessMessageStream {
+    return _rxAccessStreamController.stream;
   }
 
   @override
@@ -406,12 +430,15 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
 class _PlatoJobsMeshFlutterApiHandler extends pigeon.MeshFlutterApi {
   final Function(pigeon.UnprovisionedDevice) _onDeviceDiscovered;
   final Function(pigeon.MeshMessage) _onMessageReceived;
+  final Function(pigeon.RxAccessMessage) _onRxAccessMessage;
 
   _PlatoJobsMeshFlutterApiHandler({
     required Function(pigeon.UnprovisionedDevice) onDeviceDiscovered,
     required Function(pigeon.MeshMessage) onMessageReceived,
+    required Function(pigeon.RxAccessMessage) onRxAccessMessage,
   }) : _onDeviceDiscovered = onDeviceDiscovered,
-       _onMessageReceived = onMessageReceived;
+       _onMessageReceived = onMessageReceived,
+       _onRxAccessMessage = onRxAccessMessage;
 
   @override
   void onDeviceDiscovered(pigeon.UnprovisionedDevice device) {
@@ -421,5 +448,10 @@ class _PlatoJobsMeshFlutterApiHandler extends pigeon.MeshFlutterApi {
   @override
   void onMessageReceived(pigeon.MeshMessage message) {
     _onMessageReceived(message);
+  }
+
+  @override
+  void onRxAccessMessage(pigeon.RxAccessMessage event) {
+    _onRxAccessMessage(event);
   }
 }
