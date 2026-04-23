@@ -3,6 +3,11 @@
 ### Improvements
 - Provisioning: make `ProvisioningParameters` harder to misuse by adding typed factories (`noOob` / `staticOob` / `outputOob` / `inputOob`) and validating static OOB payloads (hex, even length, 1..32 bytes). Backward-compatible constructor remains supported.
 
+## 3.9.2
+
+### Improvements
+- Provisioning: emit additional best-effort events (`capabilitiesReceived` and OOB prompts when applicable) to make `provisioningEventStream` more useful for UI and logging.
+
 ## 3.9.0
 
 ### Features

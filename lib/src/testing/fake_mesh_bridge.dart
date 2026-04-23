@@ -210,6 +210,15 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
         attentionTimer: null,
       ),
     );
+    _provController.add(
+      pigeon.ProvisioningEvent(
+        deviceId: device.deviceId,
+        type: pigeon.ProvisioningEventType.capabilitiesReceived,
+        message: 'Capabilities received (fake)',
+        progress: 5,
+        attentionTimer: null,
+      ),
+    );
     if (nextProvisionDelay != Duration.zero) {
       await Future<void>.delayed(nextProvisionDelay);
       nextProvisionDelay = Duration.zero;
