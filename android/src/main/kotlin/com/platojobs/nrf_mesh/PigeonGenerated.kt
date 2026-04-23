@@ -418,7 +418,9 @@ data class UnprovisionedDevice (
   val deviceId: String? = null,
   val name: String? = null,
   val rssi: Long? = null,
-  val uuid: List<Long>? = null
+  val uuid: List<Long>? = null,
+  /** Best-effort primary service UUID discovered (e.g. "1827" provisioning or "1828" proxy). */
+  val serviceUuid: String? = null
 )
  {
   companion object {
@@ -427,7 +429,8 @@ data class UnprovisionedDevice (
       val name = pigeonVar_list[1] as String?
       val rssi = pigeonVar_list[2] as Long?
       val uuid = pigeonVar_list[3] as List<Long>?
-      return UnprovisionedDevice(deviceId, name, rssi, uuid)
+      val serviceUuid = pigeonVar_list[4] as String?
+      return UnprovisionedDevice(deviceId, name, rssi, uuid, serviceUuid)
     }
   }
   fun toList(): List<Any?> {
@@ -436,6 +439,7 @@ data class UnprovisionedDevice (
       name,
       rssi,
       uuid,
+      serviceUuid,
     )
   }
   override fun equals(other: Any?): Boolean {
@@ -446,7 +450,7 @@ data class UnprovisionedDevice (
       return true
     }
     val other = other as UnprovisionedDevice
-    return PigeonGeneratedPigeonUtils.deepEquals(this.deviceId, other.deviceId) && PigeonGeneratedPigeonUtils.deepEquals(this.name, other.name) && PigeonGeneratedPigeonUtils.deepEquals(this.rssi, other.rssi) && PigeonGeneratedPigeonUtils.deepEquals(this.uuid, other.uuid)
+    return PigeonGeneratedPigeonUtils.deepEquals(this.deviceId, other.deviceId) && PigeonGeneratedPigeonUtils.deepEquals(this.name, other.name) && PigeonGeneratedPigeonUtils.deepEquals(this.rssi, other.rssi) && PigeonGeneratedPigeonUtils.deepEquals(this.uuid, other.uuid) && PigeonGeneratedPigeonUtils.deepEquals(this.serviceUuid, other.serviceUuid)
   }
 
   override fun hashCode(): Int {
@@ -455,6 +459,7 @@ data class UnprovisionedDevice (
     result = 31 * result + PigeonGeneratedPigeonUtils.deepHash(this.name)
     result = 31 * result + PigeonGeneratedPigeonUtils.deepHash(this.rssi)
     result = 31 * result + PigeonGeneratedPigeonUtils.deepHash(this.uuid)
+    result = 31 * result + PigeonGeneratedPigeonUtils.deepHash(this.serviceUuid)
     return result
   }
 }

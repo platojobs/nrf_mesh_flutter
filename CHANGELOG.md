@@ -1,12 +1,20 @@
-## 3.9.1
+## 3.9.3
+
+### Fixes
+- Docs: fix `CHANGELOG.md` ordering (latest first).
 
 ### Improvements
-- Provisioning: make `ProvisioningParameters` harder to misuse by adding typed factories (`noOob` / `staticOob` / `outputOob` / `inputOob`) and validating static OOB payloads (hex, even length, 1..32 bytes). Backward-compatible constructor remains supported.
+- iOS: include best-effort `serviceUuid` in scan results and scan for both provisioning (`0x1827`) and proxy (`0x1828`) services.
 
 ## 3.9.2
 
 ### Improvements
 - Provisioning: emit additional best-effort events (`capabilitiesReceived` and OOB prompts when applicable) to make `provisioningEventStream` more useful for UI and logging.
+
+## 3.9.1
+
+### Improvements
+- Provisioning: make `ProvisioningParameters` harder to misuse by adding typed factories (`noOob` / `staticOob` / `outputOob` / `inputOob`) and validating static OOB payloads (hex, even length, 1..32 bytes). Backward-compatible constructor remains supported.
 
 ## 3.9.0
 

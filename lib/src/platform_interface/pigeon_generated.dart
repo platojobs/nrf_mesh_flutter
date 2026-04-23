@@ -357,6 +357,7 @@ class UnprovisionedDevice {
     this.name,
     this.rssi,
     this.uuid,
+    this.serviceUuid,
   });
 
   String? deviceId;
@@ -367,12 +368,16 @@ class UnprovisionedDevice {
 
   List<int>? uuid;
 
+  /// Best-effort primary service UUID discovered (e.g. "1827" provisioning or "1828" proxy).
+  String? serviceUuid;
+
   List<Object?> _toList() {
     return <Object?>[
       deviceId,
       name,
       rssi,
       uuid,
+      serviceUuid,
     ];
   }
 
@@ -386,6 +391,7 @@ class UnprovisionedDevice {
       name: result[1] as String?,
       rssi: result[2] as int?,
       uuid: (result[3] as List<Object?>?)?.cast<int>(),
+      serviceUuid: result[4] as String?,
     );
   }
 
@@ -398,7 +404,7 @@ class UnprovisionedDevice {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(deviceId, other.deviceId) && _deepEquals(name, other.name) && _deepEquals(rssi, other.rssi) && _deepEquals(uuid, other.uuid);
+    return _deepEquals(deviceId, other.deviceId) && _deepEquals(name, other.name) && _deepEquals(rssi, other.rssi) && _deepEquals(uuid, other.uuid) && _deepEquals(serviceUuid, other.serviceUuid);
   }
 
   @override

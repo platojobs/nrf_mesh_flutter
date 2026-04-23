@@ -120,7 +120,7 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
             dev_models.UnprovisionedDevice(
               deviceId: device.deviceId ?? '',
               name: device.name ?? '',
-              serviceUuid: '',
+              serviceUuid: device.serviceUuid ?? '',
               rssi: device.rssi ?? 0,
               serviceData: device.uuid ?? [],
             ),
