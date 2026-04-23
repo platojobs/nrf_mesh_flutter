@@ -1,3 +1,6 @@
+PROJECT_SPECIFICATIONS.md
+lib/platojobs_nrf_mesh_method_channel.dart
+lib/platojobs_nrf_mesh_platform_interface.dart
 # Exclude the shim package workspace folder from publishing.
 discontinued_platojobs_nrf_mesh/
 

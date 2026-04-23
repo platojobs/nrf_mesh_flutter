@@ -413,24 +413,29 @@ data class Provisioner (
   }
 }
 
-/** Generated class from Pigeon that represents data sent in messages. */
-data class UnprovisionedDevice (
+/**
+ * Pigeon transport model for unprovisioned devices.
+ *
+ * Named to avoid clashing with Nordic iOS library types.
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class FlutterUnprovisionedDevice (
   val deviceId: String? = null,
   val name: String? = null,
   val rssi: Long? = null,
   val uuid: List<Long>? = null,
-  /** Best-effort primary service UUID discovered (e.g. "1827" provisioning or "1828" proxy). */
   val serviceUuid: String? = null
 )
  {
   companion object {
-    fun fromList(pigeonVar_list: List<Any?>): UnprovisionedDevice {
+    fun fromList(pigeonVar_list: List<Any?>): FlutterUnprovisionedDevice {
       val deviceId = pigeonVar_list[0] as String?
       val name = pigeonVar_list[1] as String?
       val rssi = pigeonVar_list[2] as Long?
       val uuid = pigeonVar_list[3] as List<Long>?
       val serviceUuid = pigeonVar_list[4] as String?
-      return UnprovisionedDevice(deviceId, name, rssi, uuid, serviceUuid)
+      return FlutterUnprovisionedDevice(deviceId, name, rssi, uuid, serviceUuid)
     }
   }
   fun toList(): List<Any?> {
@@ -449,7 +454,7 @@ data class UnprovisionedDevice (
     if (this === other) {
       return true
     }
-    val other = other as UnprovisionedDevice
+    val other = other as FlutterUnprovisionedDevice
     return PigeonGeneratedPigeonUtils.deepEquals(this.deviceId, other.deviceId) && PigeonGeneratedPigeonUtils.deepEquals(this.name, other.name) && PigeonGeneratedPigeonUtils.deepEquals(this.rssi, other.rssi) && PigeonGeneratedPigeonUtils.deepEquals(this.uuid, other.uuid) && PigeonGeneratedPigeonUtils.deepEquals(this.serviceUuid, other.serviceUuid)
   }
 
@@ -1015,7 +1020,7 @@ private open class PigeonGeneratedPigeonCodec : StandardMessageCodec() {
       }
       135.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          UnprovisionedDevice.fromList(it)
+          FlutterUnprovisionedDevice.fromList(it)
         }
       }
       136.toByte() -> {
@@ -1102,7 +1107,7 @@ private open class PigeonGeneratedPigeonCodec : StandardMessageCodec() {
         stream.write(134)
         writeValue(stream, value.toList())
       }
-      is UnprovisionedDevice -> {
+      is FlutterUnprovisionedDevice -> {
         stream.write(135)
         writeValue(stream, value.toList())
       }
@@ -1164,7 +1169,7 @@ interface MeshApi {
   fun importNetwork(path: String): Boolean
   fun startScan()
   fun stopScan()
-  fun provisionDevice(device: UnprovisionedDevice, params: ProvisioningParameters): ProvisionedNode
+  fun provisionDevice(device: FlutterUnprovisionedDevice, params: ProvisioningParameters): ProvisionedNode
   /**
    * Provide user input required by Output OOB (numeric).
    *
@@ -1345,7 +1350,7 @@ interface MeshApi {
         if (api != null) {
           channel.setMessageHandler { message, reply ->
             val args = message as List<Any?>
-            val deviceArg = args[0] as UnprovisionedDevice
+            val deviceArg = args[0] as FlutterUnprovisionedDevice
             val paramsArg = args[1] as ProvisioningParameters
             val wrapped: List<Any?> = try {
               listOf(api.provisionDevice(deviceArg, paramsArg))
@@ -1748,7 +1753,7 @@ class MeshFlutterApi(private val binaryMessenger: BinaryMessenger, private val m
       PigeonGeneratedPigeonCodec()
     }
   }
-  fun onDeviceDiscovered(deviceArg: UnprovisionedDevice, callback: (Result<Unit>) -> Unit)
+  fun onDeviceDiscovered(deviceArg: FlutterUnprovisionedDevice, callback: (Result<Unit>) -> Unit)
 {
     val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
     val channelName = "dev.flutter.pigeon.nrf_mesh_flutter.MeshFlutterApi.onDeviceDiscovered$separatedMessageChannelSuffix"

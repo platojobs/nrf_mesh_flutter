@@ -1,3 +1,14 @@
+## 4.0.1
+
+### Features
+- iOS: implement PB-GATT provisioning using Nordic iOS library `ProvisioningManager`.
+- iOS: support interactive Output OOB continuation via:
+  - `provideProvisioningOobNumeric(deviceId, value)`
+  - `provideProvisioningOobAlphaNumeric(deviceId, value)`
+
+### Fixes
+- iOS: avoid Objective-C name collisions with Nordic types by renaming the Pigeon transport model to `FlutterUnprovisionedDevice`.
+
 ## 4.0.0
 
 ### Breaking changes

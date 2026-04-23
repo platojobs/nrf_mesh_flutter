@@ -15,7 +15,7 @@ A Flutter plugin for Bluetooth Mesh networking, based on Nordic Semiconductor's 
 ## Supported Platforms
 
 - **iOS**: 13.0+
-- **Android**: API 21+ (Android 5.0 Lollipop)
+- **Android**: API 24+ (Android 7.0 Nougat)
 
 ## Installation
 
@@ -25,7 +25,7 @@ Add `nrf_mesh_flutter` to your `pubspec.yaml`:
 dependencies:
   flutter:
     sdk: flutter
-  nrf_mesh_flutter: ^4.0.0
+  nrf_mesh_flutter: ^4.0.1
 ```
 
 ## Release notes language

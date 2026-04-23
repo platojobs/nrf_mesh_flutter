@@ -7,6 +7,8 @@ import 'package:pigeon/pigeon.dart';
 @ConfigurePigeon(PigeonOptions(
   dartOut: 'lib/src/platform_interface/pigeon_generated.dart',
   swiftOut: 'ios/Classes/PigeonGenerated.swift',
+  objcHeaderOut: 'ios/Classes/PigeonGenerated.h',
+  objcSourceOut: 'ios/Classes/PigeonGenerated.m',
   kotlinOut: 'android/src/main/kotlin/com/platojobs/nrf_mesh/PigeonGenerated.kt',
   kotlinOptions: KotlinOptions(package: 'com.platojobs.nrf_mesh'),
   dartPackageName: 'nrf_mesh_flutter',
@@ -26,7 +28,7 @@ abstract class MeshApi {
 
   // Provisioning
   ProvisionedNode provisionDevice(
-    UnprovisionedDevice device,
+    FlutterUnprovisionedDevice device,
     ProvisioningParameters params,
   );
 
@@ -108,7 +110,7 @@ abstract class MeshApi {
 
 @FlutterApi()
 abstract class MeshFlutterApi {
-  void onDeviceDiscovered(UnprovisionedDevice device);
+  void onDeviceDiscovered(FlutterUnprovisionedDevice device);
   void onMessageReceived(MeshMessage message);
 
   /// A richer, forward-compatible RX event that carries best-effort metadata.
@@ -152,12 +154,14 @@ class Provisioner {
   List<int>? addressRange;
 }
 
-class UnprovisionedDevice {
+/// Pigeon transport model for unprovisioned devices.
+///
+/// Named to avoid clashing with Nordic iOS library types.
+class FlutterUnprovisionedDevice {
   String? deviceId;
   String? name;
   int? rssi;
   List<int>? uuid;
-  /// Best-effort primary service UUID discovered (e.g. "1827" provisioning or "1828" proxy).
   String? serviceUuid;
 }
 
