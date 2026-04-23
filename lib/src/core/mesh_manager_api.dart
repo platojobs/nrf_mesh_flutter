@@ -88,6 +88,16 @@ class MeshManagerApi {
     return _platform.messageStream;
   }
 
+  /// Whether the native side can reliably populate source address for incoming Access messages.
+  Future<bool> supportsRxSourceAddress() async {
+    return await _guard(() => _platform.supportsRxSourceAddress());
+  }
+
+  /// Clear persisted secure mesh state used for stable Access sending.
+  Future<void> clearSecureStorage() async {
+    return await _guard(() => _platform.clearSecureStorage());
+  }
+
   // Node management
   /// Get all provisioned nodes
   Future<List<models.ProvisionedNode>> getNodes() async {

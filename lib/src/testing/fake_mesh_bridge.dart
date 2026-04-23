@@ -372,6 +372,17 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
   @override
   Future<bool> isProxyConnected() async => _proxyConnected;
 
+  @override
+  Future<bool> supportsRxSourceAddress() async {
+    // Fake bridge can always include an address in injected messages when desired.
+    return true;
+  }
+
+  @override
+  Future<void> clearSecureStorage() async {
+    // No persisted secure state in the fake bridge.
+  }
+
   void _applyConfigToNodes({
     required int elementAddress,
     required int modelId,

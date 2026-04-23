@@ -1014,6 +1014,17 @@ interface MeshApi {
   fun connectProxy(deviceId: String, proxyUnicastAddress: Long): Boolean
   fun disconnectProxy(): Boolean
   fun isProxyConnected(): Boolean
+  /**
+   * Whether the native implementation can reliably populate `MeshMessage.address`
+   * (source address) for incoming Access messages.
+   */
+  fun supportsRxSourceAddress(): Boolean
+  /**
+   * Clear persisted secure mesh state used for stable Access message sending.
+   *
+   * Intended for debugging and recovery (e.g. when switching Mesh DBs).
+   */
+  fun clearSecureStorage()
 
   companion object {
     /** The codec used by MeshApi. */
@@ -1393,6 +1404,37 @@ interface MeshApi {
           channel.setMessageHandler { _, reply ->
             val wrapped: List<Any?> = try {
               listOf(api.isProxyConnected())
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.supportsRxSourceAddress$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            val wrapped: List<Any?> = try {
+              listOf(api.supportsRxSourceAddress())
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.clearSecureStorage$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            val wrapped: List<Any?> = try {
+              api.clearSecureStorage()
+              listOf(null)
             } catch (exception: Throwable) {
               PigeonGeneratedPigeonUtils.wrapError(exception)
             }

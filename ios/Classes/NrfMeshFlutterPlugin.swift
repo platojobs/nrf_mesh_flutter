@@ -533,6 +533,16 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
     func isProxyConnected() throws -> Bool {
         return proxyConnected
     }
+
+    func supportsRxSourceAddress() throws -> Bool {
+        // iOS delegate provides `sentFrom source` for incoming Access messages.
+        return true
+    }
+
+    func clearSecureStorage() throws {
+        // iOS secure mesh state is managed by the underlying library.
+        // This is a no-op for now (kept for API parity and debugging hooks).
+    }
 }
 
 private struct RawAccessMessage: NordicMesh.MeshMessage {
