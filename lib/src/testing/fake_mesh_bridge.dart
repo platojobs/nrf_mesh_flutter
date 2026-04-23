@@ -7,6 +7,7 @@ import '../models/provisioned_node.dart';
 import '../models/rx_access_message.dart';
 import '../models/unprovisioned_device.dart';
 import '../platform_interface/platojobs_mesh_platform.dart';
+import '../platform_interface/pigeon_generated.dart' as pigeon;
 
 class FakeMeshScenarioStep {
   FakeMeshScenarioStep._(this.delay, this.action);
@@ -80,6 +81,8 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
       StreamController<MeshMessage>.broadcast();
   final StreamController<RxAccessMessage> _rxAccessController =
       StreamController<RxAccessMessage>.broadcast();
+  final StreamController<pigeon.ProvisioningEvent> _provController =
+      StreamController<pigeon.ProvisioningEvent>.broadcast();
   final StreamController<MeshMessage> _sentMessageController =
       StreamController<MeshMessage>.broadcast();
 
@@ -198,6 +201,15 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
     UnprovisionedDevice device,
     dynamic params,
   ) async {
+    _provController.add(
+      pigeon.ProvisioningEvent(
+        deviceId: device.deviceId,
+        type: pigeon.ProvisioningEventType.started,
+        message: 'Provisioning started',
+        progress: 0,
+        attentionTimer: null,
+      ),
+    );
     if (nextProvisionDelay != Duration.zero) {
       await Future<void>.delayed(nextProvisionDelay);
       nextProvisionDelay = Duration.zero;
@@ -205,6 +217,15 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
     final provisionError = nextProvisionError;
     if (provisionError != null) {
       nextProvisionError = null;
+      _provController.add(
+        pigeon.ProvisioningEvent(
+          deviceId: device.deviceId,
+          type: pigeon.ProvisioningEventType.failed,
+          message: '$provisionError',
+          progress: null,
+          attentionTimer: null,
+        ),
+      );
       throw provisionError;
     }
 
@@ -247,6 +268,15 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
       ),
     );
     _nodes.add(node);
+    _provController.add(
+      pigeon.ProvisioningEvent(
+        deviceId: device.deviceId,
+        type: pigeon.ProvisioningEventType.provisioningCompleted,
+        message: 'Provisioning completed',
+        progress: 100,
+        attentionTimer: null,
+      ),
+    );
     return node;
   }
 
@@ -276,6 +306,10 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
 
   @override
   Stream<RxAccessMessage> get rxAccessMessageStream => _rxAccessController.stream;
+
+  @override
+  Stream<pigeon.ProvisioningEvent> get provisioningEventStream =>
+      _provController.stream;
 
   @override
   Future<List<ProvisionedNode>> getNodes() async => List.unmodifiable(_nodes);

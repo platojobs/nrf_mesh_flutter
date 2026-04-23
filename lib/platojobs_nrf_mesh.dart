@@ -9,6 +9,7 @@ import 'src/models/mesh_message.dart' as models;
 import 'src/models/raw_access_message.dart' as models;
 import 'src/models/rx_access_message.dart' as rx_models;
 import 'src/platform_interface/platojobs_mesh_platform.dart' as platform;
+import 'src/platform_interface/pigeon_generated.dart' as pigeon;
 
 export 'src/models/mesh_network.dart' show MeshNetwork, NetworkKey, AppKey, Provisioner;
 export 'src/models/unprovisioned_device.dart' show UnprovisionedDevice;
@@ -25,6 +26,8 @@ export 'src/models/mesh_message.dart'
         GenericLevelStatus;
 export 'src/models/raw_access_message.dart' show RawAccessMessage;
 export 'src/models/rx_access_message.dart' show RxAccessMessage, RxMetadataStatus;
+export 'src/platform_interface/pigeon_generated.dart'
+    show ProvisioningEvent, ProvisioningEventType;
 export 'src/core/mesh_exceptions.dart'
     show
         PlatoJobsMeshException,
@@ -124,6 +127,10 @@ class PlatoJobsNrfMeshManager {
 
   Stream<rx_models.RxAccessMessage> get rxAccessMessageStream {
     return _meshManagerApi.rxAccessMessageStream;
+  }
+
+  Stream<pigeon.ProvisioningEvent> get provisioningEventStream {
+    return _meshManagerApi.provisioningEventStream;
   }
 
   /// Whether the native side can reliably populate source address for incoming Access messages.
