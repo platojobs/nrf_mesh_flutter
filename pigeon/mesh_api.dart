@@ -72,6 +72,15 @@ abstract class MeshApi {
   bool connectProxy(String deviceId, int proxyUnicastAddress);
   bool disconnectProxy();
   bool isProxyConnected();
+
+  /// Whether the native implementation can reliably populate `MeshMessage.address`
+  /// (source address) for incoming Access messages.
+  bool supportsRxSourceAddress();
+
+  /// Clear persisted secure mesh state used for stable Access message sending.
+  ///
+  /// Intended for debugging and recovery (e.g. when switching Mesh DBs).
+  void clearSecureStorage();
 }
 
 @FlutterApi()

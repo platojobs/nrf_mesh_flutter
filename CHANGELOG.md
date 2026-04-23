@@ -1,3 +1,9 @@
+## 3.6.0
+
+### Features
+- API: add `supportsRxSourceAddress()` so apps can detect whether the native side can reliably populate the source address for incoming Access messages.
+- Android: expose `clearSecureStorage()` to clear persisted secure mesh state (IV index / sequence / SeqAuth etc.) for debugging or when switching Mesh DBs.
+
 ## 3.5.1
 
 ### Docs

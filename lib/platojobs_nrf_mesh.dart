@@ -120,6 +120,16 @@ class PlatoJobsNrfMeshManager {
     return _meshManagerApi.messageStream;
   }
 
+  /// Whether the native side can reliably populate source address for incoming Access messages.
+  Future<bool> supportsRxSourceAddress() async {
+    return await _meshManagerApi.supportsRxSourceAddress();
+  }
+
+  /// Clear persisted secure mesh state used for stable Access sending.
+  Future<void> clearSecureStorage() async {
+    return await _meshManagerApi.clearSecureStorage();
+  }
+
   Future<List<models.ProvisionedNode>> getNodes() async {
     return await _meshManagerApi.getNodes();
   }

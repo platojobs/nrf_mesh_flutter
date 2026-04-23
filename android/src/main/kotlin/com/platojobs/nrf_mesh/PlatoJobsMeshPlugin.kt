@@ -60,8 +60,10 @@ class PlatoJobsMeshPlugin :
     private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var proxyConnected: Boolean = false
     private var kotlinMeshManager: MeshNetworkManager? = null
+    private var secureStorage: PersistentSecurePropertiesStorage? = null
     private var bearer: MeshBearer? = null
     private var incomingMessagesJob: Job? = null
+    private var rxSourceAddressSupported: Boolean = false
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         appContext = flutterPluginBinding.applicationContext
@@ -83,7 +85,9 @@ class PlatoJobsMeshPlugin :
                 f.writeBytes(network)
             }
         }
-        val secure: SecurePropertiesStorage = PersistentSecurePropertiesStorage(ctx)
+        val secureImpl = PersistentSecurePropertiesStorage(ctx)
+        secureStorage = secureImpl
+        val secure: SecurePropertiesStorage = secureImpl
         kotlinMeshManager = MeshNetworkManager(storage = storage, secureProperties = secure, ioDispatcher = Dispatchers.IO)
 
         // Forward incoming mesh messages to Flutter.
@@ -104,6 +108,7 @@ class PlatoJobsMeshPlugin :
             }
 
             if (receivedFlow != null) {
+                rxSourceAddressSupported = true
                 receivedFlow.collect { received ->
                     try {
                         val addrObj = received.javaClass.methods.firstOrNull { it.name == "getAddress" }?.invoke(received)
@@ -139,6 +144,7 @@ class PlatoJobsMeshPlugin :
                     }
                 }
             } else {
+                rxSourceAddressSupported = false
                 km.incomingMeshMessages.collect { msg ->
                     try {
                         val bytes = (msg.parameters ?: byteArrayOf()).map { (it.toInt() and 0xFF).toLong() }
@@ -529,6 +535,12 @@ class PlatoJobsMeshPlugin :
     }
 
     override fun isProxyConnected(): Boolean = proxyConnected
+
+    override fun supportsRxSourceAddress(): Boolean = rxSourceAddressSupported
+
+    override fun clearSecureStorage() {
+        secureStorage?.clearAll()
+    }
 }
 
 private data class RawAccessMessage(
@@ -547,6 +559,10 @@ private class PersistentSecurePropertiesStorage(
 ) : SecurePropertiesStorage {
     private val prefs: SharedPreferences =
         context.getSharedPreferences("nrf_mesh_flutter_secure", Context.MODE_PRIVATE)
+
+    fun clearAll() {
+        prefs.edit().clear().apply()
+    }
 
     private fun key(prefix: String, networkUuid: Uuid): String = "$prefix:${networkUuid}"
     private fun key(prefix: String, networkUuid: Uuid, src: UnicastAddress): String =

@@ -962,6 +962,13 @@ protocol MeshApi {
   func connectProxy(deviceId: String, proxyUnicastAddress: Int64) throws -> Bool
   func disconnectProxy() throws -> Bool
   func isProxyConnected() throws -> Bool
+  /// Whether the native implementation can reliably populate `MeshMessage.address`
+  /// (source address) for incoming Access messages.
+  func supportsRxSourceAddress() throws -> Bool
+  /// Clear persisted secure mesh state used for stable Access message sending.
+  ///
+  /// Intended for debugging and recovery (e.g. when switching Mesh DBs).
+  func clearSecureStorage() throws
 }
 
 /// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
@@ -1303,6 +1310,37 @@ class MeshApiSetup {
       }
     } else {
       isProxyConnectedChannel.setMessageHandler(nil)
+    }
+    /// Whether the native implementation can reliably populate `MeshMessage.address`
+    /// (source address) for incoming Access messages.
+    let supportsRxSourceAddressChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.supportsRxSourceAddress\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      supportsRxSourceAddressChannel.setMessageHandler { _, reply in
+        do {
+          let result = try api.supportsRxSourceAddress()
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      supportsRxSourceAddressChannel.setMessageHandler(nil)
+    }
+    /// Clear persisted secure mesh state used for stable Access message sending.
+    ///
+    /// Intended for debugging and recovery (e.g. when switching Mesh DBs).
+    let clearSecureStorageChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.clearSecureStorage\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      clearSecureStorageChannel.setMessageHandler { _, reply in
+        do {
+          try api.clearSecureStorage()
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      clearSecureStorageChannel.setMessageHandler(nil)
     }
   }
 }

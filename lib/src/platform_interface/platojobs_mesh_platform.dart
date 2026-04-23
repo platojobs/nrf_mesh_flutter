@@ -81,6 +81,13 @@ abstract class PlatoJobsMeshBridge {
   Future<bool> connectProxy(String deviceId, int proxyUnicastAddress);
   Future<bool> disconnectProxy();
   Future<bool> isProxyConnected();
+
+  /// Whether the native side can reliably populate the source address for
+  /// incoming Access messages (`messageStream`).
+  Future<bool> supportsRxSourceAddress();
+
+  /// Clear persisted secure mesh state used for stable Access sending.
+  Future<void> clearSecureStorage();
 }
 
 class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
@@ -279,6 +286,16 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
   @override
   Future<bool> isProxyConnected() async {
     return await _meshApi.isProxyConnected();
+  }
+
+  @override
+  Future<bool> supportsRxSourceAddress() async {
+    return await _meshApi.supportsRxSourceAddress();
+  }
+
+  @override
+  Future<void> clearSecureStorage() async {
+    await _meshApi.clearSecureStorage();
   }
 
   net_models.MeshNetwork _convertToMeshNetwork(pigeon.MeshNetwork pigeonNetwork) {
