@@ -1,3 +1,8 @@
+## 3.7.0
+
+### Features
+- Android: add `setExperimentalRxMetadataEnabled(bool)` to explicitly control whether internal APIs (reflection) may be used to extract RX source address metadata. Default is **disabled**, which uses public APIs only.
+
 ## 3.6.1
 
 ### Docs

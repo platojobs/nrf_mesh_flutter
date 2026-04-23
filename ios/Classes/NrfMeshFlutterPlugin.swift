@@ -543,6 +543,10 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         // iOS secure mesh state is managed by the underlying library.
         // This is a no-op for now (kept for API parity and debugging hooks).
     }
+
+    func setExperimentalRxMetadataEnabled(enabled: Bool) throws {
+        // No-op on iOS.
+    }
 }
 
 private struct RawAccessMessage: NordicMesh.MeshMessage {

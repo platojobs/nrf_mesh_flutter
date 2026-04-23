@@ -969,6 +969,14 @@ protocol MeshApi {
   ///
   /// Intended for debugging and recovery (e.g. when switching Mesh DBs).
   func clearSecureStorage() throws
+  /// Enable/disable experimental RX metadata extraction on Android.
+  ///
+  /// When enabled, Android may use internal APIs (via reflection) to extract the
+  /// source address for incoming Access messages. When disabled, Android will
+  /// use only public APIs and `MeshMessage.address` may be null.
+  ///
+  /// On iOS this is a no-op.
+  func setExperimentalRxMetadataEnabled(enabled: Bool) throws
 }
 
 /// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
@@ -1341,6 +1349,28 @@ class MeshApiSetup {
       }
     } else {
       clearSecureStorageChannel.setMessageHandler(nil)
+    }
+    /// Enable/disable experimental RX metadata extraction on Android.
+    ///
+    /// When enabled, Android may use internal APIs (via reflection) to extract the
+    /// source address for incoming Access messages. When disabled, Android will
+    /// use only public APIs and `MeshMessage.address` may be null.
+    ///
+    /// On iOS this is a no-op.
+    let setExperimentalRxMetadataEnabledChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setExperimentalRxMetadataEnabled\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      setExperimentalRxMetadataEnabledChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let enabledArg = args[0] as! Bool
+        do {
+          try api.setExperimentalRxMetadataEnabled(enabled: enabledArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      setExperimentalRxMetadataEnabledChannel.setMessageHandler(nil)
     }
   }
 }

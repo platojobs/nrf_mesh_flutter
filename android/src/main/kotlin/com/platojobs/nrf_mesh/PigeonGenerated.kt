@@ -1025,6 +1025,16 @@ interface MeshApi {
    * Intended for debugging and recovery (e.g. when switching Mesh DBs).
    */
   fun clearSecureStorage()
+  /**
+   * Enable/disable experimental RX metadata extraction on Android.
+   *
+   * When enabled, Android may use internal APIs (via reflection) to extract the
+   * source address for incoming Access messages. When disabled, Android will
+   * use only public APIs and `MeshMessage.address` may be null.
+   *
+   * On iOS this is a no-op.
+   */
+  fun setExperimentalRxMetadataEnabled(enabled: Boolean)
 
   companion object {
     /** The codec used by MeshApi. */
@@ -1434,6 +1444,24 @@ interface MeshApi {
           channel.setMessageHandler { _, reply ->
             val wrapped: List<Any?> = try {
               api.clearSecureStorage()
+              listOf(null)
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setExperimentalRxMetadataEnabled$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val enabledArg = args[0] as Boolean
+            val wrapped: List<Any?> = try {
+              api.setExperimentalRxMetadataEnabled(enabledArg)
               listOf(null)
             } catch (exception: Throwable) {
               PigeonGeneratedPigeonUtils.wrapError(exception)
