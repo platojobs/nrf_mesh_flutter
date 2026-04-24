@@ -33,8 +33,8 @@ import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigMo
 import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigModelPublicationSet
 import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigModelSubscriptionAdd
 import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigModelSubscriptionDelete
+import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigCompositionDataGet
 import no.nordicsemi.kotlin.mesh.core.model.IvIndex
-import no.nordicsemi.kotlin.mesh.core.model.ApplicationKey
 import no.nordicsemi.kotlin.mesh.core.model.MeshAddress
 import no.nordicsemi.kotlin.mesh.core.model.Publish
 import no.nordicsemi.kotlin.mesh.core.model.PublishPeriod
@@ -307,7 +307,7 @@ class PlatoJobsMeshPlugin :
     }
 
     override fun provisionDevice(
-        device: UnprovisionedDevice,
+        device: FlutterUnprovisionedDevice,
         params: ProvisioningParameters
     ): ProvisionedNode {
         val km = kotlinMeshManager
@@ -601,7 +601,7 @@ class PlatoJobsMeshPlugin :
 
         runBlocking<Unit> {
             val net: no.nordicsemi.kotlin.mesh.core.model.MeshNetwork = km.meshNetwork.first()
-            val appKey: ApplicationKey = requireNotNull(net.applicationKey(appKeyIndex)) {
+            val appKey = requireNotNull(net.applicationKey(appKeyIndex)) {
                 "AppKey not found for index $appKeyIndex"
             }
             km.send(
@@ -652,7 +652,7 @@ class PlatoJobsMeshPlugin :
                 // fall through
             }
         }
-        legacyManager?.removeNode(nodeId)
+        // legacy no-op
     }
 
     override fun createGroup(name: String): MeshGroup {
@@ -709,6 +709,200 @@ class PlatoJobsMeshPlugin :
     override fun addNodeToGroup(nodeId: String, groupId: String) {
         // Subscription is handled via Config Model ops in M2.
         // Keep legacy behavior as a no-op.
+    }
+
+    // M2: Configuration foundation
+
+    override fun fetchCompositionData(destination: Long, page: Long): Boolean =
+        try {
+            val km = kotlinMeshManager
+            require(proxyConnected) { "Proxy is not connected" }
+            requireNotNull(km) { "Kotlin Mesh manager is not initialized" }
+            require(km.export() != null) { "Mesh DB is not loaded (importNetwork first)" }
+            runBlocking {
+                km.send(
+                    message = ConfigCompositionDataGet(page = page.toUByte()),
+                    destination = destination.toUShort(),
+                    initialTtl = null
+                )
+                km.save()
+            }
+            true
+        } catch (t: Throwable) {
+            if (proxyConnected) throw t
+            false
+        }
+
+    override fun addAppKey(appKeyIndex: Long, keyHex: String): Boolean =
+        try {
+            val km = kotlinMeshManager
+            requireNotNull(km) { "Kotlin Mesh manager is not initialized" }
+            val keyIndex = appKeyIndex.toUShort()
+            require(keyIndex.isValidKeyIndex()) { "Invalid AppKeyIndex" }
+            val key = hexToBytes(keyHex.trim().replace(" ", "").replace(":", "").replace("-", ""))
+            require(key.size == 16) { "AppKey must be 16 bytes" }
+            runBlocking {
+                val net = km.meshNetwork.first()
+                // Best-effort: update DB via reflection (API varies by library version).
+                val existing = try { net.applicationKey(keyIndex) } catch (_: Throwable) { null }
+                if (existing != null) {
+                    try {
+                        val m = existing.javaClass.methods.firstOrNull { it.name == "setKey" && it.parameterTypes.size == 1 }
+                        m?.invoke(existing, key)
+                    } catch (_: Throwable) {
+                        // ignore
+                    }
+                } else {
+                    // Try "addApplicationKey(ApplicationKey, NetworkKey)" or similar.
+                    val netKeys = try {
+                        (net.javaClass.methods.firstOrNull { it.name == "getNetworkKeys" }?.invoke(net) as? List<*>) ?: emptyList<Any>()
+                    } catch (_: Throwable) { emptyList() }
+                    val primaryNetKey = netKeys.firstOrNull()
+                        ?: throw IllegalStateException("No NetworkKey in DB (addNetworkKey first)")
+                    // Create ApplicationKey using reflection to avoid signature differences across versions.
+                    val appKeyCls = Class.forName("no.nordicsemi.kotlin.mesh.core.model.ApplicationKey")
+                    val idxCls = Class.forName("no.nordicsemi.kotlin.mesh.core.model.KeyIndex")
+                    val idx = idxCls.constructors.first().newInstance(keyIndex)
+                    val appKeyCtor = appKeyCls.constructors.firstOrNull()
+                        ?: throw IllegalStateException("ApplicationKey constructor not found")
+                    val appKey = when (appKeyCtor.parameterTypes.size) {
+                        3 -> appKeyCtor.newInstance(idx, key, "AppKey $keyIndex")
+                        2 -> appKeyCtor.newInstance(idx, key)
+                        else -> appKeyCtor.newInstance(idx, key, "AppKey $keyIndex")
+                    }
+                    val add = net.javaClass.methods.firstOrNull { it.name.contains("add", ignoreCase = true) && it.name.contains("ApplicationKey") }
+                    if (add != null && add.parameterTypes.size >= 1) {
+                        try {
+                            if (add.parameterTypes.size == 2) {
+                                add.invoke(net, appKey, primaryNetKey)
+                            } else {
+                                add.invoke(net, appKey)
+                            }
+                        } catch (t: Throwable) {
+                            throw t
+                        }
+                    } else {
+                        throw IllegalStateException("Mesh DB does not expose addApplicationKey API")
+                    }
+                }
+                km.save()
+            }
+            true
+        } catch (t: Throwable) {
+            throw t
+        }
+
+    override fun addNetworkKey(netKeyIndex: Long, keyHex: String): Boolean =
+        try {
+            val km = kotlinMeshManager
+            requireNotNull(km) { "Kotlin Mesh manager is not initialized" }
+            val keyIndex = netKeyIndex.toUShort()
+            require(keyIndex.isValidKeyIndex()) { "Invalid NetKeyIndex" }
+            val key = hexToBytes(keyHex.trim().replace(" ", "").replace(":", "").replace("-", ""))
+            require(key.size == 16) { "NetworkKey must be 16 bytes" }
+            runBlocking {
+                val net = km.meshNetwork.first()
+                val existing = try {
+                    val keys = (net.javaClass.methods.firstOrNull { it.name == "getNetworkKeys" }?.invoke(net) as? List<*>) ?: emptyList<Any>()
+                    keys.firstOrNull { k ->
+                        try {
+                            val idxObj = k?.javaClass?.methods?.firstOrNull { it.name == "getIndex" }?.invoke(k)
+                            val v = idxObj?.javaClass?.methods?.firstOrNull { it.name == "getValue" }?.invoke(idxObj)
+                            when (v) {
+                                is UShort -> v == keyIndex
+                                is Short -> (v.toInt() and 0xFFFF).toUShort() == keyIndex
+                                is Int -> (v and 0xFFFF).toUShort() == keyIndex
+                                else -> false
+                            }
+                        } catch (_: Throwable) { false }
+                    }
+                } catch (_: Throwable) { null }
+
+                if (existing != null) {
+                    try {
+                        val m = existing.javaClass.methods.firstOrNull { it.name == "setKey" && it.parameterTypes.size == 1 }
+                        m?.invoke(existing, key)
+                    } catch (_: Throwable) {
+                        // ignore
+                    }
+                } else {
+                    val nkCls = Class.forName("no.nordicsemi.kotlin.mesh.core.model.NetworkKey")
+                    val ctor = nkCls.constructors.first()
+                    val idxCls = Class.forName("no.nordicsemi.kotlin.mesh.core.model.KeyIndex")
+                    val idx = idxCls.constructors.first().newInstance(keyIndex)
+                    val nk = ctor.newInstance(idx, key, "NetKey $keyIndex")
+                    val add = net.javaClass.methods.firstOrNull { it.name.contains("add", ignoreCase = true) && it.name.contains("NetworkKey") }
+                    if (add != null) add.invoke(net, nk) else throw IllegalStateException("Mesh DB does not expose addNetworkKey API")
+                }
+                km.save()
+            }
+            true
+        } catch (t: Throwable) {
+            throw t
+        }
+
+    override fun getNetworkKeys(): List<NetworkKey> {
+        val km = kotlinMeshManager ?: return emptyList()
+        return try {
+            runBlocking {
+                val net = km.meshNetwork.first()
+                val keys = (net.javaClass.methods.firstOrNull { it.name == "getNetworkKeys" }?.invoke(net) as? List<*>) ?: emptyList<Any>()
+                keys.mapNotNull { nk ->
+                    if (nk == null) return@mapNotNull null
+                    val idx = try {
+                        val idxObj = nk.javaClass.methods.firstOrNull { it.name == "getIndex" }?.invoke(nk)
+                        val v = idxObj?.javaClass?.methods?.firstOrNull { it.name == "getValue" }?.invoke(idxObj)
+                        when (v) {
+                            is UShort -> v.toLong()
+                            is Short -> (v.toInt() and 0xFFFF).toLong()
+                            is Int -> (v and 0xFFFF).toLong()
+                            else -> null
+                        }
+                    } catch (_: Throwable) { null }
+                    val keyBytes = try { nk.javaClass.methods.firstOrNull { it.name == "getKey" }?.invoke(nk) as? ByteArray } catch (_: Throwable) { null }
+                    NetworkKey(
+                        keyId = null,
+                        key = bytesToHex(keyBytes ?: byteArrayOf()),
+                        index = idx,
+                        enabled = true,
+                    )
+                }
+            }
+        } catch (_: Throwable) {
+            emptyList()
+        }
+    }
+
+    override fun getAppKeys(): List<AppKey> {
+        val km = kotlinMeshManager ?: return emptyList()
+        return try {
+            runBlocking {
+                val net = km.meshNetwork.first()
+                val keys = (net.javaClass.methods.firstOrNull { it.name == "getApplicationKeys" }?.invoke(net) as? List<*>) ?: emptyList<Any>()
+                keys.mapNotNull { ak ->
+                    if (ak == null) return@mapNotNull null
+                    val idx = try {
+                        val idxObj = ak.javaClass.methods.firstOrNull { it.name == "getIndex" }?.invoke(ak)
+                        val v = idxObj?.javaClass?.methods?.firstOrNull { it.name == "getValue" }?.invoke(idxObj)
+                        when (v) {
+                            is UShort -> v.toLong()
+                            is Short -> (v.toInt() and 0xFFFF).toLong()
+                            is Int -> (v and 0xFFFF).toLong()
+                            else -> null
+                        }
+                    } catch (_: Throwable) { null }
+                    val keyBytes = try { ak.javaClass.methods.firstOrNull { it.name == "getKey" }?.invoke(ak) as? ByteArray } catch (_: Throwable) { null }
+                    AppKey(
+                        keyId = null,
+                        key = bytesToHex(keyBytes ?: byteArrayOf()),
+                        index = idx,
+                        enabled = true,
+                    )
+                }
+            }
+        } catch (_: Throwable) {
+            emptyList()
+        }
     }
 
     // Configuration (P1 - minimal, in-memory)
@@ -1026,6 +1220,14 @@ private fun hexToBytes(hex: String): ByteArray {
     return out
 }
 
+private fun bytesToHex(bytes: ByteArray): String {
+    val sb = StringBuilder(bytes.size * 2)
+    for (b in bytes) {
+        sb.append(String.format("%02X", b.toInt() and 0xFF))
+    }
+    return sb.toString()
+}
+
 @OptIn(ExperimentalUuidApi::class)
 private fun kotlinUuidToBytes(uuid: Uuid): List<Long> {
     // toString() -> standard UUID with dashes. Convert to raw 16 bytes.
@@ -1326,7 +1528,7 @@ class MeshManager {
         nextUnicast = 1L
     }
 
-    fun provision(device: UnprovisionedDevice, params: ProvisioningParameters): ProvisionedNode {
+    fun provision(device: FlutterUnprovisionedDevice, params: ProvisioningParameters): ProvisionedNode {
         val unicast = nextUnicast
         nextUnicast += 1
 

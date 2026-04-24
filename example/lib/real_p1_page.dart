@@ -30,6 +30,13 @@ class _RealP1PageState extends State<RealP1Page> {
   final _pubAddressCtrl = TextEditingController(text: '0xC000');
   final _ttlCtrl = TextEditingController(text: '5');
 
+  // M2 foundation: keys + composition.
+  final _netKeyIndexCtrl = TextEditingController(text: '0');
+  final _netKeyHexCtrl = TextEditingController(text: '00112233445566778899AABBCCDDEEFF');
+  final _appKeyHexCtrl = TextEditingController(text: '0102030405060708090A0B0C0D0E0F10');
+  final _compDstCtrl = TextEditingController(text: '0x0001');
+  final _compPageCtrl = TextEditingController(text: '0');
+
   // Access (P2)
   final _accessDstCtrl = TextEditingController(text: '0xC000');
   final _accessAppKeyIndexCtrl = TextEditingController(text: '0');
@@ -60,6 +67,11 @@ class _RealP1PageState extends State<RealP1Page> {
     _subAddressCtrl.dispose();
     _pubAddressCtrl.dispose();
     _ttlCtrl.dispose();
+    _netKeyIndexCtrl.dispose();
+    _netKeyHexCtrl.dispose();
+    _appKeyHexCtrl.dispose();
+    _compDstCtrl.dispose();
+    _compPageCtrl.dispose();
     _accessDstCtrl.dispose();
     _accessAppKeyIndexCtrl.dispose();
     _levelCtrl.dispose();
@@ -186,6 +198,50 @@ class _RealP1PageState extends State<RealP1Page> {
     }
   }
 
+  Future<void> _addNetKey() async {
+    try {
+      final idx = _parseInt(_netKeyIndexCtrl.text);
+      final hex = _netKeyHexCtrl.text.trim();
+      _log('Add NetworkKey: index=$idx hex=$hex');
+      final ok = await _mesh.addNetworkKey(idx, hex);
+      _log('addNetworkKey result=$ok');
+    } catch (e) {
+      _log('addNetworkKey error: $e');
+    }
+  }
+
+  Future<void> _addAppKey() async {
+    try {
+      final idx = _parseInt(_appKeyIndexCtrl.text);
+      final hex = _appKeyHexCtrl.text.trim();
+      _log('Add AppKey: index=$idx hex=$hex');
+      final ok = await _mesh.addAppKey(idx, hex);
+      _log('addAppKey result=$ok');
+    } catch (e) {
+      _log('addAppKey error: $e');
+    }
+  }
+
+  Future<void> _fetchComposition() async {
+    try {
+      final dst = _parseInt(_compDstCtrl.text);
+      final page = _parseInt(_compPageCtrl.text);
+      _log('Fetch Composition Data: dst=0x${dst.toRadixString(16)} page=$page');
+      final ok = await _mesh.fetchCompositionData(dst, page: page);
+      _log('fetchCompositionData result=$ok');
+      final nodes = await _mesh.getNodes();
+      final n = nodes.firstWhere(
+        (e) => _parseInt(e.unicastAddress) == dst || e.uuid == dst.toString(),
+        orElse: () => nodes.isNotEmpty ? nodes.first : throw StateError('No nodes'),
+      );
+      _log(
+        'Node after composition: uuid=${n.uuid} unicast=${n.unicastAddress} elements=${n.elements.length}',
+      );
+    } catch (e) {
+      _log('fetchCompositionData error: $e');
+    }
+  }
+
   Future<void> _sendOnOff(bool state) async {
     try {
       final dst = _parseInt(_accessDstCtrl.text);
@@ -227,6 +283,92 @@ class _RealP1PageState extends State<RealP1Page> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const Text(
+            'M2 foundation: keys + composition (recommended before bind/sub/pub)',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _netKeyIndexCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'NetKey index',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: TextField(
+                  controller: _netKeyHexCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'NetKey hex (16 bytes)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton(onPressed: _addNetKey, child: const Text('Add NetKey')),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _appKeyIndexCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'AppKey index',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: TextField(
+                  controller: _appKeyHexCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'AppKey hex (16 bytes)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton(onPressed: _addAppKey, child: const Text('Add AppKey')),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _compDstCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Composition dst (unicast)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: _compPageCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Page',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton(onPressed: _fetchComposition, child: const Text('Fetch Composition')),
+            ],
+          ),
+          const SizedBox(height: 16),
+
           const Text(
             'Step 0: Import Mesh DB (optional but recommended)',
             style: TextStyle(fontWeight: FontWeight.bold),

@@ -53,6 +53,37 @@ abstract class MeshApi {
   List<MeshGroup> getGroups();
   void addNodeToGroup(String nodeId, String groupId);
 
+  // M2: Configuration foundation
+  //
+  // These APIs make configuration flows deterministic by ensuring that
+  // composition data and keys exist in the Mesh DB before binding/sub/pub.
+
+  /// Fetch Composition Data for a given node and persist it in the Mesh DB.
+  ///
+  /// - `destination`: the node's unicast address.
+  /// - `page`: Composition Data Page (typically 0).
+  ///
+  /// Returns `true` when the operation completed successfully.
+  bool fetchCompositionData(int destination, {int page = 0});
+
+  /// Add (or update) an AppKey in the Mesh DB.
+  ///
+  /// - `appKeyIndex`: 0..4095
+  /// - `keyHex`: 16-byte (128-bit) key in hex (32 chars, case-insensitive).
+  bool addAppKey(int appKeyIndex, String keyHex);
+
+  /// Add (or update) a Network Key in the Mesh DB.
+  ///
+  /// - `netKeyIndex`: 0..4095
+  /// - `keyHex`: 16-byte (128-bit) key in hex (32 chars).
+  bool addNetworkKey(int netKeyIndex, String keyHex);
+
+  /// Return the current network keys as seen by the native Mesh DB.
+  List<NetworkKey> getNetworkKeys();
+
+  /// Return the current application keys as seen by the native Mesh DB.
+  List<AppKey> getAppKeys();
+
   // Configuration (P1 - minimal)
   //
   // Note: These APIs are intentionally minimal and model-agnostic.

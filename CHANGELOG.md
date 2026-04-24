@@ -1,3 +1,13 @@
+## 5.1.0
+
+### Features
+- M2 foundation: add key and composition helpers:
+  - `addNetworkKey(netKeyIndex, keyHex)`
+  - `addAppKey(appKeyIndex, keyHex)`
+  - `fetchCompositionData(destination, page)`
+  - `getNetworkKeys()` / `getAppKeys()`
+- Example: extend `RealP1Page` with a minimal M2 flow UI (keys + composition).
+
 ## 5.0.1
 
 ### Improvements

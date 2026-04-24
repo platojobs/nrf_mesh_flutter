@@ -1534,6 +1534,116 @@ void SetUpMeshApiWithSuffix(id<FlutterBinaryMessenger> binaryMessenger, NSObject
       [channel setMessageHandler:nil];
     }
   }
+  /// Fetch Composition Data for a given node and persist it in the Mesh DB.
+  ///
+  /// - `destination`: the node's unicast address.
+  /// - `page`: Composition Data Page (typically 0).
+  ///
+  /// Returns `true` when the operation completed successfully.
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.fetchCompositionData", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(fetchCompositionDataDestination:page:error:)], @"MeshApi api (%@) doesn't respond to @selector(fetchCompositionDataDestination:page:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSInteger arg_destination = [GetNullableObjectAtIndex(args, 0) integerValue];
+        NSInteger arg_page = [GetNullableObjectAtIndex(args, 1) integerValue];
+        FlutterError *error;
+        NSNumber *output = [api fetchCompositionDataDestination:arg_destination page:arg_page error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  /// Add (or update) an AppKey in the Mesh DB.
+  ///
+  /// - `appKeyIndex`: 0..4095
+  /// - `keyHex`: 16-byte (128-bit) key in hex (32 chars, case-insensitive).
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.addAppKey", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(addAppKeyAppKeyIndex:keyHex:error:)], @"MeshApi api (%@) doesn't respond to @selector(addAppKeyAppKeyIndex:keyHex:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSInteger arg_appKeyIndex = [GetNullableObjectAtIndex(args, 0) integerValue];
+        NSString *arg_keyHex = GetNullableObjectAtIndex(args, 1);
+        FlutterError *error;
+        NSNumber *output = [api addAppKeyAppKeyIndex:arg_appKeyIndex keyHex:arg_keyHex error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  /// Add (or update) a Network Key in the Mesh DB.
+  ///
+  /// - `netKeyIndex`: 0..4095
+  /// - `keyHex`: 16-byte (128-bit) key in hex (32 chars).
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.addNetworkKey", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(addNetworkKeyNetKeyIndex:keyHex:error:)], @"MeshApi api (%@) doesn't respond to @selector(addNetworkKeyNetKeyIndex:keyHex:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSInteger arg_netKeyIndex = [GetNullableObjectAtIndex(args, 0) integerValue];
+        NSString *arg_keyHex = GetNullableObjectAtIndex(args, 1);
+        FlutterError *error;
+        NSNumber *output = [api addNetworkKeyNetKeyIndex:arg_netKeyIndex keyHex:arg_keyHex error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  /// Return the current network keys as seen by the native Mesh DB.
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.getNetworkKeys", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(getNetworkKeysWithError:)], @"MeshApi api (%@) doesn't respond to @selector(getNetworkKeysWithError:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        FlutterError *error;
+        NSArray<NetworkKey *> *output = [api getNetworkKeysWithError:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  /// Return the current application keys as seen by the native Mesh DB.
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.getAppKeys", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(getAppKeysWithError:)], @"MeshApi api (%@) doesn't respond to @selector(getAppKeysWithError:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        FlutterError *error;
+        NSArray<AppKey *> *output = [api getAppKeysWithError:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
   /// Bind an AppKey to a model on a given element address.
   {
     FlutterBasicMessageChannel *channel =

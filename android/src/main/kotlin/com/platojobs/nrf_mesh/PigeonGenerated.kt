@@ -1185,6 +1185,33 @@ interface MeshApi {
   fun createGroup(name: String): MeshGroup
   fun getGroups(): List<MeshGroup>
   fun addNodeToGroup(nodeId: String, groupId: String)
+  /**
+   * Fetch Composition Data for a given node and persist it in the Mesh DB.
+   *
+   * - `destination`: the node's unicast address.
+   * - `page`: Composition Data Page (typically 0).
+   *
+   * Returns `true` when the operation completed successfully.
+   */
+  fun fetchCompositionData(destination: Long, page: Long): Boolean
+  /**
+   * Add (or update) an AppKey in the Mesh DB.
+   *
+   * - `appKeyIndex`: 0..4095
+   * - `keyHex`: 16-byte (128-bit) key in hex (32 chars, case-insensitive).
+   */
+  fun addAppKey(appKeyIndex: Long, keyHex: String): Boolean
+  /**
+   * Add (or update) a Network Key in the Mesh DB.
+   *
+   * - `netKeyIndex`: 0..4095
+   * - `keyHex`: 16-byte (128-bit) key in hex (32 chars).
+   */
+  fun addNetworkKey(netKeyIndex: Long, keyHex: String): Boolean
+  /** Return the current network keys as seen by the native Mesh DB. */
+  fun getNetworkKeys(): List<NetworkKey>
+  /** Return the current application keys as seen by the native Mesh DB. */
+  fun getAppKeys(): List<AppKey>
   /** Bind an AppKey to a model on a given element address. */
   fun bindAppKey(elementAddress: Long, modelId: Long, appKeyIndex: Long): Boolean
   /** Unbind an AppKey from a model on a given element address. */
@@ -1492,6 +1519,90 @@ interface MeshApi {
             val wrapped: List<Any?> = try {
               api.addNodeToGroup(nodeIdArg, groupIdArg)
               listOf(null)
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.fetchCompositionData$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val destinationArg = args[0] as Long
+            val pageArg = args[1] as Long
+            val wrapped: List<Any?> = try {
+              listOf(api.fetchCompositionData(destinationArg, pageArg))
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.addAppKey$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val appKeyIndexArg = args[0] as Long
+            val keyHexArg = args[1] as String
+            val wrapped: List<Any?> = try {
+              listOf(api.addAppKey(appKeyIndexArg, keyHexArg))
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.addNetworkKey$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val netKeyIndexArg = args[0] as Long
+            val keyHexArg = args[1] as String
+            val wrapped: List<Any?> = try {
+              listOf(api.addNetworkKey(netKeyIndexArg, keyHexArg))
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.getNetworkKeys$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            val wrapped: List<Any?> = try {
+              listOf(api.getNetworkKeys())
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.getAppKeys$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            val wrapped: List<Any?> = try {
+              listOf(api.getAppKeys())
             } catch (exception: Throwable) {
               PigeonGeneratedPigeonUtils.wrapError(exception)
             }

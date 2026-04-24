@@ -509,6 +509,108 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         }
     }
 
+    // MARK: - M2: Configuration foundation
+
+    func fetchCompositionData(destination: Int64, page: Int64) throws -> Bool {
+        guard proxyConnected, meshManager.isNetworkCreated, let net = meshManager.meshNetwork else {
+            throw NSError(domain: "nrf_mesh_flutter", code: 400, userInfo: [
+                NSLocalizedDescriptionKey: "Proxy is not connected or Mesh DB not loaded"
+            ])
+        }
+        // Ensure we can resolve the node.
+        let dst = Address(UInt16(truncatingIfNeeded: destination))
+        guard net.node(withAddress: dst) != nil else {
+            throw NSError(domain: "nrf_mesh_flutter", code: 404, userInfo: [
+                NSLocalizedDescriptionKey: "Node not found for destination \(destination)"
+            ])
+        }
+
+        let msg = ConfigCompositionDataGet(page: UInt8(truncatingIfNeeded: page))
+        _ = try sendConfig(msg, destination: dst)
+        _ = meshManager.save()
+        return true
+    }
+
+    func addAppKey(appKeyIndex: Int64, keyHex: String) throws -> Bool {
+        guard meshManager.isNetworkCreated, let net = meshManager.meshNetwork else {
+            throw NSError(domain: "nrf_mesh_flutter", code: 400, userInfo: [
+                NSLocalizedDescriptionKey: "Mesh DB is not loaded"
+            ])
+        }
+        guard let keyData = Data(hexString: keyHex.replacingOccurrences(of: " ", with: "")) else {
+            throw NSError(domain: "nrf_mesh_flutter", code: 400, userInfo: [
+                NSLocalizedDescriptionKey: "Invalid AppKey hex"
+            ])
+        }
+        guard keyData.count == 16 else {
+            throw NSError(domain: "nrf_mesh_flutter", code: 400, userInfo: [
+                NSLocalizedDescriptionKey: "AppKey must be 16 bytes"
+            ])
+        }
+
+        let idx = KeyIndex(UInt16(truncatingIfNeeded: appKeyIndex))
+        if let existing = net.applicationKeys.first(where: { $0.index == idx }) {
+            existing.key = keyData
+        } else {
+            let key = try ApplicationKey(name: "AppKey \(idx)", index: idx, key: keyData)
+            try net.add(applicationKey: key)
+        }
+        _ = meshManager.save()
+        return true
+    }
+
+    func addNetworkKey(netKeyIndex: Int64, keyHex: String) throws -> Bool {
+        guard meshManager.isNetworkCreated, let net = meshManager.meshNetwork else {
+            throw NSError(domain: "nrf_mesh_flutter", code: 400, userInfo: [
+                NSLocalizedDescriptionKey: "Mesh DB is not loaded"
+            ])
+        }
+        guard let keyData = Data(hexString: keyHex.replacingOccurrences(of: " ", with: "")) else {
+            throw NSError(domain: "nrf_mesh_flutter", code: 400, userInfo: [
+                NSLocalizedDescriptionKey: "Invalid NetworkKey hex"
+            ])
+        }
+        guard keyData.count == 16 else {
+            throw NSError(domain: "nrf_mesh_flutter", code: 400, userInfo: [
+                NSLocalizedDescriptionKey: "NetworkKey must be 16 bytes"
+            ])
+        }
+
+        let idx = KeyIndex(UInt16(truncatingIfNeeded: netKeyIndex))
+        if let existing = net.networkKeys.first(where: { $0.index == idx }) {
+            existing.key = keyData
+        } else {
+            let key = try NetworkKey(name: "NetKey \(idx)", index: idx, key: keyData)
+            try net.add(networkKey: key)
+        }
+        _ = meshManager.save()
+        return true
+    }
+
+    func getNetworkKeys() throws -> [NetworkKey] {
+        guard meshManager.isNetworkCreated, let net = meshManager.meshNetwork else { return [] }
+        return net.networkKeys.map {
+            NetworkKey(
+                keyId: $0.uuid.uuidString,
+                key: $0.key.hexUpper,
+                index: Int64($0.index),
+                enabled: true
+            )
+        }
+    }
+
+    func getAppKeys() throws -> [AppKey] {
+        guard meshManager.isNetworkCreated, let net = meshManager.meshNetwork else { return [] }
+        return net.applicationKeys.map {
+            AppKey(
+                keyId: $0.uuid.uuidString,
+                key: $0.key.hexUpper,
+                index: Int64($0.index),
+                enabled: true
+            )
+        }
+    }
+
     // Configuration (P1 - minimal, in-memory)
     private func updateModel(
         elementAddress: Int64,
@@ -979,6 +1081,10 @@ private extension Data {
             i = j
         }
         self = data
+    }
+
+    var hexUpper: String {
+        map { String(format: "%02X", $0) }.joined()
     }
 }
 

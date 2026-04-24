@@ -283,6 +283,37 @@ NSObject<FlutterMessageCodec> *nullGetPigeonGeneratedCodec(void);
 /// @return `nil` only when `error != nil`.
 - (nullable NSArray<MeshGroup *> *)getGroupsWithError:(FlutterError *_Nullable *_Nonnull)error;
 - (void)addNodeToGroupNodeId:(NSString *)nodeId groupId:(NSString *)groupId error:(FlutterError *_Nullable *_Nonnull)error;
+/// Fetch Composition Data for a given node and persist it in the Mesh DB.
+///
+/// - `destination`: the node's unicast address.
+/// - `page`: Composition Data Page (typically 0).
+///
+/// Returns `true` when the operation completed successfully.
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)fetchCompositionDataDestination:(NSInteger)destination page:(NSInteger)page error:(FlutterError *_Nullable *_Nonnull)error;
+/// Add (or update) an AppKey in the Mesh DB.
+///
+/// - `appKeyIndex`: 0..4095
+/// - `keyHex`: 16-byte (128-bit) key in hex (32 chars, case-insensitive).
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)addAppKeyAppKeyIndex:(NSInteger)appKeyIndex keyHex:(NSString *)keyHex error:(FlutterError *_Nullable *_Nonnull)error;
+/// Add (or update) a Network Key in the Mesh DB.
+///
+/// - `netKeyIndex`: 0..4095
+/// - `keyHex`: 16-byte (128-bit) key in hex (32 chars).
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)addNetworkKeyNetKeyIndex:(NSInteger)netKeyIndex keyHex:(NSString *)keyHex error:(FlutterError *_Nullable *_Nonnull)error;
+/// Return the current network keys as seen by the native Mesh DB.
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSArray<NetworkKey *> *)getNetworkKeysWithError:(FlutterError *_Nullable *_Nonnull)error;
+/// Return the current application keys as seen by the native Mesh DB.
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSArray<AppKey *> *)getAppKeysWithError:(FlutterError *_Nullable *_Nonnull)error;
 /// Bind an AppKey to a model on a given element address.
 ///
 /// @return `nil` only when `error != nil`.

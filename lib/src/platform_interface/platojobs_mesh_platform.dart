@@ -84,6 +84,13 @@ abstract class PlatoJobsMeshBridge {
     int? ttl,
   });
 
+  // M2: Configuration foundation
+  Future<bool> fetchCompositionData(int destination, {int page = 0});
+  Future<bool> addAppKey(int appKeyIndex, String keyHex);
+  Future<bool> addNetworkKey(int netKeyIndex, String keyHex);
+  Future<List<net_models.NetworkKey>> getNetworkKeys();
+  Future<List<net_models.AppKey>> getAppKeys();
+
   // Proxy (P1 real-transport prerequisite)
   Future<bool> connectProxy(String deviceId, int proxyUnicastAddress);
   Future<bool> disconnectProxy();
@@ -322,6 +329,51 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
       appKeyIndex,
       ttl: ttl,
     );
+  }
+
+  @override
+  Future<bool> fetchCompositionData(int destination, {int page = 0}) async {
+    return await _meshApi.fetchCompositionData(destination, page: page);
+  }
+
+  @override
+  Future<bool> addAppKey(int appKeyIndex, String keyHex) async {
+    return await _meshApi.addAppKey(appKeyIndex, keyHex);
+  }
+
+  @override
+  Future<bool> addNetworkKey(int netKeyIndex, String keyHex) async {
+    return await _meshApi.addNetworkKey(netKeyIndex, keyHex);
+  }
+
+  @override
+  Future<List<net_models.NetworkKey>> getNetworkKeys() async {
+    final result = await _meshApi.getNetworkKeys();
+    return result
+        .map(
+          (k) => net_models.NetworkKey(
+            keyId: k.keyId ?? '',
+            key: k.key ?? '',
+            index: k.index?.toInt() ?? 0,
+            enabled: k.enabled ?? true,
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  @override
+  Future<List<net_models.AppKey>> getAppKeys() async {
+    final result = await _meshApi.getAppKeys();
+    return result
+        .map(
+          (k) => net_models.AppKey(
+            keyId: k.keyId ?? '',
+            key: k.key ?? '',
+            index: k.index?.toInt() ?? 0,
+            enabled: k.enabled ?? true,
+          ),
+        )
+        .toList(growable: false);
   }
 
   @override

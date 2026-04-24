@@ -1112,6 +1112,27 @@ protocol MeshApi {
   func createGroup(name: String) throws -> MeshGroup
   func getGroups() throws -> [MeshGroup]
   func addNodeToGroup(nodeId: String, groupId: String) throws
+  /// Fetch Composition Data for a given node and persist it in the Mesh DB.
+  ///
+  /// - `destination`: the node's unicast address.
+  /// - `page`: Composition Data Page (typically 0).
+  ///
+  /// Returns `true` when the operation completed successfully.
+  func fetchCompositionData(destination: Int64, page: Int64) throws -> Bool
+  /// Add (or update) an AppKey in the Mesh DB.
+  ///
+  /// - `appKeyIndex`: 0..4095
+  /// - `keyHex`: 16-byte (128-bit) key in hex (32 chars, case-insensitive).
+  func addAppKey(appKeyIndex: Int64, keyHex: String) throws -> Bool
+  /// Add (or update) a Network Key in the Mesh DB.
+  ///
+  /// - `netKeyIndex`: 0..4095
+  /// - `keyHex`: 16-byte (128-bit) key in hex (32 chars).
+  func addNetworkKey(netKeyIndex: Int64, keyHex: String) throws -> Bool
+  /// Return the current network keys as seen by the native Mesh DB.
+  func getNetworkKeys() throws -> [NetworkKey]
+  /// Return the current application keys as seen by the native Mesh DB.
+  func getAppKeys() throws -> [AppKey]
   /// Bind an AppKey to a model on a given element address.
   func bindAppKey(elementAddress: Int64, modelId: Int64, appKeyIndex: Int64) throws -> Bool
   /// Unbind an AppKey from a model on a given element address.
@@ -1387,6 +1408,96 @@ class MeshApiSetup {
       }
     } else {
       addNodeToGroupChannel.setMessageHandler(nil)
+    }
+    /// Fetch Composition Data for a given node and persist it in the Mesh DB.
+    ///
+    /// - `destination`: the node's unicast address.
+    /// - `page`: Composition Data Page (typically 0).
+    ///
+    /// Returns `true` when the operation completed successfully.
+    let fetchCompositionDataChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.fetchCompositionData\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      fetchCompositionDataChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let destinationArg = args[0] as! Int64
+        let pageArg = args[1] as! Int64
+        do {
+          let result = try api.fetchCompositionData(destination: destinationArg, page: pageArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      fetchCompositionDataChannel.setMessageHandler(nil)
+    }
+    /// Add (or update) an AppKey in the Mesh DB.
+    ///
+    /// - `appKeyIndex`: 0..4095
+    /// - `keyHex`: 16-byte (128-bit) key in hex (32 chars, case-insensitive).
+    let addAppKeyChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.addAppKey\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      addAppKeyChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let appKeyIndexArg = args[0] as! Int64
+        let keyHexArg = args[1] as! String
+        do {
+          let result = try api.addAppKey(appKeyIndex: appKeyIndexArg, keyHex: keyHexArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      addAppKeyChannel.setMessageHandler(nil)
+    }
+    /// Add (or update) a Network Key in the Mesh DB.
+    ///
+    /// - `netKeyIndex`: 0..4095
+    /// - `keyHex`: 16-byte (128-bit) key in hex (32 chars).
+    let addNetworkKeyChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.addNetworkKey\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      addNetworkKeyChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let netKeyIndexArg = args[0] as! Int64
+        let keyHexArg = args[1] as! String
+        do {
+          let result = try api.addNetworkKey(netKeyIndex: netKeyIndexArg, keyHex: keyHexArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      addNetworkKeyChannel.setMessageHandler(nil)
+    }
+    /// Return the current network keys as seen by the native Mesh DB.
+    let getNetworkKeysChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.getNetworkKeys\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      getNetworkKeysChannel.setMessageHandler { _, reply in
+        do {
+          let result = try api.getNetworkKeys()
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      getNetworkKeysChannel.setMessageHandler(nil)
+    }
+    /// Return the current application keys as seen by the native Mesh DB.
+    let getAppKeysChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.getAppKeys\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      getAppKeysChannel.setMessageHandler { _, reply in
+        do {
+          let result = try api.getAppKeys()
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      getAppKeysChannel.setMessageHandler(nil)
     }
     /// Bind an AppKey to a model on a given element address.
     let bindAppKeyChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.bindAppKey\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
