@@ -468,6 +468,61 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
   Future<List<net_models.AppKey>> getAppKeys() async => _network.appKeys;
 
   @override
+  Future<bool> setNodeDefaultTtl(int destination, int ttl) async {
+    // Fake: no-op.
+    return true;
+  }
+
+  @override
+  Future<bool> setNodeRelay(
+    int destination,
+    bool enabled,
+    int retransmitCount,
+    int retransmitIntervalMs,
+  ) async {
+    return true;
+  }
+
+  @override
+  Future<bool> setNodeGattProxy(int destination, bool enabled) async {
+    return true;
+  }
+
+  @override
+  Future<bool> setNodeFriend(int destination, bool enabled) async {
+    return true;
+  }
+
+  @override
+  Future<bool> setNodeBeacon(int destination, bool enabled) async {
+    return true;
+  }
+
+  @override
+  Future<bool> setNodeNetworkTransmit(int destination, int count, int intervalMs) async {
+    return true;
+  }
+
+  @override
+  Future<bool> nodeReset(int destination) async {
+    return true;
+  }
+
+  @override
+  Future<bool> exportConfigurationBundle(String path) async {
+    _networksByPath['bundle:$path'] = _network;
+    return true;
+  }
+
+  @override
+  Future<bool> importConfigurationBundle(String path) async {
+    final loaded = _networksByPath['bundle:$path'];
+    if (loaded == null) return false;
+    _network = loaded;
+    return true;
+  }
+
+  @override
   Future<bool> connectProxy(String deviceId, int proxyUnicastAddress) async {
     _proxyConnected = true;
     return true;

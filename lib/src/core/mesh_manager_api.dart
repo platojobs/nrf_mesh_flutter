@@ -164,6 +164,55 @@ class MeshManagerApi {
     return await _guard(() => _platform.getAppKeys());
   }
 
+  // M2 acceptance: node config + reset + bundle export/import
+  Future<bool> setNodeDefaultTtl(int destination, int ttl) async {
+    return await _guard(() => _platform.setNodeDefaultTtl(destination, ttl));
+  }
+
+  Future<bool> setNodeRelay(
+    int destination,
+    bool enabled,
+    int retransmitCount,
+    int retransmitIntervalMs,
+  ) async {
+    return await _guard(
+      () => _platform.setNodeRelay(
+        destination,
+        enabled,
+        retransmitCount,
+        retransmitIntervalMs,
+      ),
+    );
+  }
+
+  Future<bool> setNodeGattProxy(int destination, bool enabled) async {
+    return await _guard(() => _platform.setNodeGattProxy(destination, enabled));
+  }
+
+  Future<bool> setNodeFriend(int destination, bool enabled) async {
+    return await _guard(() => _platform.setNodeFriend(destination, enabled));
+  }
+
+  Future<bool> setNodeBeacon(int destination, bool enabled) async {
+    return await _guard(() => _platform.setNodeBeacon(destination, enabled));
+  }
+
+  Future<bool> setNodeNetworkTransmit(int destination, int count, int intervalMs) async {
+    return await _guard(() => _platform.setNodeNetworkTransmit(destination, count, intervalMs));
+  }
+
+  Future<bool> nodeReset(int destination) async {
+    return await _guard(() => _platform.nodeReset(destination));
+  }
+
+  Future<bool> exportConfigurationBundle(String path) async {
+    return await _guard(() => _platform.exportConfigurationBundle(path));
+  }
+
+  Future<bool> importConfigurationBundle(String path) async {
+    return await _guard(() => _platform.importConfigurationBundle(path));
+  }
+
   /// Add a node to a group
   Future<void> addNodeToGroup(String nodeId, String groupId) async {
     return await _guard(() => _platform.addNodeToGroup(nodeId, groupId));

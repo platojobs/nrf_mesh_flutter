@@ -34,6 +34,13 @@ import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigMo
 import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigModelSubscriptionAdd
 import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigModelSubscriptionDelete
 import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigCompositionDataGet
+import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigDefaultTtlSet
+import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigRelaySet
+import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigFriendSet
+import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigBeaconSet
+import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigGattProxySet
+import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigNetworkTransmitSet
+import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigNodeReset
 import no.nordicsemi.kotlin.mesh.core.model.IvIndex
 import no.nordicsemi.kotlin.mesh.core.model.MeshAddress
 import no.nordicsemi.kotlin.mesh.core.model.Publish
@@ -905,6 +912,193 @@ class PlatoJobsMeshPlugin :
         }
     }
 
+    override fun setNodeDefaultTtl(destination: Long, ttl: Long): Boolean =
+        try {
+            val km = kotlinMeshManager
+            require(proxyConnected) { "Proxy is not connected" }
+            requireNotNull(km) { "Kotlin Mesh manager is not initialized" }
+            require(km.export() != null) { "Mesh DB is not loaded (importNetwork first)" }
+            runBlocking {
+                km.send(
+                    message = ConfigDefaultTtlSet(ttl = ttl.toUByte()),
+                    destination = destination.toUShort(),
+                    initialTtl = null
+                )
+                km.save()
+            }
+            true
+        } catch (t: Throwable) {
+            if (proxyConnected) throw t
+            false
+        }
+
+    override fun setNodeRelay(destination: Long, enabled: Boolean, retransmitCount: Long, retransmitIntervalMs: Long): Boolean =
+        try {
+            val km = kotlinMeshManager
+            require(proxyConnected) { "Proxy is not connected" }
+            requireNotNull(km) { "Kotlin Mesh manager is not initialized" }
+            require(km.export() != null) { "Mesh DB is not loaded (importNetwork first)" }
+            val intervalSteps = ((retransmitIntervalMs / 10).coerceIn(1, 32)).toUByte()
+            runBlocking {
+                km.send(
+                    message = if (enabled) {
+                        ConfigRelaySet(
+                            count = retransmitCount.toInt(),
+                            steps = intervalSteps,
+                        )
+                    } else {
+                        ConfigRelaySet()
+                    },
+                    destination = destination.toUShort(),
+                    initialTtl = null
+                )
+                km.save()
+            }
+            true
+        } catch (t: Throwable) {
+            if (proxyConnected) throw t
+            false
+        }
+
+    override fun setNodeGattProxy(destination: Long, enabled: Boolean): Boolean =
+        try {
+            val km = kotlinMeshManager
+            require(proxyConnected) { "Proxy is not connected" }
+            requireNotNull(km) { "Kotlin Mesh manager is not initialized" }
+            require(km.export() != null) { "Mesh DB is not loaded (importNetwork first)" }
+            runBlocking {
+                km.send(
+                    message = ConfigGattProxySet(enable = enabled),
+                    destination = destination.toUShort(),
+                    initialTtl = null
+                )
+                km.save()
+            }
+            true
+        } catch (t: Throwable) {
+            if (proxyConnected) throw t
+            false
+        }
+
+    override fun setNodeFriend(destination: Long, enabled: Boolean): Boolean =
+        try {
+            val km = kotlinMeshManager
+            require(proxyConnected) { "Proxy is not connected" }
+            requireNotNull(km) { "Kotlin Mesh manager is not initialized" }
+            require(km.export() != null) { "Mesh DB is not loaded (importNetwork first)" }
+            runBlocking {
+                km.send(
+                    message = ConfigFriendSet(enable = enabled),
+                    destination = destination.toUShort(),
+                    initialTtl = null
+                )
+                km.save()
+            }
+            true
+        } catch (t: Throwable) {
+            if (proxyConnected) throw t
+            false
+        }
+
+    override fun setNodeBeacon(destination: Long, enabled: Boolean): Boolean =
+        try {
+            val km = kotlinMeshManager
+            require(proxyConnected) { "Proxy is not connected" }
+            requireNotNull(km) { "Kotlin Mesh manager is not initialized" }
+            require(km.export() != null) { "Mesh DB is not loaded (importNetwork first)" }
+            runBlocking {
+                km.send(
+                    message = ConfigBeaconSet(enable = enabled),
+                    destination = destination.toUShort(),
+                    initialTtl = null
+                )
+                km.save()
+            }
+            true
+        } catch (t: Throwable) {
+            if (proxyConnected) throw t
+            false
+        }
+
+    override fun setNodeNetworkTransmit(destination: Long, count: Long, intervalMs: Long): Boolean =
+        try {
+            val km = kotlinMeshManager
+            require(proxyConnected) { "Proxy is not connected" }
+            requireNotNull(km) { "Kotlin Mesh manager is not initialized" }
+            require(km.export() != null) { "Mesh DB is not loaded (importNetwork first)" }
+            val steps = ((intervalMs / 10).coerceIn(1, 32)).toUByte()
+            runBlocking {
+                km.send(
+                    message = ConfigNetworkTransmitSet(count = count.toUByte(), steps = steps),
+                    destination = destination.toUShort(),
+                    initialTtl = null
+                )
+                km.save()
+            }
+            true
+        } catch (t: Throwable) {
+            if (proxyConnected) throw t
+            false
+        }
+
+    override fun nodeReset(destination: Long): Boolean =
+        try {
+            val km = kotlinMeshManager
+            require(proxyConnected) { "Proxy is not connected" }
+            requireNotNull(km) { "Kotlin Mesh manager is not initialized" }
+            require(km.export() != null) { "Mesh DB is not loaded (importNetwork first)" }
+            runBlocking {
+                km.send(
+                    message = ConfigNodeReset(),
+                    destination = destination.toUShort(),
+                    initialTtl = null
+                )
+                km.save()
+            }
+            true
+        } catch (t: Throwable) {
+            if (proxyConnected) throw t
+            false
+        }
+
+    override fun exportConfigurationBundle(path: String): Boolean {
+        val ctx = appContext ?: return false
+        val km = kotlinMeshManager ?: return false
+        return try {
+            // Bundle as a JSON with base64 payloads.
+            val meshDb = runBlocking { km.export() } ?: ByteArray(0)
+            val secure = secureStorage as? PersistentSecurePropertiesStorage
+            val secureJson = secure?.exportAsJsonString() ?: "{}"
+            val root = JSONObject()
+            root.put("meshDbBase64", android.util.Base64.encodeToString(meshDb, android.util.Base64.NO_WRAP))
+            root.put("secureStateJson", secureJson)
+            val out = File(path).let { f -> if (f.isAbsolute) f else File(ctx.filesDir, path) }
+            out.parentFile?.mkdirs()
+            out.writeText(root.toString())
+            true
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    override fun importConfigurationBundle(path: String): Boolean {
+        val ctx = appContext ?: return false
+        val km = kotlinMeshManager ?: return false
+        return try {
+            val inp = File(path).let { f -> if (f.isAbsolute) f else File(ctx.filesDir, path) }
+            val root = JSONObject(inp.readText())
+            val meshDb = android.util.Base64.decode(root.optString("meshDbBase64", ""), android.util.Base64.NO_WRAP)
+            val secureJson = root.optString("secureStateJson", "{}")
+            val secure = secureStorage as? PersistentSecurePropertiesStorage
+            secure?.importFromJsonString(secureJson)
+            runBlocking { km.import(meshDb) }
+            runBlocking { km.save() }
+            true
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
     // Configuration (P1 - minimal, in-memory)
     override fun bindAppKey(elementAddress: Long, modelId: Long, appKeyIndex: Long): Boolean =
         try {
@@ -1427,6 +1621,43 @@ private class PersistentSecurePropertiesStorage(
 
     fun clearAll() {
         prefs.edit().clear().apply()
+    }
+
+    fun exportAsJsonString(): String {
+        val root = JSONObject()
+        val all = prefs.all
+        for ((k, v) in all) {
+            when (v) {
+                is String -> root.put(k, v)
+                is Int -> root.put(k, v)
+                is Long -> root.put(k, v)
+                is Boolean -> root.put(k, v)
+                is Float -> root.put(k, v.toDouble())
+                else -> root.put(k, JSONObject.NULL)
+            }
+        }
+        return root.toString()
+    }
+
+    fun importFromJsonString(json: String) {
+        val root = JSONObject(json)
+        val editor = prefs.edit().clear()
+        val it = root.keys()
+        while (it.hasNext()) {
+            val k = it.next()
+            val v = root.opt(k)
+            when (v) {
+                is String -> editor.putString(k, v)
+                is Int -> editor.putInt(k, v)
+                is Long -> editor.putLong(k, v)
+                is Boolean -> editor.putBoolean(k, v)
+                is Double -> editor.putLong(k, v.toLong())
+                else -> {
+                    // ignore null/unknown
+                }
+            }
+        }
+        editor.apply()
     }
 
     private fun key(prefix: String, networkUuid: Uuid): String = "$prefix:${networkUuid}"

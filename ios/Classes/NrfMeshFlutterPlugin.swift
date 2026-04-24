@@ -611,6 +611,101 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         }
     }
 
+    // MARK: - M2 acceptance: node configuration + reset + bundle export/import
+
+    func setNodeDefaultTtl(destination: Int64, ttl: Int64) throws -> Bool {
+        guard proxyConnected, meshManager.isNetworkCreated else { return false }
+        let dst = Address(UInt16(truncatingIfNeeded: destination))
+        let msg = ConfigDefaultTtlSet(ttl: UInt8(truncatingIfNeeded: ttl))
+        _ = try sendConfig(msg, destination: dst)
+        _ = meshManager.save()
+        return true
+    }
+
+    func setNodeRelay(destination: Int64, enabled: Bool, retransmitCount: Int64, retransmitIntervalMs: Int64) throws -> Bool {
+        guard proxyConnected, meshManager.isNetworkCreated else { return false }
+        let dst = Address(UInt16(truncatingIfNeeded: destination))
+        let intervalSteps = UInt8((retransmitIntervalMs / 10).clamped(to: 1...32))
+        let msg = ConfigRelaySet(
+            isEnabled: enabled,
+            retransmitCount: UInt8(retransmitCount.clamped(to: 0...7)),
+            retransmitIntervalSteps: intervalSteps
+        )
+        _ = try sendConfig(msg, destination: dst)
+        _ = meshManager.save()
+        return true
+    }
+
+    func setNodeGattProxy(destination: Int64, enabled: Bool) throws -> Bool {
+        guard proxyConnected, meshManager.isNetworkCreated else { return false }
+        let dst = Address(UInt16(truncatingIfNeeded: destination))
+        let msg = ConfigGATTProxySet(isEnabled: enabled)
+        _ = try sendConfig(msg, destination: dst)
+        _ = meshManager.save()
+        return true
+    }
+
+    func setNodeFriend(destination: Int64, enabled: Bool) throws -> Bool {
+        guard proxyConnected, meshManager.isNetworkCreated else { return false }
+        let dst = Address(UInt16(truncatingIfNeeded: destination))
+        let msg = ConfigFriendSet(isEnabled: enabled)
+        _ = try sendConfig(msg, destination: dst)
+        _ = meshManager.save()
+        return true
+    }
+
+    func setNodeBeacon(destination: Int64, enabled: Bool) throws -> Bool {
+        guard proxyConnected, meshManager.isNetworkCreated else { return false }
+        let dst = Address(UInt16(truncatingIfNeeded: destination))
+        let msg = ConfigBeaconSet(isEnabled: enabled)
+        _ = try sendConfig(msg, destination: dst)
+        _ = meshManager.save()
+        return true
+    }
+
+    func setNodeNetworkTransmit(destination: Int64, count: Int64, intervalMs: Int64) throws -> Bool {
+        guard proxyConnected, meshManager.isNetworkCreated else { return false }
+        let dst = Address(UInt16(truncatingIfNeeded: destination))
+        let intervalSteps = UInt8((intervalMs / 10).clamped(to: 1...32))
+        let msg = ConfigNetworkTransmitSet(
+            count: UInt8(count.clamped(to: 0...7)),
+            intervalSteps: intervalSteps
+        )
+        _ = try sendConfig(msg, destination: dst)
+        _ = meshManager.save()
+        return true
+    }
+
+    func nodeReset(destination: Int64) throws -> Bool {
+        guard proxyConnected, meshManager.isNetworkCreated else { return false }
+        let dst = Address(UInt16(truncatingIfNeeded: destination))
+        let msg = ConfigNodeReset()
+        _ = try sendConfig(msg, destination: dst)
+        _ = meshManager.save()
+        return true
+    }
+
+    func exportConfigurationBundle(path: String) throws -> Bool {
+        // iOS bundle = Mesh DB export bytes.
+        guard meshManager.isNetworkCreated else { return false }
+        let data = meshManager.export()
+        let url = URL(fileURLWithPath: path)
+        try data.write(to: url, options: .atomic)
+        return true
+    }
+
+    func importConfigurationBundle(path: String) throws -> Bool {
+        let url = URL(fileURLWithPath: path)
+        let data = try Data(contentsOf: url)
+        _ = try meshManager.import(from: data)
+        _ = meshManager.save()
+        nordicNetwork = meshManager.meshNetwork
+        // Required for correct parsing of incoming Status messages.
+        meshManager.localElements = []
+        networkName = nordicNetwork?.meshName ?? networkName
+        return true
+    }
+
     // Configuration (P1 - minimal, in-memory)
     private func updateModel(
         elementAddress: Int64,

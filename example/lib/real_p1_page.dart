@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:nrf_mesh_flutter/nrf_mesh_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 
 class RealP1Page extends StatefulWidget {
   const RealP1Page({super.key});
@@ -36,6 +38,16 @@ class _RealP1PageState extends State<RealP1Page> {
   final _appKeyHexCtrl = TextEditingController(text: '0102030405060708090A0B0C0D0E0F10');
   final _compDstCtrl = TextEditingController(text: '0x0001');
   final _compPageCtrl = TextEditingController(text: '0');
+
+  // M2 acceptance: basic node config + export/import bundle.
+  final _nodeCfgDstCtrl = TextEditingController(text: '0x0001');
+  final _nodeCfgTtlCtrl = TextEditingController(text: '5');
+  final _relayCountCtrl = TextEditingController(text: '2');
+  final _relayIntervalMsCtrl = TextEditingController(text: '50');
+  final _netTxCountCtrl = TextEditingController(text: '2');
+  final _netTxIntervalMsCtrl = TextEditingController(text: '30');
+
+  String? _bundlePath;
 
   // Access (P2)
   final _accessDstCtrl = TextEditingController(text: '0xC000');
@@ -72,6 +84,12 @@ class _RealP1PageState extends State<RealP1Page> {
     _appKeyHexCtrl.dispose();
     _compDstCtrl.dispose();
     _compPageCtrl.dispose();
+    _nodeCfgDstCtrl.dispose();
+    _nodeCfgTtlCtrl.dispose();
+    _relayCountCtrl.dispose();
+    _relayIntervalMsCtrl.dispose();
+    _netTxCountCtrl.dispose();
+    _netTxIntervalMsCtrl.dispose();
     _accessDstCtrl.dispose();
     _accessAppKeyIndexCtrl.dispose();
     _levelCtrl.dispose();
@@ -90,6 +108,14 @@ class _RealP1PageState extends State<RealP1Page> {
       return int.parse(t.substring(2), radix: 16);
     }
     return int.parse(t);
+  }
+
+  Future<String> _ensureBundlePath() async {
+    if (_bundlePath != null && _bundlePath!.isNotEmpty) return _bundlePath!;
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}/nrf_mesh_bundle.json');
+    _bundlePath = file.path;
+    return _bundlePath!;
   }
 
   Future<void> _startScan() async {
@@ -242,6 +268,47 @@ class _RealP1PageState extends State<RealP1Page> {
     }
   }
 
+  Future<void> _applyNodeConfig() async {
+    try {
+      final dst = _parseInt(_nodeCfgDstCtrl.text);
+      final ttl = _parseInt(_nodeCfgTtlCtrl.text);
+      final relayCount = _parseInt(_relayCountCtrl.text);
+      final relayIntervalMs = _parseInt(_relayIntervalMsCtrl.text);
+      final netTxCount = _parseInt(_netTxCountCtrl.text);
+      final netTxIntervalMs = _parseInt(_netTxIntervalMsCtrl.text);
+
+      _log('Node config dst=0x${dst.toRadixString(16)} ttl=$ttl relay=($relayCount,$relayIntervalMs ms) netTx=($netTxCount,$netTxIntervalMs ms)');
+      final ok1 = await _mesh.setNodeDefaultTtl(dst, ttl);
+      final ok2 = await _mesh.setNodeRelay(dst, true, relayCount, relayIntervalMs);
+      final ok3 = await _mesh.setNodeNetworkTransmit(dst, netTxCount, netTxIntervalMs);
+      _log('setNodeDefaultTtl=$ok1 setNodeRelay=$ok2 setNodeNetworkTransmit=$ok3');
+    } catch (e) {
+      _log('Node config error: $e');
+    }
+  }
+
+  Future<void> _exportBundle() async {
+    try {
+      final path = await _ensureBundlePath();
+      _log('Export configuration bundle -> $path');
+      final ok = await _mesh.exportConfigurationBundle(path);
+      _log('exportConfigurationBundle result=$ok');
+    } catch (e) {
+      _log('exportConfigurationBundle error: $e');
+    }
+  }
+
+  Future<void> _importBundle() async {
+    try {
+      final path = await _ensureBundlePath();
+      _log('Import configuration bundle <- $path');
+      final ok = await _mesh.importConfigurationBundle(path);
+      _log('importConfigurationBundle result=$ok');
+    } catch (e) {
+      _log('importConfigurationBundle error: $e');
+    }
+  }
+
   Future<void> _sendOnOff(bool state) async {
     try {
       final dst = _parseInt(_accessDstCtrl.text);
@@ -368,6 +435,100 @@ class _RealP1PageState extends State<RealP1Page> {
             ],
           ),
           const SizedBox(height: 16),
+          const Text(
+            'M2 acceptance: basic node config + export/import bundle',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _nodeCfgDstCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Node dst (unicast)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: _nodeCfgTtlCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Default TTL',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton(
+                onPressed: _applyNodeConfig,
+                child: const Text('Apply Node Config'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _relayCountCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Relay count (0..7)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: _relayIntervalMsCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Relay interval ms',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: _netTxCountCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'NetTx count (0..7)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: _netTxIntervalMsCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'NetTx interval ms',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              ElevatedButton(onPressed: _exportBundle, child: const Text('Export Bundle')),
+              ElevatedButton(onPressed: _importBundle, child: const Text('Import Bundle')),
+              OutlinedButton(
+                onPressed: () async {
+                  final p = await _ensureBundlePath();
+                  _log('Bundle path: $p');
+                },
+                child: const Text('Show Path'),
+              ),
+            ],
+          ),
+          const Divider(height: 32),
 
           const Text(
             'Step 0: Import Mesh DB (optional but recommended)',

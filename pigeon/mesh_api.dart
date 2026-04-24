@@ -84,6 +84,37 @@ abstract class MeshApi {
   /// Return the current application keys as seen by the native Mesh DB.
   List<AppKey> getAppKeys();
 
+  /// Set the Default TTL on a node.
+  bool setNodeDefaultTtl(int destination, int ttl);
+
+  /// Enable/disable Relay on a node.
+  bool setNodeRelay(int destination, bool enabled, int retransmitCount, int retransmitIntervalMs);
+
+  /// Enable/disable GATT Proxy on a node.
+  bool setNodeGattProxy(int destination, bool enabled);
+
+  /// Enable/disable Friend on a node.
+  bool setNodeFriend(int destination, bool enabled);
+
+  /// Enable/disable Secure Network Beacon on a node.
+  bool setNodeBeacon(int destination, bool enabled);
+
+  /// Set Network Transmit parameters on a node.
+  bool setNodeNetworkTransmit(int destination, int count, int intervalMs);
+
+  /// Trigger a remote Node Reset.
+  bool nodeReset(int destination);
+
+  /// Export a configuration bundle to a file path.
+  ///
+  /// This is intended to include:
+  /// - Standard Mesh DB export (Configuration Database Profile 1.0.1)
+  /// - Plugin secure state when applicable (e.g. Android secure properties)
+  bool exportConfigurationBundle(String path);
+
+  /// Import a configuration bundle from a file path.
+  bool importConfigurationBundle(String path);
+
   // Configuration (P1 - minimal)
   //
   // Note: These APIs are intentionally minimal and model-agnostic.

@@ -1,4 +1,18 @@
-## 5.1.0
+## 6.0.0
+
+### Features
+- M2 (deliverable loop): add node configuration + reset + export/import bundle APIs:
+  - `setNodeDefaultTtl(destination, ttl)`
+  - `setNodeRelay(destination, enabled, retransmitCount, retransmitIntervalMs)`
+  - `setNodeGattProxy(destination, enabled)`
+  - `setNodeFriend(destination, enabled)`
+  - `setNodeBeacon(destination, enabled)`
+  - `setNodeNetworkTransmit(destination, count, intervalMs)`
+  - `nodeReset(destination)`
+  - `exportConfigurationBundle(path)` / `importConfigurationBundle(path)`
+- Example: extend `RealP1Page` to demo node config + bundle export/import.
+
+## 5.2.0
 
 ### Features
 - M2 foundation: add key and composition helpers:
