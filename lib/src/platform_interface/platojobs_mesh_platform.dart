@@ -91,6 +91,22 @@ abstract class PlatoJobsMeshBridge {
   Future<List<net_models.NetworkKey>> getNetworkKeys();
   Future<List<net_models.AppKey>> getAppKeys();
 
+  // M2 acceptance: node config + reset + bundle export/import
+  Future<bool> setNodeDefaultTtl(int destination, int ttl);
+  Future<bool> setNodeRelay(
+    int destination,
+    bool enabled,
+    int retransmitCount,
+    int retransmitIntervalMs,
+  );
+  Future<bool> setNodeGattProxy(int destination, bool enabled);
+  Future<bool> setNodeFriend(int destination, bool enabled);
+  Future<bool> setNodeBeacon(int destination, bool enabled);
+  Future<bool> setNodeNetworkTransmit(int destination, int count, int intervalMs);
+  Future<bool> nodeReset(int destination);
+  Future<bool> exportConfigurationBundle(String path);
+  Future<bool> importConfigurationBundle(String path);
+
   // Proxy (P1 real-transport prerequisite)
   Future<bool> connectProxy(String deviceId, int proxyUnicastAddress);
   Future<bool> disconnectProxy();
@@ -374,6 +390,61 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
           ),
         )
         .toList(growable: false);
+  }
+
+  @override
+  Future<bool> setNodeDefaultTtl(int destination, int ttl) async {
+    return await _meshApi.setNodeDefaultTtl(destination, ttl);
+  }
+
+  @override
+  Future<bool> setNodeRelay(
+    int destination,
+    bool enabled,
+    int retransmitCount,
+    int retransmitIntervalMs,
+  ) async {
+    return await _meshApi.setNodeRelay(
+      destination,
+      enabled,
+      retransmitCount,
+      retransmitIntervalMs,
+    );
+  }
+
+  @override
+  Future<bool> setNodeGattProxy(int destination, bool enabled) async {
+    return await _meshApi.setNodeGattProxy(destination, enabled);
+  }
+
+  @override
+  Future<bool> setNodeFriend(int destination, bool enabled) async {
+    return await _meshApi.setNodeFriend(destination, enabled);
+  }
+
+  @override
+  Future<bool> setNodeBeacon(int destination, bool enabled) async {
+    return await _meshApi.setNodeBeacon(destination, enabled);
+  }
+
+  @override
+  Future<bool> setNodeNetworkTransmit(int destination, int count, int intervalMs) async {
+    return await _meshApi.setNodeNetworkTransmit(destination, count, intervalMs);
+  }
+
+  @override
+  Future<bool> nodeReset(int destination) async {
+    return await _meshApi.nodeReset(destination);
+  }
+
+  @override
+  Future<bool> exportConfigurationBundle(String path) async {
+    return await _meshApi.exportConfigurationBundle(path);
+  }
+
+  @override
+  Future<bool> importConfigurationBundle(String path) async {
+    return await _meshApi.importConfigurationBundle(path);
   }
 
   @override

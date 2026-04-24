@@ -1133,6 +1133,28 @@ protocol MeshApi {
   func getNetworkKeys() throws -> [NetworkKey]
   /// Return the current application keys as seen by the native Mesh DB.
   func getAppKeys() throws -> [AppKey]
+  /// Set the Default TTL on a node.
+  func setNodeDefaultTtl(destination: Int64, ttl: Int64) throws -> Bool
+  /// Enable/disable Relay on a node.
+  func setNodeRelay(destination: Int64, enabled: Bool, retransmitCount: Int64, retransmitIntervalMs: Int64) throws -> Bool
+  /// Enable/disable GATT Proxy on a node.
+  func setNodeGattProxy(destination: Int64, enabled: Bool) throws -> Bool
+  /// Enable/disable Friend on a node.
+  func setNodeFriend(destination: Int64, enabled: Bool) throws -> Bool
+  /// Enable/disable Secure Network Beacon on a node.
+  func setNodeBeacon(destination: Int64, enabled: Bool) throws -> Bool
+  /// Set Network Transmit parameters on a node.
+  func setNodeNetworkTransmit(destination: Int64, count: Int64, intervalMs: Int64) throws -> Bool
+  /// Trigger a remote Node Reset.
+  func nodeReset(destination: Int64) throws -> Bool
+  /// Export a configuration bundle to a file path.
+  ///
+  /// This is intended to include:
+  /// - Standard Mesh DB export (Configuration Database Profile 1.0.1)
+  /// - Plugin secure state when applicable (e.g. Android secure properties)
+  func exportConfigurationBundle(path: String) throws -> Bool
+  /// Import a configuration bundle from a file path.
+  func importConfigurationBundle(path: String) throws -> Bool
   /// Bind an AppKey to a model on a given element address.
   func bindAppKey(elementAddress: Int64, modelId: Int64, appKeyIndex: Int64) throws -> Bool
   /// Unbind an AppKey from a model on a given element address.
@@ -1498,6 +1520,163 @@ class MeshApiSetup {
       }
     } else {
       getAppKeysChannel.setMessageHandler(nil)
+    }
+    /// Set the Default TTL on a node.
+    let setNodeDefaultTtlChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setNodeDefaultTtl\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      setNodeDefaultTtlChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let destinationArg = args[0] as! Int64
+        let ttlArg = args[1] as! Int64
+        do {
+          let result = try api.setNodeDefaultTtl(destination: destinationArg, ttl: ttlArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      setNodeDefaultTtlChannel.setMessageHandler(nil)
+    }
+    /// Enable/disable Relay on a node.
+    let setNodeRelayChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setNodeRelay\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      setNodeRelayChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let destinationArg = args[0] as! Int64
+        let enabledArg = args[1] as! Bool
+        let retransmitCountArg = args[2] as! Int64
+        let retransmitIntervalMsArg = args[3] as! Int64
+        do {
+          let result = try api.setNodeRelay(destination: destinationArg, enabled: enabledArg, retransmitCount: retransmitCountArg, retransmitIntervalMs: retransmitIntervalMsArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      setNodeRelayChannel.setMessageHandler(nil)
+    }
+    /// Enable/disable GATT Proxy on a node.
+    let setNodeGattProxyChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setNodeGattProxy\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      setNodeGattProxyChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let destinationArg = args[0] as! Int64
+        let enabledArg = args[1] as! Bool
+        do {
+          let result = try api.setNodeGattProxy(destination: destinationArg, enabled: enabledArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      setNodeGattProxyChannel.setMessageHandler(nil)
+    }
+    /// Enable/disable Friend on a node.
+    let setNodeFriendChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setNodeFriend\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      setNodeFriendChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let destinationArg = args[0] as! Int64
+        let enabledArg = args[1] as! Bool
+        do {
+          let result = try api.setNodeFriend(destination: destinationArg, enabled: enabledArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      setNodeFriendChannel.setMessageHandler(nil)
+    }
+    /// Enable/disable Secure Network Beacon on a node.
+    let setNodeBeaconChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setNodeBeacon\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      setNodeBeaconChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let destinationArg = args[0] as! Int64
+        let enabledArg = args[1] as! Bool
+        do {
+          let result = try api.setNodeBeacon(destination: destinationArg, enabled: enabledArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      setNodeBeaconChannel.setMessageHandler(nil)
+    }
+    /// Set Network Transmit parameters on a node.
+    let setNodeNetworkTransmitChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setNodeNetworkTransmit\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      setNodeNetworkTransmitChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let destinationArg = args[0] as! Int64
+        let countArg = args[1] as! Int64
+        let intervalMsArg = args[2] as! Int64
+        do {
+          let result = try api.setNodeNetworkTransmit(destination: destinationArg, count: countArg, intervalMs: intervalMsArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      setNodeNetworkTransmitChannel.setMessageHandler(nil)
+    }
+    /// Trigger a remote Node Reset.
+    let nodeResetChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.nodeReset\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      nodeResetChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let destinationArg = args[0] as! Int64
+        do {
+          let result = try api.nodeReset(destination: destinationArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      nodeResetChannel.setMessageHandler(nil)
+    }
+    /// Export a configuration bundle to a file path.
+    ///
+    /// This is intended to include:
+    /// - Standard Mesh DB export (Configuration Database Profile 1.0.1)
+    /// - Plugin secure state when applicable (e.g. Android secure properties)
+    let exportConfigurationBundleChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.exportConfigurationBundle\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      exportConfigurationBundleChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let pathArg = args[0] as! String
+        do {
+          let result = try api.exportConfigurationBundle(path: pathArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      exportConfigurationBundleChannel.setMessageHandler(nil)
+    }
+    /// Import a configuration bundle from a file path.
+    let importConfigurationBundleChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.importConfigurationBundle\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      importConfigurationBundleChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let pathArg = args[0] as! String
+        do {
+          let result = try api.importConfigurationBundle(path: pathArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      importConfigurationBundleChannel.setMessageHandler(nil)
     }
     /// Bind an AppKey to a model on a given element address.
     let bindAppKeyChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.bindAppKey\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)

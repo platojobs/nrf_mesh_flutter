@@ -1644,6 +1644,199 @@ void SetUpMeshApiWithSuffix(id<FlutterBinaryMessenger> binaryMessenger, NSObject
       [channel setMessageHandler:nil];
     }
   }
+  /// Set the Default TTL on a node.
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setNodeDefaultTtl", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(setNodeDefaultTtlDestination:ttl:error:)], @"MeshApi api (%@) doesn't respond to @selector(setNodeDefaultTtlDestination:ttl:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSInteger arg_destination = [GetNullableObjectAtIndex(args, 0) integerValue];
+        NSInteger arg_ttl = [GetNullableObjectAtIndex(args, 1) integerValue];
+        FlutterError *error;
+        NSNumber *output = [api setNodeDefaultTtlDestination:arg_destination ttl:arg_ttl error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  /// Enable/disable Relay on a node.
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setNodeRelay", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(setNodeRelayDestination:enabled:retransmitCount:retransmitIntervalMs:error:)], @"MeshApi api (%@) doesn't respond to @selector(setNodeRelayDestination:enabled:retransmitCount:retransmitIntervalMs:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSInteger arg_destination = [GetNullableObjectAtIndex(args, 0) integerValue];
+        BOOL arg_enabled = [GetNullableObjectAtIndex(args, 1) boolValue];
+        NSInteger arg_retransmitCount = [GetNullableObjectAtIndex(args, 2) integerValue];
+        NSInteger arg_retransmitIntervalMs = [GetNullableObjectAtIndex(args, 3) integerValue];
+        FlutterError *error;
+        NSNumber *output = [api setNodeRelayDestination:arg_destination enabled:arg_enabled retransmitCount:arg_retransmitCount retransmitIntervalMs:arg_retransmitIntervalMs error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  /// Enable/disable GATT Proxy on a node.
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setNodeGattProxy", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(setNodeGattProxyDestination:enabled:error:)], @"MeshApi api (%@) doesn't respond to @selector(setNodeGattProxyDestination:enabled:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSInteger arg_destination = [GetNullableObjectAtIndex(args, 0) integerValue];
+        BOOL arg_enabled = [GetNullableObjectAtIndex(args, 1) boolValue];
+        FlutterError *error;
+        NSNumber *output = [api setNodeGattProxyDestination:arg_destination enabled:arg_enabled error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  /// Enable/disable Friend on a node.
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setNodeFriend", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(setNodeFriendDestination:enabled:error:)], @"MeshApi api (%@) doesn't respond to @selector(setNodeFriendDestination:enabled:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSInteger arg_destination = [GetNullableObjectAtIndex(args, 0) integerValue];
+        BOOL arg_enabled = [GetNullableObjectAtIndex(args, 1) boolValue];
+        FlutterError *error;
+        NSNumber *output = [api setNodeFriendDestination:arg_destination enabled:arg_enabled error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  /// Enable/disable Secure Network Beacon on a node.
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setNodeBeacon", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(setNodeBeaconDestination:enabled:error:)], @"MeshApi api (%@) doesn't respond to @selector(setNodeBeaconDestination:enabled:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSInteger arg_destination = [GetNullableObjectAtIndex(args, 0) integerValue];
+        BOOL arg_enabled = [GetNullableObjectAtIndex(args, 1) boolValue];
+        FlutterError *error;
+        NSNumber *output = [api setNodeBeaconDestination:arg_destination enabled:arg_enabled error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  /// Set Network Transmit parameters on a node.
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setNodeNetworkTransmit", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(setNodeNetworkTransmitDestination:count:intervalMs:error:)], @"MeshApi api (%@) doesn't respond to @selector(setNodeNetworkTransmitDestination:count:intervalMs:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSInteger arg_destination = [GetNullableObjectAtIndex(args, 0) integerValue];
+        NSInteger arg_count = [GetNullableObjectAtIndex(args, 1) integerValue];
+        NSInteger arg_intervalMs = [GetNullableObjectAtIndex(args, 2) integerValue];
+        FlutterError *error;
+        NSNumber *output = [api setNodeNetworkTransmitDestination:arg_destination count:arg_count intervalMs:arg_intervalMs error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  /// Trigger a remote Node Reset.
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.nodeReset", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(nodeResetDestination:error:)], @"MeshApi api (%@) doesn't respond to @selector(nodeResetDestination:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSInteger arg_destination = [GetNullableObjectAtIndex(args, 0) integerValue];
+        FlutterError *error;
+        NSNumber *output = [api nodeResetDestination:arg_destination error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  /// Export a configuration bundle to a file path.
+  ///
+  /// This is intended to include:
+  /// - Standard Mesh DB export (Configuration Database Profile 1.0.1)
+  /// - Plugin secure state when applicable (e.g. Android secure properties)
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.exportConfigurationBundle", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(exportConfigurationBundlePath:error:)], @"MeshApi api (%@) doesn't respond to @selector(exportConfigurationBundlePath:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSString *arg_path = GetNullableObjectAtIndex(args, 0);
+        FlutterError *error;
+        NSNumber *output = [api exportConfigurationBundlePath:arg_path error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  /// Import a configuration bundle from a file path.
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.importConfigurationBundle", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(importConfigurationBundlePath:error:)], @"MeshApi api (%@) doesn't respond to @selector(importConfigurationBundlePath:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSString *arg_path = GetNullableObjectAtIndex(args, 0);
+        FlutterError *error;
+        NSNumber *output = [api importConfigurationBundlePath:arg_path error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
   /// Bind an AppKey to a model on a given element address.
   {
     FlutterBasicMessageChannel *channel =

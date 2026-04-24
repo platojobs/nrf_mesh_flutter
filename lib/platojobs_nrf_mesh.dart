@@ -235,6 +235,53 @@ class PlatoJobsNrfMeshManager {
     return await _meshManagerApi.getAppKeys();
   }
 
+  // M2 acceptance: node config + reset + bundle export/import
+  Future<bool> setNodeDefaultTtl(int destination, int ttl) async {
+    return await _meshManagerApi.setNodeDefaultTtl(destination, ttl);
+  }
+
+  Future<bool> setNodeRelay(
+    int destination,
+    bool enabled,
+    int retransmitCount,
+    int retransmitIntervalMs,
+  ) async {
+    return await _meshManagerApi.setNodeRelay(
+      destination,
+      enabled,
+      retransmitCount,
+      retransmitIntervalMs,
+    );
+  }
+
+  Future<bool> setNodeGattProxy(int destination, bool enabled) async {
+    return await _meshManagerApi.setNodeGattProxy(destination, enabled);
+  }
+
+  Future<bool> setNodeFriend(int destination, bool enabled) async {
+    return await _meshManagerApi.setNodeFriend(destination, enabled);
+  }
+
+  Future<bool> setNodeBeacon(int destination, bool enabled) async {
+    return await _meshManagerApi.setNodeBeacon(destination, enabled);
+  }
+
+  Future<bool> setNodeNetworkTransmit(int destination, int count, int intervalMs) async {
+    return await _meshManagerApi.setNodeNetworkTransmit(destination, count, intervalMs);
+  }
+
+  Future<bool> nodeReset(int destination) async {
+    return await _meshManagerApi.nodeReset(destination);
+  }
+
+  Future<bool> exportConfigurationBundle(String path) async {
+    return await _meshManagerApi.exportConfigurationBundle(path);
+  }
+
+  Future<bool> importConfigurationBundle(String path) async {
+    return await _meshManagerApi.importConfigurationBundle(path);
+  }
+
   // Proxy (P1 real-transport prerequisite)
   Future<bool> connectProxy(String deviceId, int proxyUnicastAddress) async {
     return await _meshManagerApi.connectProxy(deviceId, proxyUnicastAddress);

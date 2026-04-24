@@ -314,6 +314,46 @@ NSObject<FlutterMessageCodec> *nullGetPigeonGeneratedCodec(void);
 ///
 /// @return `nil` only when `error != nil`.
 - (nullable NSArray<AppKey *> *)getAppKeysWithError:(FlutterError *_Nullable *_Nonnull)error;
+/// Set the Default TTL on a node.
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)setNodeDefaultTtlDestination:(NSInteger)destination ttl:(NSInteger)ttl error:(FlutterError *_Nullable *_Nonnull)error;
+/// Enable/disable Relay on a node.
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)setNodeRelayDestination:(NSInteger)destination enabled:(BOOL)enabled retransmitCount:(NSInteger)retransmitCount retransmitIntervalMs:(NSInteger)retransmitIntervalMs error:(FlutterError *_Nullable *_Nonnull)error;
+/// Enable/disable GATT Proxy on a node.
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)setNodeGattProxyDestination:(NSInteger)destination enabled:(BOOL)enabled error:(FlutterError *_Nullable *_Nonnull)error;
+/// Enable/disable Friend on a node.
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)setNodeFriendDestination:(NSInteger)destination enabled:(BOOL)enabled error:(FlutterError *_Nullable *_Nonnull)error;
+/// Enable/disable Secure Network Beacon on a node.
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)setNodeBeaconDestination:(NSInteger)destination enabled:(BOOL)enabled error:(FlutterError *_Nullable *_Nonnull)error;
+/// Set Network Transmit parameters on a node.
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)setNodeNetworkTransmitDestination:(NSInteger)destination count:(NSInteger)count intervalMs:(NSInteger)intervalMs error:(FlutterError *_Nullable *_Nonnull)error;
+/// Trigger a remote Node Reset.
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)nodeResetDestination:(NSInteger)destination error:(FlutterError *_Nullable *_Nonnull)error;
+/// Export a configuration bundle to a file path.
+///
+/// This is intended to include:
+/// - Standard Mesh DB export (Configuration Database Profile 1.0.1)
+/// - Plugin secure state when applicable (e.g. Android secure properties)
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)exportConfigurationBundlePath:(NSString *)path error:(FlutterError *_Nullable *_Nonnull)error;
+/// Import a configuration bundle from a file path.
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)importConfigurationBundlePath:(NSString *)path error:(FlutterError *_Nullable *_Nonnull)error;
 /// Bind an AppKey to a model on a given element address.
 ///
 /// @return `nil` only when `error != nil`.

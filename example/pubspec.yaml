@@ -16,6 +16,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  path_provider: ^2.1.3
 
   nrf_mesh_flutter:
     path: ../
