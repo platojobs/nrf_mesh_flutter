@@ -2,7 +2,7 @@ import 'dart:async';
 
 import '../models/mesh_group.dart';
 import '../models/mesh_message.dart';
-import '../models/mesh_network.dart';
+import '../models/mesh_network.dart' as net_models;
 import '../models/provisioned_node.dart';
 import '../models/rx_access_message.dart';
 import '../models/unprovisioned_device.dart';
@@ -89,20 +89,20 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
   bool _scanStarted = false;
   int _nextUnicastAddress = 1;
 
-  final Map<String, MeshNetwork> _networksByPath = <String, MeshNetwork>{};
+  final Map<String, net_models.MeshNetwork> _networksByPath = <String, net_models.MeshNetwork>{};
   final List<MeshMessage> _sentMessages = <MeshMessage>[];
 
   Stream<MeshMessage> get sentMessageStream => _sentMessageController.stream;
   List<MeshMessage> get sentMessages => List<MeshMessage>.unmodifiable(_sentMessages);
 
-  MeshNetwork _network = MeshNetwork(
+  net_models.MeshNetwork _network = net_models.MeshNetwork(
     networkId: 'fake-network',
     name: 'Fake Mesh Network',
     networkKeys: const [],
     appKeys: const [],
     nodes: const [],
     groups: const [],
-    provisioner: Provisioner(
+    provisioner: net_models.Provisioner(
       name: 'Fake Provisioner',
       provisionerId: 'fake-provisioner',
       addressRange: <int>[1, 256],
@@ -131,8 +131,8 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
   }
 
   @override
-  Future<MeshNetwork> createNetwork(String name) async {
-    _network = MeshNetwork(
+  Future<net_models.MeshNetwork> createNetwork(String name) async {
+    _network = net_models.MeshNetwork(
       networkId: 'fake-network',
       name: name,
       networkKeys: const [],
@@ -145,7 +145,7 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
   }
 
   @override
-  Future<MeshNetwork> loadNetwork() async => _network;
+  Future<net_models.MeshNetwork> loadNetwork() async => _network;
 
   @override
   Future<bool> saveNetwork() async => true;
@@ -405,6 +405,67 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
     _applyConfigToNodes(elementAddress: elementAddress, modelId: modelId);
     return true;
   }
+
+  @override
+  Future<bool> fetchCompositionData(int destination, {int page = 0}) async {
+    // Fake: no-op, but indicate success.
+    return true;
+  }
+
+  @override
+  Future<bool> addAppKey(int appKeyIndex, String keyHex) async {
+    // Fake: store in network model list.
+    final updated = List<net_models.AppKey>.from(_network.appKeys);
+    updated.removeWhere((k) => k.index == appKeyIndex);
+    updated.add(
+      net_models.AppKey(
+        keyId: 'fake-appkey-$appKeyIndex',
+        key: keyHex,
+        index: appKeyIndex,
+        enabled: true,
+      ),
+    );
+    _network = net_models.MeshNetwork(
+      networkId: _network.networkId,
+      name: _network.name,
+      networkKeys: _network.networkKeys,
+      appKeys: updated,
+      nodes: _network.nodes,
+      groups: _network.groups,
+      provisioner: _network.provisioner,
+    );
+    return true;
+  }
+
+  @override
+  Future<bool> addNetworkKey(int netKeyIndex, String keyHex) async {
+    final updated = List<net_models.NetworkKey>.from(_network.networkKeys);
+    updated.removeWhere((k) => k.index == netKeyIndex);
+    updated.add(
+      net_models.NetworkKey(
+        keyId: 'fake-netkey-$netKeyIndex',
+        key: keyHex,
+        index: netKeyIndex,
+        enabled: true,
+      ),
+    );
+    _network = net_models.MeshNetwork(
+      networkId: _network.networkId,
+      name: _network.name,
+      networkKeys: updated,
+      appKeys: _network.appKeys,
+      nodes: _network.nodes,
+      groups: _network.groups,
+      provisioner: _network.provisioner,
+    );
+    return true;
+  }
+
+  @override
+  Future<List<net_models.NetworkKey>> getNetworkKeys() async => _network.networkKeys;
+
+  @override
+  Future<List<net_models.AppKey>> getAppKeys() async => _network.appKeys;
 
   @override
   Future<bool> connectProxy(String deviceId, int proxyUnicastAddress) async {

@@ -1,10 +1,10 @@
 import 'dart:async';
 
-import '../models/mesh_network.dart' as models;
-import '../models/provisioned_node.dart' as models;
-import '../models/unprovisioned_device.dart' as models;
-import '../models/mesh_message.dart' as models;
-import '../models/mesh_group.dart' as models;
+import '../models/mesh_network.dart' as net_models;
+import '../models/provisioned_node.dart' as node_models;
+import '../models/unprovisioned_device.dart' as dev_models;
+import '../models/mesh_message.dart' as msg_models;
+import '../models/mesh_group.dart' as group_models;
 import '../models/rx_access_message.dart' as rx_models;
 import 'command_queue.dart';
 import 'mesh_exceptions.dart';
@@ -30,12 +30,12 @@ class MeshManagerApi {
 
   // Network management
   /// Create a new mesh network
-  Future<models.MeshNetwork> createNetwork(String name) async {
+  Future<net_models.MeshNetwork> createNetwork(String name) async {
     return await _guard(() => _platform.createNetwork(name));
   }
 
   /// Load an existing mesh network
-  Future<models.MeshNetwork> loadNetwork() async {
+  Future<net_models.MeshNetwork> loadNetwork() async {
     return await _guard(() => _platform.loadNetwork());
   }
 
@@ -56,7 +56,7 @@ class MeshManagerApi {
 
   // Device scanning
   /// Scan for unprovisioned devices
-  Stream<models.UnprovisionedDevice> scanForDevices() {
+  Stream<dev_models.UnprovisionedDevice> scanForDevices() {
     return _platform.scanForDevices();
   }
 
@@ -67,8 +67,8 @@ class MeshManagerApi {
 
   // Provisioning
   /// Provision a device into the mesh network
-  Future<models.ProvisionedNode> provisionDevice(
-    models.UnprovisionedDevice device,
+  Future<node_models.ProvisionedNode> provisionDevice(
+    dev_models.UnprovisionedDevice device,
     dynamic params,
   ) async {
     return await _guard(() => _platform.provisionDevice(device, params));
@@ -76,7 +76,7 @@ class MeshManagerApi {
 
   // Message sending
   /// Send a mesh message
-  Future<void> sendMessage(models.MeshMessage message) async {
+  Future<void> sendMessage(msg_models.MeshMessage message) async {
     return _guard(
       () => _commandQueue.enqueue(
         () => _platform.sendMessage(message),
@@ -86,7 +86,7 @@ class MeshManagerApi {
   }
 
   /// Stream of received mesh messages
-  Stream<models.MeshMessage> get messageStream {
+  Stream<msg_models.MeshMessage> get messageStream {
     return _platform.messageStream;
   }
 
@@ -123,7 +123,7 @@ class MeshManagerApi {
 
   // Node management
   /// Get all provisioned nodes
-  Future<List<models.ProvisionedNode>> getNodes() async {
+  Future<List<node_models.ProvisionedNode>> getNodes() async {
     return await _guard(() => _platform.getNodes());
   }
 
@@ -134,13 +134,34 @@ class MeshManagerApi {
 
   // Group management
   /// Create a new mesh group
-  Future<models.MeshGroup> createGroup(String name) async {
+  Future<group_models.MeshGroup> createGroup(String name) async {
     return await _guard(() => _platform.createGroup(name));
   }
 
   /// Get all mesh groups
-  Future<List<models.MeshGroup>> getGroups() async {
+  Future<List<group_models.MeshGroup>> getGroups() async {
     return await _guard(() => _platform.getGroups());
+  }
+
+  // M2: Configuration foundation
+  Future<bool> fetchCompositionData(int destination, {int page = 0}) async {
+    return await _guard(() => _platform.fetchCompositionData(destination, page: page));
+  }
+
+  Future<bool> addNetworkKey(int netKeyIndex, String keyHex) async {
+    return await _guard(() => _platform.addNetworkKey(netKeyIndex, keyHex));
+  }
+
+  Future<bool> addAppKey(int appKeyIndex, String keyHex) async {
+    return await _guard(() => _platform.addAppKey(appKeyIndex, keyHex));
+  }
+
+  Future<List<net_models.NetworkKey>> getNetworkKeys() async {
+    return await _guard(() => _platform.getNetworkKeys());
+  }
+
+  Future<List<net_models.AppKey>> getAppKeys() async {
+    return await _guard(() => _platform.getAppKeys());
   }
 
   /// Add a node to a group

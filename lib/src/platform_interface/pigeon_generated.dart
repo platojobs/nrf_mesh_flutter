@@ -1463,6 +1463,117 @@ class MeshApi {
     ;
   }
 
+  /// Fetch Composition Data for a given node and persist it in the Mesh DB.
+  ///
+  /// - `destination`: the node's unicast address.
+  /// - `page`: Composition Data Page (typically 0).
+  ///
+  /// Returns `true` when the operation completed successfully.
+  Future<bool> fetchCompositionData(int destination, {int page = 0}) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.fetchCompositionData$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[destination, page]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as bool;
+  }
+
+  /// Add (or update) an AppKey in the Mesh DB.
+  ///
+  /// - `appKeyIndex`: 0..4095
+  /// - `keyHex`: 16-byte (128-bit) key in hex (32 chars, case-insensitive).
+  Future<bool> addAppKey(int appKeyIndex, String keyHex) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.addAppKey$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[appKeyIndex, keyHex]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as bool;
+  }
+
+  /// Add (or update) a Network Key in the Mesh DB.
+  ///
+  /// - `netKeyIndex`: 0..4095
+  /// - `keyHex`: 16-byte (128-bit) key in hex (32 chars).
+  Future<bool> addNetworkKey(int netKeyIndex, String keyHex) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.addNetworkKey$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[netKeyIndex, keyHex]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as bool;
+  }
+
+  /// Return the current network keys as seen by the native Mesh DB.
+  Future<List<NetworkKey>> getNetworkKeys() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.getNetworkKeys$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return (pigeonVar_replyValue! as List<Object?>).cast<NetworkKey>();
+  }
+
+  /// Return the current application keys as seen by the native Mesh DB.
+  Future<List<AppKey>> getAppKeys() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.getAppKeys$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return (pigeonVar_replyValue! as List<Object?>).cast<AppKey>();
+  }
+
   /// Bind an AppKey to a model on a given element address.
   Future<bool> bindAppKey(int elementAddress, int modelId, int appKeyIndex) async {
     final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.bindAppKey$pigeonVar_messageChannelSuffix';

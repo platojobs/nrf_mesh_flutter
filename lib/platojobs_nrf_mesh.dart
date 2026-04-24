@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'src/core/mesh_manager_api.dart';
-import 'src/models/mesh_network.dart' as models;
-import 'src/models/provisioned_node.dart' as models;
-import 'src/models/unprovisioned_device.dart' as models;
-import 'src/models/mesh_group.dart' as models;
-import 'src/models/mesh_message.dart' as models;
-import 'src/models/raw_access_message.dart' as models;
+import 'src/models/mesh_network.dart' as net_models;
+import 'src/models/provisioned_node.dart' as node_models;
+import 'src/models/unprovisioned_device.dart' as dev_models;
+import 'src/models/mesh_group.dart' as group_models;
+import 'src/models/mesh_message.dart' as msg_models;
+import 'src/models/raw_access_message.dart' as raw_models;
 import 'src/models/rx_access_message.dart' as rx_models;
 import 'src/platform_interface/platojobs_mesh_platform.dart' as platform;
 import 'src/platform_interface/pigeon_generated.dart' as pigeon;
@@ -63,11 +63,11 @@ class PlatoJobsNrfMeshManager {
     await _meshManagerApi.initialize();
   }
 
-  Future<models.MeshNetwork> createNetwork(String name) async {
+  Future<net_models.MeshNetwork> createNetwork(String name) async {
     return await _meshManagerApi.createNetwork(name);
   }
 
-  Future<models.MeshNetwork> loadNetwork() async {
+  Future<net_models.MeshNetwork> loadNetwork() async {
     return await _meshManagerApi.loadNetwork();
   }
 
@@ -83,7 +83,7 @@ class PlatoJobsNrfMeshManager {
     return await _meshManagerApi.importNetwork(path);
   }
 
-  Stream<models.UnprovisionedDevice> scanForDevices() {
+  Stream<dev_models.UnprovisionedDevice> scanForDevices() {
     return _meshManagerApi.scanForDevices();
   }
 
@@ -91,14 +91,14 @@ class PlatoJobsNrfMeshManager {
     return await _meshManagerApi.stopScan();
   }
 
-  Future<models.ProvisionedNode> provisionDevice(
-    models.UnprovisionedDevice device,
+  Future<node_models.ProvisionedNode> provisionDevice(
+    dev_models.UnprovisionedDevice device,
     ProvisioningParameters params,
   ) async {
     return await _meshManagerApi.provisionDevice(device, params);
   }
 
-  Future<void> sendMessage(models.MeshMessage message) async {
+  Future<void> sendMessage(msg_models.MeshMessage message) async {
     return await _meshManagerApi.sendMessage(message);
   }
 
@@ -112,7 +112,7 @@ class PlatoJobsNrfMeshManager {
     required int appKeyIndex,
   }) async {
     return await _meshManagerApi.sendMessage(
-      models.RawAccessMessage(
+      raw_models.RawAccessMessage(
         opCode: opCode,
         parameters: parameters,
         address: address,
@@ -121,7 +121,7 @@ class PlatoJobsNrfMeshManager {
     );
   }
 
-  Stream<models.MeshMessage> get messageStream {
+  Stream<msg_models.MeshMessage> get messageStream {
     return _meshManagerApi.messageStream;
   }
 
@@ -161,7 +161,7 @@ class PlatoJobsNrfMeshManager {
     return await _meshManagerApi.setExperimentalRxMetadataEnabled(enabled);
   }
 
-  Future<List<models.ProvisionedNode>> getNodes() async {
+  Future<List<node_models.ProvisionedNode>> getNodes() async {
     return await _meshManagerApi.getNodes();
   }
 
@@ -169,11 +169,11 @@ class PlatoJobsNrfMeshManager {
     return await _meshManagerApi.removeNode(nodeId);
   }
 
-  Future<models.MeshGroup> createGroup(String name) async {
+  Future<group_models.MeshGroup> createGroup(String name) async {
     return await _meshManagerApi.createGroup(name);
   }
 
-  Future<List<models.MeshGroup>> getGroups() async {
+  Future<List<group_models.MeshGroup>> getGroups() async {
     return await _meshManagerApi.getGroups();
   }
 
@@ -212,6 +212,27 @@ class PlatoJobsNrfMeshManager {
       appKeyIndex,
       ttl: ttl,
     );
+  }
+
+  // M2: Configuration foundation
+  Future<bool> fetchCompositionData(int destination, {int page = 0}) async {
+    return await _meshManagerApi.fetchCompositionData(destination, page: page);
+  }
+
+  Future<bool> addNetworkKey(int netKeyIndex, String keyHex) async {
+    return await _meshManagerApi.addNetworkKey(netKeyIndex, keyHex);
+  }
+
+  Future<bool> addAppKey(int appKeyIndex, String keyHex) async {
+    return await _meshManagerApi.addAppKey(appKeyIndex, keyHex);
+  }
+
+  Future<List<net_models.NetworkKey>> getNetworkKeys() async {
+    return await _meshManagerApi.getNetworkKeys();
+  }
+
+  Future<List<net_models.AppKey>> getAppKeys() async {
+    return await _meshManagerApi.getAppKeys();
   }
 
   // Proxy (P1 real-transport prerequisite)
