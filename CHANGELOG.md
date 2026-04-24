@@ -1,3 +1,9 @@
+## 5.0.1
+
+### Improvements
+- Android (M2 foundation): align `getNodes()` and provisioning result to include best-effort element/model lists from Kotlin Mesh DB when available.
+- Android (M2 foundation): `getGroups()` now prefers returning groups from Kotlin Mesh DB when available.
+
 ## 5.0.0
 
 ### Breaking changes
