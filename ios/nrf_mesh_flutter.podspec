@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'nrf_mesh_flutter'
-  s.version          = '4.0.1'
+  s.version          = '5.0.0'
   s.summary          = 'Flutter plugin for Bluetooth Mesh using Nordic nRF Mesh libraries'
   s.description      = <<-DESC
 Flutter plugin for Bluetooth Mesh using Nordic nRF Mesh libraries.

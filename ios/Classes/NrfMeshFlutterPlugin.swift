@@ -431,10 +431,48 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
             ])
         }
     }
-    func getNodes() throws -> [ProvisionedNode] { nodes }
-    func removeNode(nodeId: String) throws { }
+    func getNodes() throws -> [ProvisionedNode] {
+        if meshManager.isNetworkCreated, let net = meshManager.meshNetwork {
+            return net.nodes.compactMap { self.convertNordicNodeToPigeon($0) }
+        }
+        return nodes
+    }
+
+    func removeNode(nodeId: String) throws {
+        if meshManager.isNetworkCreated, let net = meshManager.meshNetwork {
+            if let uuid = UUID(uuidString: nodeId), let node = net.node(withUuid: uuid) {
+                try net.remove(node: node)
+                _ = meshManager.save()
+                return
+            }
+            if let addrInt = Int(nodeId, radix: 16) {
+                let addr = Address(UInt16(truncatingIfNeeded: addrInt))
+                if let node = net.node(withAddress: addr) {
+                    try net.remove(node: node)
+                    _ = meshManager.save()
+                    return
+                }
+            }
+        }
+        // Legacy in-memory removal.
+        nodes.removeAll { $0.nodeId == nodeId }
+    }
 
     func createGroup(name: String) throws -> MeshGroup {
+        if meshManager.isNetworkCreated, let net = meshManager.meshNetwork {
+            let addr = nextAvailableGroupAddress(in: net)
+            let group = try Group(name: name, address: addr)
+            try net.add(group: group)
+            _ = meshManager.save()
+            return MeshGroup(
+                groupId: group.uuid.uuidString,
+                name: group.name,
+                address: Int64(group.address.address),
+                nodeIds: []
+            )
+        }
+
+        // Legacy in-memory fallback.
         let group = MeshGroup(
             groupId: UUID().uuidString,
             name: name,
@@ -445,8 +483,31 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         return group
     }
 
-    func getGroups() throws -> [MeshGroup] { groups }
-    func addNodeToGroup(nodeId: String, groupId: String) throws { }
+    func getGroups() throws -> [MeshGroup] {
+        if meshManager.isNetworkCreated, let net = meshManager.meshNetwork {
+            return net.groups.map {
+                MeshGroup(
+                    groupId: $0.uuid.uuidString,
+                    name: $0.name,
+                    address: Int64($0.address.address),
+                    nodeIds: []
+                )
+            }
+        }
+        return groups
+    }
+
+    func addNodeToGroup(nodeId: String, groupId: String) throws {
+        // Subscription is handled via Config Model ops in M2.
+        // Keep a best-effort in-memory mapping for legacy mode.
+        if !meshManager.isNetworkCreated {
+            for idx in groups.indices where groups[idx].groupId == groupId {
+                var ids = Set(groups[idx].nodeIds ?? [])
+                ids.insert(nodeId)
+                groups[idx].nodeIds = Array(ids)
+            }
+        }
+    }
 
     // Configuration (P1 - minimal, in-memory)
     private func updateModel(
@@ -840,15 +901,24 @@ private final class ProvisioningDelegateAdapter: ProvisioningDelegate {
 
         case .complete:
             _ = plugin.meshManager.save()
-            let addr: Int64 = Int64(pm.unicastAddress ?? pm.suggestedUnicastAddress ?? 0)
-            let out = ProvisionedNode(
-                nodeId: deviceId,
-                name: unprovisionedDevice.name ?? "Node",
-                unicastAddress: addr,
-                uuid: plugin.provisioningUuidBytesByDeviceId[deviceId] ?? [],
-                elements: [],
-                provisioned: true
-            )
+            // Prefer returning the node as read from Mesh DB (elements/models filled).
+            let out: ProvisionedNode
+            if let net = plugin.meshManager.meshNetwork,
+               let unicast = pm.unicastAddress ?? pm.suggestedUnicastAddress,
+               let node = net.node(withAddress: unicast),
+               let mapped = plugin.convertNordicNodeToPigeon(node) {
+                out = mapped
+            } else {
+                let addr: Int64 = Int64(pm.unicastAddress ?? pm.suggestedUnicastAddress ?? 0)
+                out = ProvisionedNode(
+                    nodeId: deviceId,
+                    name: unprovisionedDevice.name ?? "Node",
+                    unicastAddress: addr,
+                    uuid: plugin.provisioningUuidBytesByDeviceId[deviceId] ?? [],
+                    elements: [],
+                    provisioned: true
+                )
+            }
             plugin.provisioningResultByDeviceId[deviceId] = .success(out)
             plugin.flutterApi?.onProvisioningEvent(event: ProvisioningEvent(
                 deviceId: deviceId,
@@ -1063,6 +1133,62 @@ extension PlatoJobsMeshPlugin: BearerDelegate {
 }
 
 private extension PlatoJobsMeshPlugin {
+    func convertNordicNodeToPigeon(_ node: NordicMesh.Node) -> ProvisionedNode? {
+        let elements: [Element] = node.elements.map { el in
+            let models: [Model] = el.models.compactMap { m in
+                // Only expose SIG models here (companyIdentifier == nil) for now.
+                guard m.companyIdentifier == nil else { return nil }
+                var out = Model()
+                out.modelId = Int64(m.modelIdentifier)
+                out.modelName = m.name
+                out.publishable = true
+                out.subscribable = true
+                out.boundAppKeyIndexes = m.boundApplicationKeys.map { Int64($0.index) }
+                out.subscriptions = m.subscriptions.map { Int64($0.address.address) }
+                if let pub = m.publish {
+                    out.publication = Publication(
+                        address: Int64(pub.publicationAddress.address),
+                        appKeyIndex: Int64(pub.applicationKey.index),
+                        ttl: pub.ttl == 0xFF ? nil : Int64(pub.ttl)
+                    )
+                } else {
+                    out.publication = nil
+                }
+                return out
+            }
+            return Element(
+                address: Int64(el.unicastAddress.address),
+                models: models
+            )
+        }
+
+        // Prefer reporting the node UUID as bytes.
+        var uuid = node.uuid.uuid
+        let uuidBytes: [Int64] = withUnsafeBytes(of: &uuid) { raw in
+            raw.map { Int64($0) }
+        }
+
+        return ProvisionedNode(
+            nodeId: node.uuid.uuidString,
+            name: node.name ?? "Node",
+            unicastAddress: Int64(node.unicastAddress.address),
+            uuid: uuidBytes,
+            elements: elements,
+            provisioned: true
+        )
+    }
+
+    // Best-effort helper for allocating group addresses.
+    // Nordic iOS library doesn't expose a convenience, so we scan for the next free group address.
+    func nextAvailableGroupAddress(in net: MeshNetwork) -> Address {
+        let used = Set(net.groups.map { $0.address })
+        var a = Address(0xC000)
+        while used.contains(a) && a.address < 0xFEFF {
+            a = Address(a.address + 1)
+        }
+        return a
+    }
+
     func waitUntil(timeoutSeconds: TimeInterval, predicate: @escaping () -> Bool) -> Bool {
         let deadline = Date().addingTimeInterval(timeoutSeconds)
         while Date() < deadline {
