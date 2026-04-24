@@ -1,3 +1,12 @@
+## 5.0.0
+
+### Breaking changes
+- iOS: `getNodes()` now returns nodes from the Nordic Mesh DB when available (elements/models/subscriptions/publications are sourced from the DB).
+
+### Features
+- iOS (M2 foundation): return provisioned nodes with populated elements/models after provisioning completion.
+- iOS (M2 foundation): group management uses Mesh DB groups when available.
+
 ## 4.0.1
 
 ### Features
