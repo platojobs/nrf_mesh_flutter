@@ -575,13 +575,10 @@ class PlatoJobsMeshPlugin :
             )
         }
 
-        return ProvisionedNode(
-            nodeId = deviceId ?: uuid.toString(),
-            name = n.name,
-            unicastAddress = n.primaryUnicastAddress.address.toLong(),
-            uuid = device.uuid,
-            elements = emptyList(),
-            provisioned = true
+        return kmNodeToPigeon(
+            node = n,
+            uuidBytesOverride = device.uuid,
+            nodeIdOverride = (deviceId ?: uuid.toString()),
         )
     }
 
@@ -623,16 +620,7 @@ class PlatoJobsMeshPlugin :
             return try {
                 runBlocking {
                     val net = km.meshNetwork.first()
-                    net.nodes.map { n ->
-                        ProvisionedNode(
-                            nodeId = n.uuid.toString(),
-                            name = n.name,
-                            unicastAddress = n.primaryUnicastAddress.address.toLong(),
-                            uuid = kotlinUuidToBytes(n.uuid),
-                            elements = emptyList(),
-                            provisioned = true
-                        )
-                    }
+                    net.nodes.map { n -> kmNodeToPigeon(n) }
                 }
             } catch (_: Throwable) {
                 legacyManager?.getNodes() ?: emptyList()
@@ -642,10 +630,54 @@ class PlatoJobsMeshPlugin :
     }
 
     override fun removeNode(nodeId: String) {
-        // no-op
+        val km = kotlinMeshManager
+        if (km != null) {
+            try {
+                runBlocking {
+                    val net = km.meshNetwork.first()
+                    val uuid = try { kotlin.uuid.Uuid.parse(nodeId) } catch (_: Throwable) { null }
+                    val node = if (uuid != null) net.nodes.firstOrNull { it.uuid == uuid } else null
+                    if (node != null) {
+                        try {
+                            val m = net.javaClass.methods.firstOrNull { it.name == "removeNode" && it.parameterTypes.size == 1 }
+                            m?.invoke(net, node)
+                            km.save()
+                        } catch (_: Throwable) {
+                            // ignore
+                        }
+                    }
+                }
+                return
+            } catch (_: Throwable) {
+                // fall through
+            }
+        }
+        legacyManager?.removeNode(nodeId)
     }
 
     override fun createGroup(name: String): MeshGroup {
+        val km = kotlinMeshManager
+        if (km != null) {
+            try {
+                return runBlocking {
+                    val net = km.meshNetwork.first()
+                    val group = tryCreateGroupInKm(net, name)
+                    if (group != null) {
+                        km.save()
+                        group
+                    } else {
+                        legacyManager?.createGroup(name) ?: MeshGroup(
+                            groupId = java.util.UUID.randomUUID().toString(),
+                            name = name,
+                            address = 0xC000L,
+                            nodeIds = emptyList()
+                        )
+                    }
+                }
+            } catch (_: Throwable) {
+                // fall through
+            }
+        }
         return legacyManager?.createGroup(name) ?: MeshGroup(
             groupId = java.util.UUID.randomUUID().toString(),
             name = name,
@@ -654,10 +686,29 @@ class PlatoJobsMeshPlugin :
         )
     }
 
-    override fun getGroups(): List<MeshGroup> = legacyManager?.getGroups() ?: emptyList()
+    override fun getGroups(): List<MeshGroup> {
+        val km = kotlinMeshManager
+        if (km != null) {
+            try {
+                return runBlocking {
+                    val net = km.meshNetwork.first()
+                    val groups = tryGetKmGroups(net)
+                    if (groups.isNotEmpty()) {
+                        groups
+                    } else {
+                        legacyManager?.getGroups() ?: emptyList()
+                    }
+                }
+            } catch (_: Throwable) {
+                // fall through
+            }
+        }
+        return legacyManager?.getGroups() ?: emptyList()
+    }
 
     override fun addNodeToGroup(nodeId: String, groupId: String) {
-        // no-op
+        // Subscription is handled via Config Model ops in M2.
+        // Keep legacy behavior as a no-op.
     }
 
     // Configuration (P1 - minimal, in-memory)
@@ -987,6 +1038,159 @@ private fun kotlinUuidToBytes(uuid: Uuid): List<Long> {
         i += 2
     }
     return out.map { (it.toInt() and 0xFF).toLong() }
+}
+
+private fun kmNodeToPigeon(
+    node: Any,
+    uuidBytesOverride: List<Long>? = null,
+    nodeIdOverride: String? = null,
+): ProvisionedNode {
+    val name: String? = try {
+        node.javaClass.methods.firstOrNull { it.name == "getName" }?.invoke(node) as? String
+    } catch (_: Throwable) { null }
+
+    val uuidObj: Any? = try {
+        node.javaClass.methods.firstOrNull { it.name == "getUuid" }?.invoke(node)
+    } catch (_: Throwable) { null }
+    val uuidStr: String? = uuidObj?.toString()
+
+    val unicast: Long? = try {
+        val pu = node.javaClass.methods.firstOrNull { it.name == "getPrimaryUnicastAddress" }?.invoke(node)
+        val addr = pu?.javaClass?.methods?.firstOrNull { it.name == "getAddress" }?.invoke(pu)
+        when (addr) {
+            is UShort -> addr.toLong()
+            is Short -> (addr.toInt() and 0xFFFF).toLong()
+            is Int -> (addr and 0xFFFF).toLong()
+            else -> null
+        }
+    } catch (_: Throwable) { null }
+
+    val elements: List<Element> = try {
+        val els = node.javaClass.methods.firstOrNull { it.name == "getElements" }?.invoke(node) as? List<*>
+        els?.mapNotNull { el ->
+            if (el == null) return@mapNotNull null
+            val elAddr = try {
+                val a = el.javaClass.methods.firstOrNull { it.name == "getUnicastAddress" }?.invoke(el)
+                    ?: el.javaClass.methods.firstOrNull { it.name == "getAddress" }?.invoke(el)
+                when (a) {
+                    is UShort -> a.toLong()
+                    is Short -> (a.toInt() and 0xFFFF).toLong()
+                    is Int -> (a and 0xFFFF).toLong()
+                    else -> null
+                }
+            } catch (_: Throwable) { null }
+
+            val models: List<Model> = try {
+                val ms = el.javaClass.methods.firstOrNull { it.name == "getModels" }?.invoke(el) as? List<*>
+                ms?.mapNotNull { m ->
+                    if (m == null) return@mapNotNull null
+                    val modelId = tryExtractSigModelId(m) ?: return@mapNotNull null
+                    Model(
+                        modelId = modelId,
+                        modelName = null,
+                        publishable = true,
+                        subscribable = true,
+                        boundAppKeyIndexes = emptyList(),
+                        subscriptions = emptyList(),
+                        publication = null,
+                    )
+                } ?: emptyList()
+            } catch (_: Throwable) { emptyList() }
+
+            Element(
+                address = elAddr,
+                models = models,
+            )
+        } ?: emptyList()
+    } catch (_: Throwable) { emptyList() }
+
+    val uuidBytes = uuidBytesOverride ?: run {
+        val u = try { uuidStr?.let { kotlin.uuid.Uuid.parse(it) } } catch (_: Throwable) { null }
+        if (u != null) kotlinUuidToBytes(u) else emptyList()
+    }
+
+    return ProvisionedNode(
+        nodeId = nodeIdOverride ?: (uuidStr ?: ""),
+        name = name,
+        unicastAddress = unicast,
+        uuid = uuidBytes,
+        elements = elements,
+        provisioned = true,
+    )
+}
+
+private fun tryExtractSigModelId(model: Any): Long? {
+    val candidates = listOf("getModelIdentifier", "getModelId", "getId")
+    for (name in candidates) {
+        try {
+            val v = model.javaClass.methods.firstOrNull { it.name == name }?.invoke(model)
+            when (v) {
+                is UShort -> return v.toLong()
+                is Short -> return (v.toInt() and 0xFFFF).toLong()
+                is Int -> return (v and 0xFFFF).toLong()
+                is Long -> return v
+            }
+        } catch (_: Throwable) {
+            // keep trying
+        }
+    }
+    try {
+        val v = model.javaClass.methods.firstOrNull { it.name == "getModelId" }?.invoke(model)
+        val inner = v?.javaClass?.methods?.firstOrNull { it.name == "getModelIdentifier" }?.invoke(v)
+        when (inner) {
+            is UShort -> return inner.toLong()
+            is Short -> return (inner.toInt() and 0xFFFF).toLong()
+            is Int -> return (inner and 0xFFFF).toLong()
+            is Long -> return inner
+        }
+    } catch (_: Throwable) {
+        // ignore
+    }
+    return null
+}
+
+private fun tryGetKmGroups(net: Any): List<MeshGroup> {
+    return try {
+        val g = net.javaClass.methods.firstOrNull { it.name == "getGroups" }?.invoke(net) as? List<*>
+        g?.mapNotNull { it?.let { gg -> mapKmGroupToPigeon(gg) } } ?: emptyList()
+    } catch (_: Throwable) {
+        emptyList()
+    }
+}
+
+private fun tryCreateGroupInKm(net: Any, name: String): MeshGroup? {
+    return try {
+        val create = net.javaClass.methods.firstOrNull { it.name == "createGroup" && it.parameterTypes.size == 1 }
+        val groupObj = create?.invoke(net, name)
+        if (groupObj != null) mapKmGroupToPigeon(groupObj) else null
+    } catch (_: Throwable) {
+        null
+    }
+}
+
+private fun mapKmGroupToPigeon(group: Any): MeshGroup? {
+    return try {
+        val id = try { group.javaClass.methods.firstOrNull { it.name == "getUuid" }?.invoke(group)?.toString() } catch (_: Throwable) { null }
+        val name = try { group.javaClass.methods.firstOrNull { it.name == "getName" }?.invoke(group) as? String } catch (_: Throwable) { null }
+        val addr = try {
+            val a = group.javaClass.methods.firstOrNull { it.name == "getAddress" }?.invoke(group)
+            when (a) {
+                is UShort -> a.toLong()
+                is Short -> (a.toInt() and 0xFFFF).toLong()
+                is Int -> (a and 0xFFFF).toLong()
+                else -> null
+            }
+        } catch (_: Throwable) { null }
+
+        MeshGroup(
+            groupId = id,
+            name = name,
+            address = addr,
+            nodeIds = emptyList(),
+        )
+    } catch (_: Throwable) {
+        null
+    }
 }
 
 private class ProvisioningGattBearerImpl<
