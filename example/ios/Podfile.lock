@@ -3,7 +3,7 @@ PODS:
   - Flutter (1.0.0)
   - integration_test (0.0.1):
     - Flutter
-  - nrf_mesh_flutter (0.3.0):
+  - nrf_mesh_flutter (6.6.0):
     - Flutter
     - nRFMeshProvision (~> 4.8.0)
   - nRFMeshProvision (4.8.0):
@@ -31,7 +31,7 @@ SPEC CHECKSUMS:
   CryptoSwift: e64e11850ede528a02a0f3e768cec8e9d92ecb90
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   integration_test: 4a889634ef21a45d28d50d622cf412dc6d9f586e
-  nrf_mesh_flutter: 97516bb64b90025d9121f84c8de5268122a77a78
+  nrf_mesh_flutter: 2882196584bac7cbc52215e6985c815ff8d0c3b5
   nRFMeshProvision: 1f0162cd380b439ab144d5e2fd47670c6088d783
 
 PODFILE CHECKSUM: 47a757a7853adf00f34d8294fd2037725e0d47ac

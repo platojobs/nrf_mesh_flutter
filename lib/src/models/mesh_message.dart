@@ -15,11 +15,18 @@ abstract class MeshMessage {
   /// When unknown, may be null.
   final int? appKeyIndex;
 
+  /// 16-byte Label UUID (virtual destination) when [address] is a virtual 16-bit hash.
+  ///
+  /// Native stacks need this in addition to the 16-bit virtual address to build the
+  /// Upper Transport MIC. Prefer setting this for group traffic to a virtual address.
+  final List<int>? virtualLabel;
+
   MeshMessage({
     required this.opcode,
     required this.parameters,
     this.address,
     this.appKeyIndex,
+    this.virtualLabel,
   });
 
   Map<String, dynamic> toMap() {
@@ -28,6 +35,7 @@ abstract class MeshMessage {
       'parameters': parameters,
       'address': address,
       'appKeyIndex': appKeyIndex,
+      'virtualLabel': virtualLabel,
       'messageType': runtimeType.toString(),
     };
   }
@@ -49,6 +57,7 @@ abstract class MeshMessage {
           parameters: List<int>.from(map['parameters']),
           address: map['address'],
           appKeyIndex: map['appKeyIndex'],
+          virtualLabel: (map['virtualLabel'] as List<dynamic>?)?.cast<int>(),
         );
       default:
         return UnknownMessage(
@@ -56,6 +65,7 @@ abstract class MeshMessage {
           parameters: List<int>.from(map['parameters']),
           address: map['address'],
           appKeyIndex: map['appKeyIndex'],
+          virtualLabel: (map['virtualLabel'] as List<dynamic>?)?.cast<int>(),
         );
     }
   }
@@ -134,6 +144,7 @@ class GenericOnOffSet extends MeshMessage {
     this.delay,
     super.address,
     super.appKeyIndex,
+    super.virtualLabel,
   })  : tid = (tid ?? DateTime.now().millisecondsSinceEpoch & 0xFF),
         super(
           // Generic OnOff Set (acknowledged): 0x8202
@@ -154,6 +165,7 @@ class GenericOnOffSet extends MeshMessage {
       delay: map['delay'],
       address: map['address'],
       appKeyIndex: map['appKeyIndex'],
+      virtualLabel: (map['virtualLabel'] as List<dynamic>?)?.cast<int>(),
     );
   }
 
@@ -198,6 +210,7 @@ class GenericLevelSet extends MeshMessage {
     this.delay,
     super.address,
     super.appKeyIndex,
+    super.virtualLabel,
   })  : tid = (tid ?? DateTime.now().millisecondsSinceEpoch & 0xFF),
         super(
           // Generic Level Set (acknowledged): 0x8206
@@ -218,6 +231,7 @@ class GenericLevelSet extends MeshMessage {
       delay: map['delay'],
       address: map['address'],
       appKeyIndex: map['appKeyIndex'],
+      virtualLabel: (map['virtualLabel'] as List<dynamic>?)?.cast<int>(),
     );
   }
 
@@ -261,6 +275,7 @@ class GenericOnOffStatus extends MeshMessage {
     this.remainingTime,
     super.address,
     super.appKeyIndex,
+    super.virtualLabel,
   }) : super(
           opcode: '0x8204',
           parameters: const <int>[],
@@ -297,6 +312,7 @@ class GenericLevelStatus extends MeshMessage {
     this.remainingTime,
     super.address,
     super.appKeyIndex,
+    super.virtualLabel,
   }) : super(
           opcode: '0x8208',
           parameters: const <int>[],
@@ -328,5 +344,6 @@ class UnknownMessage extends MeshMessage {
     required super.parameters,
     super.address,
     super.appKeyIndex,
+    super.virtualLabel,
   });
 }

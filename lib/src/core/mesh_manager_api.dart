@@ -143,6 +143,46 @@ class MeshManagerApi {
     return await _guard(() => _platform.getGroups());
   }
 
+  Future<group_models.MeshGroup> createVirtualGroup(String name, List<int> labelUuid) async {
+    return await _guard(() => _platform.createVirtualGroup(name, labelUuid));
+  }
+
+  Future<bool> removeGroup(String groupId) async {
+    return await _guard(() => _platform.removeGroup(groupId));
+  }
+
+  Future<bool> addSubscriptionVirtual(int elementAddress, int modelId, List<int> labelUuid) async {
+    return await _guard(() => _platform.addSubscriptionVirtual(elementAddress, modelId, labelUuid));
+  }
+
+  Future<bool> removeSubscriptionVirtual(
+    int elementAddress,
+    int modelId,
+    List<int> labelUuid,
+  ) async {
+    return await _guard(
+      () => _platform.removeSubscriptionVirtual(elementAddress, modelId, labelUuid),
+    );
+  }
+
+  Future<bool> setPublicationVirtual(
+    int elementAddress,
+    int modelId,
+    List<int> labelUuid,
+    int appKeyIndex, {
+    int? ttl,
+  }) async {
+    return await _guard(
+      () => _platform.setPublicationVirtual(
+        elementAddress,
+        modelId,
+        labelUuid,
+        appKeyIndex,
+        ttl: ttl,
+      ),
+    );
+  }
+
   // M2: Configuration foundation
   Future<bool> fetchCompositionData(int destination, {int page = 0}) async {
     return await _guard(() => _platform.fetchCompositionData(destination, page: page));
@@ -211,6 +251,38 @@ class MeshManagerApi {
 
   Future<bool> importConfigurationBundle(String path) async {
     return await _guard(() => _platform.importConfigurationBundle(path));
+  }
+
+  Future<bool> removeNetworkKeyRemote(int destination, int netKeyIndex) async {
+    return await _guard(() => _platform.removeNetworkKeyRemote(destination, netKeyIndex));
+  }
+
+  Future<bool> removeAppKeyRemote(
+    int destination,
+    int appKeyIndex,
+    int boundNetKeyIndex,
+  ) async {
+    return await _guard(
+      () => _platform.removeAppKeyRemote(destination, appKeyIndex, boundNetKeyIndex),
+    );
+  }
+
+  Future<int> getKeyRefreshPhase(int destination, int netKeyIndex) async {
+    return await _guard(() => _platform.getKeyRefreshPhase(destination, netKeyIndex));
+  }
+
+  Future<bool> setKeyRefreshPhaseTransition(
+    int destination,
+    int netKeyIndex,
+    int transition,
+  ) async {
+    return await _guard(
+      () => _platform.setKeyRefreshPhaseTransition(destination, netKeyIndex, transition),
+    );
+  }
+
+  Future<bool> resetLocalMeshState() async {
+    return await _guard(() => _platform.resetLocalMeshState());
   }
 
   /// Add a node to a group

@@ -730,12 +730,14 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
 + (instancetype)makeWithGroupId:(nullable NSString *)groupId
     name:(nullable NSString *)name
     address:(nullable NSNumber *)address
-    nodeIds:(nullable NSArray<NSString *> *)nodeIds {
+    nodeIds:(nullable NSArray<NSString *> *)nodeIds
+    labelUuid:(nullable NSArray<NSNumber *> *)labelUuid {
   MeshGroup* pigeonResult = [[MeshGroup alloc] init];
   pigeonResult.groupId = groupId;
   pigeonResult.name = name;
   pigeonResult.address = address;
   pigeonResult.nodeIds = nodeIds;
+  pigeonResult.labelUuid = labelUuid;
   return pigeonResult;
 }
 + (MeshGroup *)fromList:(NSArray<id> *)list {
@@ -744,6 +746,7 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
   pigeonResult.name = GetNullableObjectAtIndex(list, 1);
   pigeonResult.address = GetNullableObjectAtIndex(list, 2);
   pigeonResult.nodeIds = GetNullableObjectAtIndex(list, 3);
+  pigeonResult.labelUuid = GetNullableObjectAtIndex(list, 4);
   return pigeonResult;
 }
 + (nullable MeshGroup *)nullableFromList:(NSArray<id> *)list {
@@ -755,6 +758,7 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
     self.name ?: [NSNull null],
     self.address ?: [NSNull null],
     self.nodeIds ?: [NSNull null],
+    self.labelUuid ?: [NSNull null],
   ];
 }
 - (BOOL)isEqual:(id)object {
@@ -765,7 +769,7 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
     return NO;
   }
   MeshGroup *other = (MeshGroup *)object;
-  return FLTPigeonDeepEquals(self.groupId, other.groupId) && FLTPigeonDeepEquals(self.name, other.name) && FLTPigeonDeepEquals(self.address, other.address) && FLTPigeonDeepEquals(self.nodeIds, other.nodeIds);
+  return FLTPigeonDeepEquals(self.groupId, other.groupId) && FLTPigeonDeepEquals(self.name, other.name) && FLTPigeonDeepEquals(self.address, other.address) && FLTPigeonDeepEquals(self.nodeIds, other.nodeIds) && FLTPigeonDeepEquals(self.labelUuid, other.labelUuid);
 }
 
 - (NSUInteger)hash {
@@ -774,6 +778,7 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
   result = result * 31 + FLTPigeonDeepHash(self.name);
   result = result * 31 + FLTPigeonDeepHash(self.address);
   result = result * 31 + FLTPigeonDeepHash(self.nodeIds);
+  result = result * 31 + FLTPigeonDeepHash(self.labelUuid);
   return result;
 }
 @end
@@ -1534,6 +1539,110 @@ void SetUpMeshApiWithSuffix(id<FlutterBinaryMessenger> binaryMessenger, NSObject
       [channel setMessageHandler:nil];
     }
   }
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.createVirtualGroup", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(createVirtualGroupName:labelUuid:error:)], @"MeshApi api (%@) doesn't respond to @selector(createVirtualGroupName:labelUuid:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSString *arg_name = GetNullableObjectAtIndex(args, 0);
+        NSArray<NSNumber *> *arg_labelUuid = GetNullableObjectAtIndex(args, 1);
+        FlutterError *error;
+        MeshGroup *output = [api createVirtualGroupName:arg_name labelUuid:arg_labelUuid error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeGroup", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(removeGroupGroupId:error:)], @"MeshApi api (%@) doesn't respond to @selector(removeGroupGroupId:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSString *arg_groupId = GetNullableObjectAtIndex(args, 0);
+        FlutterError *error;
+        NSNumber *output = [api removeGroupGroupId:arg_groupId error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.addSubscriptionVirtual", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(addSubscriptionVirtualElementAddress:modelId:labelUuid:error:)], @"MeshApi api (%@) doesn't respond to @selector(addSubscriptionVirtualElementAddress:modelId:labelUuid:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSInteger arg_elementAddress = [GetNullableObjectAtIndex(args, 0) integerValue];
+        NSInteger arg_modelId = [GetNullableObjectAtIndex(args, 1) integerValue];
+        NSArray<NSNumber *> *arg_labelUuid = GetNullableObjectAtIndex(args, 2);
+        FlutterError *error;
+        NSNumber *output = [api addSubscriptionVirtualElementAddress:arg_elementAddress modelId:arg_modelId labelUuid:arg_labelUuid error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeSubscriptionVirtual", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(removeSubscriptionVirtualElementAddress:modelId:labelUuid:error:)], @"MeshApi api (%@) doesn't respond to @selector(removeSubscriptionVirtualElementAddress:modelId:labelUuid:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSInteger arg_elementAddress = [GetNullableObjectAtIndex(args, 0) integerValue];
+        NSInteger arg_modelId = [GetNullableObjectAtIndex(args, 1) integerValue];
+        NSArray<NSNumber *> *arg_labelUuid = GetNullableObjectAtIndex(args, 2);
+        FlutterError *error;
+        NSNumber *output = [api removeSubscriptionVirtualElementAddress:arg_elementAddress modelId:arg_modelId labelUuid:arg_labelUuid error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setPublicationVirtual", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(setPublicationVirtualElementAddress:modelId:labelUuid:appKeyIndex:ttl:error:)], @"MeshApi api (%@) doesn't respond to @selector(setPublicationVirtualElementAddress:modelId:labelUuid:appKeyIndex:ttl:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSInteger arg_elementAddress = [GetNullableObjectAtIndex(args, 0) integerValue];
+        NSInteger arg_modelId = [GetNullableObjectAtIndex(args, 1) integerValue];
+        NSArray<NSNumber *> *arg_labelUuid = GetNullableObjectAtIndex(args, 2);
+        NSInteger arg_appKeyIndex = [GetNullableObjectAtIndex(args, 3) integerValue];
+        NSNumber *arg_ttl = GetNullableObjectAtIndex(args, 4);
+        FlutterError *error;
+        NSNumber *output = [api setPublicationVirtualElementAddress:arg_elementAddress modelId:arg_modelId labelUuid:arg_labelUuid appKeyIndex:arg_appKeyIndex ttl:arg_ttl error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
   /// Fetch Composition Data for a given node and persist it in the Mesh DB.
   ///
   /// - `destination`: the node's unicast address.
@@ -1831,6 +1940,119 @@ void SetUpMeshApiWithSuffix(id<FlutterBinaryMessenger> binaryMessenger, NSObject
         NSString *arg_path = GetNullableObjectAtIndex(args, 0);
         FlutterError *error;
         NSNumber *output = [api importConfigurationBundlePath:arg_path error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  /// Remove a network key on a **remote** node (Config NetKey Delete).
+  ///
+  /// [destination] is the unicast address of the element with the Configuration Server (usually primary).
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeNetworkKeyRemote", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(removeNetworkKeyRemoteDestination:netKeyIndex:error:)], @"MeshApi api (%@) doesn't respond to @selector(removeNetworkKeyRemoteDestination:netKeyIndex:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSInteger arg_destination = [GetNullableObjectAtIndex(args, 0) integerValue];
+        NSInteger arg_netKeyIndex = [GetNullableObjectAtIndex(args, 1) integerValue];
+        FlutterError *error;
+        NSNumber *output = [api removeNetworkKeyRemoteDestination:arg_destination netKeyIndex:arg_netKeyIndex error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  /// Remove an application key on a **remote** node (Config App Key Delete).
+  ///
+  /// [boundNetKeyIndex] is the NetKey that the AppKey is bound to.
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeAppKeyRemote", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(removeAppKeyRemoteDestination:appKeyIndex:boundNetKeyIndex:error:)], @"MeshApi api (%@) doesn't respond to @selector(removeAppKeyRemoteDestination:appKeyIndex:boundNetKeyIndex:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSInteger arg_destination = [GetNullableObjectAtIndex(args, 0) integerValue];
+        NSInteger arg_appKeyIndex = [GetNullableObjectAtIndex(args, 1) integerValue];
+        NSInteger arg_boundNetKeyIndex = [GetNullableObjectAtIndex(args, 2) integerValue];
+        FlutterError *error;
+        NSNumber *output = [api removeAppKeyRemoteDestination:arg_destination appKeyIndex:arg_appKeyIndex boundNetKeyIndex:arg_boundNetKeyIndex error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  /// Read Key Refresh phase for [netKeyIndex] on a node (Config Key Refresh Phase Get).
+  ///
+  /// Returns `0` = normal, `1` = key distribution, `2` = using new keys, or `-1` if unavailable.
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.getKeyRefreshPhase", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(getKeyRefreshPhaseDestination:netKeyIndex:error:)], @"MeshApi api (%@) doesn't respond to @selector(getKeyRefreshPhaseDestination:netKeyIndex:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSInteger arg_destination = [GetNullableObjectAtIndex(args, 0) integerValue];
+        NSInteger arg_netKeyIndex = [GetNullableObjectAtIndex(args, 1) integerValue];
+        FlutterError *error;
+        NSNumber *output = [api getKeyRefreshPhaseDestination:arg_destination netKeyIndex:arg_netKeyIndex error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  /// Set Key Refresh phase transition (Config Key Refresh Phase Set).
+  ///
+  /// [transition] uses Nordic / Mesh values: `2` = use new keys, `3` = revoke old keys.
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setKeyRefreshPhaseTransition", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(setKeyRefreshPhaseTransitionDestination:netKeyIndex:transition:error:)], @"MeshApi api (%@) doesn't respond to @selector(setKeyRefreshPhaseTransitionDestination:netKeyIndex:transition:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSInteger arg_destination = [GetNullableObjectAtIndex(args, 0) integerValue];
+        NSInteger arg_netKeyIndex = [GetNullableObjectAtIndex(args, 1) integerValue];
+        NSInteger arg_transition = [GetNullableObjectAtIndex(args, 2) integerValue];
+        FlutterError *error;
+        NSNumber *output = [api setKeyRefreshPhaseTransitionDestination:arg_destination netKeyIndex:arg_netKeyIndex transition:arg_transition error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  /// Clears the loaded mesh, persisted plugin storage, and secure state (Android) so the app can
+  /// [createNetwork] or [import] a fresh database.
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.resetLocalMeshState", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(resetLocalMeshStateWithError:)], @"MeshApi api (%@) doesn't respond to @selector(resetLocalMeshStateWithError:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        FlutterError *error;
+        NSNumber *output = [api resetLocalMeshStateWithError:&error];
         callback(wrapResult(output, error));
       }];
     } else {

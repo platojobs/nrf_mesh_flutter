@@ -641,6 +641,8 @@ struct MeshGroup: Hashable {
   var name: String? = nil
   var address: Int64? = nil
   var nodeIds: [String]? = nil
+  /// 16-byte Label UUID (MSB..LSB) when this is a virtual group, otherwise null/empty.
+  var labelUuid: [Int64]? = nil
 
 
   // swift-format-ignore: AlwaysUseLowerCamelCase
@@ -649,12 +651,14 @@ struct MeshGroup: Hashable {
     let name: String? = nilOrValue(pigeonVar_list[1])
     let address: Int64? = nilOrValue(pigeonVar_list[2])
     let nodeIds: [String]? = nilOrValue(pigeonVar_list[3])
+    let labelUuid: [Int64]? = nilOrValue(pigeonVar_list[4])
 
     return MeshGroup(
       groupId: groupId,
       name: name,
       address: address,
-      nodeIds: nodeIds
+      nodeIds: nodeIds,
+      labelUuid: labelUuid
     )
   }
   func toList() -> [Any?] {
@@ -663,13 +667,14 @@ struct MeshGroup: Hashable {
       name,
       address,
       nodeIds,
+      labelUuid,
     ]
   }
   static func == (lhs: MeshGroup, rhs: MeshGroup) -> Bool {
     if Swift.type(of: lhs) != Swift.type(of: rhs) {
       return false
     }
-    return deepEqualsPigeonGenerated(lhs.groupId, rhs.groupId) && deepEqualsPigeonGenerated(lhs.name, rhs.name) && deepEqualsPigeonGenerated(lhs.address, rhs.address) && deepEqualsPigeonGenerated(lhs.nodeIds, rhs.nodeIds)
+    return deepEqualsPigeonGenerated(lhs.groupId, rhs.groupId) && deepEqualsPigeonGenerated(lhs.name, rhs.name) && deepEqualsPigeonGenerated(lhs.address, rhs.address) && deepEqualsPigeonGenerated(lhs.nodeIds, rhs.nodeIds) && deepEqualsPigeonGenerated(lhs.labelUuid, rhs.labelUuid)
   }
 
   func hash(into hasher: inout Hasher) {
@@ -678,6 +683,7 @@ struct MeshGroup: Hashable {
     deepHashPigeonGenerated(value: name, hasher: &hasher)
     deepHashPigeonGenerated(value: address, hasher: &hasher)
     deepHashPigeonGenerated(value: nodeIds, hasher: &hasher)
+    deepHashPigeonGenerated(value: labelUuid, hasher: &hasher)
   }
 }
 
@@ -1112,6 +1118,11 @@ protocol MeshApi {
   func createGroup(name: String) throws -> MeshGroup
   func getGroups() throws -> [MeshGroup]
   func addNodeToGroup(nodeId: String, groupId: String) throws
+  func createVirtualGroup(name: String, labelUuid: [Int64]) throws -> MeshGroup
+  func removeGroup(groupId: String) throws -> Bool
+  func addSubscriptionVirtual(elementAddress: Int64, modelId: Int64, labelUuid: [Int64]) throws -> Bool
+  func removeSubscriptionVirtual(elementAddress: Int64, modelId: Int64, labelUuid: [Int64]) throws -> Bool
+  func setPublicationVirtual(elementAddress: Int64, modelId: Int64, labelUuid: [Int64], appKeyIndex: Int64, ttl: Int64?) throws -> Bool
   /// Fetch Composition Data for a given node and persist it in the Mesh DB.
   ///
   /// - `destination`: the node's unicast address.
@@ -1155,6 +1166,25 @@ protocol MeshApi {
   func exportConfigurationBundle(path: String) throws -> Bool
   /// Import a configuration bundle from a file path.
   func importConfigurationBundle(path: String) throws -> Bool
+  /// Remove a network key on a **remote** node (Config NetKey Delete).
+  ///
+  /// [destination] is the unicast address of the element with the Configuration Server (usually primary).
+  func removeNetworkKeyRemote(destination: Int64, netKeyIndex: Int64) throws -> Bool
+  /// Remove an application key on a **remote** node (Config App Key Delete).
+  ///
+  /// [boundNetKeyIndex] is the NetKey that the AppKey is bound to.
+  func removeAppKeyRemote(destination: Int64, appKeyIndex: Int64, boundNetKeyIndex: Int64) throws -> Bool
+  /// Read Key Refresh phase for [netKeyIndex] on a node (Config Key Refresh Phase Get).
+  ///
+  /// Returns `0` = normal, `1` = key distribution, `2` = using new keys, or `-1` if unavailable.
+  func getKeyRefreshPhase(destination: Int64, netKeyIndex: Int64) throws -> Int64
+  /// Set Key Refresh phase transition (Config Key Refresh Phase Set).
+  ///
+  /// [transition] uses Nordic / Mesh values: `2` = use new keys, `3` = revoke old keys.
+  func setKeyRefreshPhaseTransition(destination: Int64, netKeyIndex: Int64, transition: Int64) throws -> Bool
+  /// Clears the loaded mesh, persisted plugin storage, and secure state (Android) so the app can
+  /// [createNetwork] or [import] a fresh database.
+  func resetLocalMeshState() throws -> Bool
   /// Bind an AppKey to a model on a given element address.
   func bindAppKey(elementAddress: Int64, modelId: Int64, appKeyIndex: Int64) throws -> Bool
   /// Unbind an AppKey from a model on a given element address.
@@ -1431,6 +1461,90 @@ class MeshApiSetup {
     } else {
       addNodeToGroupChannel.setMessageHandler(nil)
     }
+    let createVirtualGroupChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.createVirtualGroup\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      createVirtualGroupChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let nameArg = args[0] as! String
+        let labelUuidArg = args[1] as! [Int64]
+        do {
+          let result = try api.createVirtualGroup(name: nameArg, labelUuid: labelUuidArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      createVirtualGroupChannel.setMessageHandler(nil)
+    }
+    let removeGroupChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeGroup\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      removeGroupChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let groupIdArg = args[0] as! String
+        do {
+          let result = try api.removeGroup(groupId: groupIdArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      removeGroupChannel.setMessageHandler(nil)
+    }
+    let addSubscriptionVirtualChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.addSubscriptionVirtual\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      addSubscriptionVirtualChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let elementAddressArg = args[0] as! Int64
+        let modelIdArg = args[1] as! Int64
+        let labelUuidArg = args[2] as! [Int64]
+        do {
+          let result = try api.addSubscriptionVirtual(elementAddress: elementAddressArg, modelId: modelIdArg, labelUuid: labelUuidArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      addSubscriptionVirtualChannel.setMessageHandler(nil)
+    }
+    let removeSubscriptionVirtualChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeSubscriptionVirtual\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      removeSubscriptionVirtualChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let elementAddressArg = args[0] as! Int64
+        let modelIdArg = args[1] as! Int64
+        let labelUuidArg = args[2] as! [Int64]
+        do {
+          let result = try api.removeSubscriptionVirtual(elementAddress: elementAddressArg, modelId: modelIdArg, labelUuid: labelUuidArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      removeSubscriptionVirtualChannel.setMessageHandler(nil)
+    }
+    let setPublicationVirtualChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setPublicationVirtual\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      setPublicationVirtualChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let elementAddressArg = args[0] as! Int64
+        let modelIdArg = args[1] as! Int64
+        let labelUuidArg = args[2] as! [Int64]
+        let appKeyIndexArg = args[3] as! Int64
+        let ttlArg: Int64? = nilOrValue(args[4])
+        do {
+          let result = try api.setPublicationVirtual(elementAddress: elementAddressArg, modelId: modelIdArg, labelUuid: labelUuidArg, appKeyIndex: appKeyIndexArg, ttl: ttlArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      setPublicationVirtualChannel.setMessageHandler(nil)
+    }
     /// Fetch Composition Data for a given node and persist it in the Mesh DB.
     ///
     /// - `destination`: the node's unicast address.
@@ -1677,6 +1791,99 @@ class MeshApiSetup {
       }
     } else {
       importConfigurationBundleChannel.setMessageHandler(nil)
+    }
+    /// Remove a network key on a **remote** node (Config NetKey Delete).
+    ///
+    /// [destination] is the unicast address of the element with the Configuration Server (usually primary).
+    let removeNetworkKeyRemoteChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeNetworkKeyRemote\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      removeNetworkKeyRemoteChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let destinationArg = args[0] as! Int64
+        let netKeyIndexArg = args[1] as! Int64
+        do {
+          let result = try api.removeNetworkKeyRemote(destination: destinationArg, netKeyIndex: netKeyIndexArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      removeNetworkKeyRemoteChannel.setMessageHandler(nil)
+    }
+    /// Remove an application key on a **remote** node (Config App Key Delete).
+    ///
+    /// [boundNetKeyIndex] is the NetKey that the AppKey is bound to.
+    let removeAppKeyRemoteChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeAppKeyRemote\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      removeAppKeyRemoteChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let destinationArg = args[0] as! Int64
+        let appKeyIndexArg = args[1] as! Int64
+        let boundNetKeyIndexArg = args[2] as! Int64
+        do {
+          let result = try api.removeAppKeyRemote(destination: destinationArg, appKeyIndex: appKeyIndexArg, boundNetKeyIndex: boundNetKeyIndexArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      removeAppKeyRemoteChannel.setMessageHandler(nil)
+    }
+    /// Read Key Refresh phase for [netKeyIndex] on a node (Config Key Refresh Phase Get).
+    ///
+    /// Returns `0` = normal, `1` = key distribution, `2` = using new keys, or `-1` if unavailable.
+    let getKeyRefreshPhaseChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.getKeyRefreshPhase\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      getKeyRefreshPhaseChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let destinationArg = args[0] as! Int64
+        let netKeyIndexArg = args[1] as! Int64
+        do {
+          let result = try api.getKeyRefreshPhase(destination: destinationArg, netKeyIndex: netKeyIndexArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      getKeyRefreshPhaseChannel.setMessageHandler(nil)
+    }
+    /// Set Key Refresh phase transition (Config Key Refresh Phase Set).
+    ///
+    /// [transition] uses Nordic / Mesh values: `2` = use new keys, `3` = revoke old keys.
+    let setKeyRefreshPhaseTransitionChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setKeyRefreshPhaseTransition\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      setKeyRefreshPhaseTransitionChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let destinationArg = args[0] as! Int64
+        let netKeyIndexArg = args[1] as! Int64
+        let transitionArg = args[2] as! Int64
+        do {
+          let result = try api.setKeyRefreshPhaseTransition(destination: destinationArg, netKeyIndex: netKeyIndexArg, transition: transitionArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      setKeyRefreshPhaseTransitionChannel.setMessageHandler(nil)
+    }
+    /// Clears the loaded mesh, persisted plugin storage, and secure state (Android) so the app can
+    /// [createNetwork] or [import] a fresh database.
+    let resetLocalMeshStateChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.resetLocalMeshState\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      resetLocalMeshStateChannel.setMessageHandler { _, reply in
+        do {
+          let result = try api.resetLocalMeshState()
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      resetLocalMeshStateChannel.setMessageHandler(nil)
     }
     /// Bind an AppKey to a model on a given element address.
     let bindAppKeyChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.bindAppKey\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)

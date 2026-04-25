@@ -666,7 +666,9 @@ data class MeshGroup (
   val groupId: String? = null,
   val name: String? = null,
   val address: Long? = null,
-  val nodeIds: List<String>? = null
+  val nodeIds: List<String>? = null,
+  /** 16-byte Label UUID (MSB..LSB) when this is a virtual group, otherwise null/empty. */
+  val labelUuid: List<Long>? = null
 )
  {
   companion object {
@@ -675,7 +677,8 @@ data class MeshGroup (
       val name = pigeonVar_list[1] as String?
       val address = pigeonVar_list[2] as Long?
       val nodeIds = pigeonVar_list[3] as List<String>?
-      return MeshGroup(groupId, name, address, nodeIds)
+      val labelUuid = pigeonVar_list[4] as List<Long>?
+      return MeshGroup(groupId, name, address, nodeIds, labelUuid)
     }
   }
   fun toList(): List<Any?> {
@@ -684,6 +687,7 @@ data class MeshGroup (
       name,
       address,
       nodeIds,
+      labelUuid,
     )
   }
   override fun equals(other: Any?): Boolean {
@@ -694,7 +698,7 @@ data class MeshGroup (
       return true
     }
     val other = other as MeshGroup
-    return PigeonGeneratedPigeonUtils.deepEquals(this.groupId, other.groupId) && PigeonGeneratedPigeonUtils.deepEquals(this.name, other.name) && PigeonGeneratedPigeonUtils.deepEquals(this.address, other.address) && PigeonGeneratedPigeonUtils.deepEquals(this.nodeIds, other.nodeIds)
+    return PigeonGeneratedPigeonUtils.deepEquals(this.groupId, other.groupId) && PigeonGeneratedPigeonUtils.deepEquals(this.name, other.name) && PigeonGeneratedPigeonUtils.deepEquals(this.address, other.address) && PigeonGeneratedPigeonUtils.deepEquals(this.nodeIds, other.nodeIds) && PigeonGeneratedPigeonUtils.deepEquals(this.labelUuid, other.labelUuid)
   }
 
   override fun hashCode(): Int {
@@ -703,6 +707,7 @@ data class MeshGroup (
     result = 31 * result + PigeonGeneratedPigeonUtils.deepHash(this.name)
     result = 31 * result + PigeonGeneratedPigeonUtils.deepHash(this.address)
     result = 31 * result + PigeonGeneratedPigeonUtils.deepHash(this.nodeIds)
+    result = 31 * result + PigeonGeneratedPigeonUtils.deepHash(this.labelUuid)
     return result
   }
 }
@@ -1185,6 +1190,11 @@ interface MeshApi {
   fun createGroup(name: String): MeshGroup
   fun getGroups(): List<MeshGroup>
   fun addNodeToGroup(nodeId: String, groupId: String)
+  fun createVirtualGroup(name: String, labelUuid: List<Long>): MeshGroup
+  fun removeGroup(groupId: String): Boolean
+  fun addSubscriptionVirtual(elementAddress: Long, modelId: Long, labelUuid: List<Long>): Boolean
+  fun removeSubscriptionVirtual(elementAddress: Long, modelId: Long, labelUuid: List<Long>): Boolean
+  fun setPublicationVirtual(elementAddress: Long, modelId: Long, labelUuid: List<Long>, appKeyIndex: Long, ttl: Long?): Boolean
   /**
    * Fetch Composition Data for a given node and persist it in the Mesh DB.
    *
@@ -1236,6 +1246,35 @@ interface MeshApi {
   fun exportConfigurationBundle(path: String): Boolean
   /** Import a configuration bundle from a file path. */
   fun importConfigurationBundle(path: String): Boolean
+  /**
+   * Remove a network key on a **remote** node (Config NetKey Delete).
+   *
+   * [destination] is the unicast address of the element with the Configuration Server (usually primary).
+   */
+  fun removeNetworkKeyRemote(destination: Long, netKeyIndex: Long): Boolean
+  /**
+   * Remove an application key on a **remote** node (Config App Key Delete).
+   *
+   * [boundNetKeyIndex] is the NetKey that the AppKey is bound to.
+   */
+  fun removeAppKeyRemote(destination: Long, appKeyIndex: Long, boundNetKeyIndex: Long): Boolean
+  /**
+   * Read Key Refresh phase for [netKeyIndex] on a node (Config Key Refresh Phase Get).
+   *
+   * Returns `0` = normal, `1` = key distribution, `2` = using new keys, or `-1` if unavailable.
+   */
+  fun getKeyRefreshPhase(destination: Long, netKeyIndex: Long): Long
+  /**
+   * Set Key Refresh phase transition (Config Key Refresh Phase Set).
+   *
+   * [transition] uses Nordic / Mesh values: `2` = use new keys, `3` = revoke old keys.
+   */
+  fun setKeyRefreshPhaseTransition(destination: Long, netKeyIndex: Long, transition: Long): Boolean
+  /**
+   * Clears the loaded mesh, persisted plugin storage, and secure state (Android) so the app can
+   * [createNetwork] or [import] a fresh database.
+   */
+  fun resetLocalMeshState(): Boolean
   /** Bind an AppKey to a model on a given element address. */
   fun bindAppKey(elementAddress: Long, modelId: Long, appKeyIndex: Long): Boolean
   /** Unbind an AppKey from a model on a given element address. */
@@ -1553,6 +1592,100 @@ interface MeshApi {
         }
       }
       run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.createVirtualGroup$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val nameArg = args[0] as String
+            val labelUuidArg = args[1] as List<Long>
+            val wrapped: List<Any?> = try {
+              listOf(api.createVirtualGroup(nameArg, labelUuidArg))
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeGroup$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val groupIdArg = args[0] as String
+            val wrapped: List<Any?> = try {
+              listOf(api.removeGroup(groupIdArg))
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.addSubscriptionVirtual$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val elementAddressArg = args[0] as Long
+            val modelIdArg = args[1] as Long
+            val labelUuidArg = args[2] as List<Long>
+            val wrapped: List<Any?> = try {
+              listOf(api.addSubscriptionVirtual(elementAddressArg, modelIdArg, labelUuidArg))
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeSubscriptionVirtual$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val elementAddressArg = args[0] as Long
+            val modelIdArg = args[1] as Long
+            val labelUuidArg = args[2] as List<Long>
+            val wrapped: List<Any?> = try {
+              listOf(api.removeSubscriptionVirtual(elementAddressArg, modelIdArg, labelUuidArg))
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setPublicationVirtual$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val elementAddressArg = args[0] as Long
+            val modelIdArg = args[1] as Long
+            val labelUuidArg = args[2] as List<Long>
+            val appKeyIndexArg = args[3] as Long
+            val ttlArg = args[4] as Long?
+            val wrapped: List<Any?> = try {
+              listOf(api.setPublicationVirtual(elementAddressArg, modelIdArg, labelUuidArg, appKeyIndexArg, ttlArg))
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
         val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.fetchCompositionData$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { message, reply ->
@@ -1789,6 +1922,95 @@ interface MeshApi {
             val pathArg = args[0] as String
             val wrapped: List<Any?> = try {
               listOf(api.importConfigurationBundle(pathArg))
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeNetworkKeyRemote$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val destinationArg = args[0] as Long
+            val netKeyIndexArg = args[1] as Long
+            val wrapped: List<Any?> = try {
+              listOf(api.removeNetworkKeyRemote(destinationArg, netKeyIndexArg))
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeAppKeyRemote$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val destinationArg = args[0] as Long
+            val appKeyIndexArg = args[1] as Long
+            val boundNetKeyIndexArg = args[2] as Long
+            val wrapped: List<Any?> = try {
+              listOf(api.removeAppKeyRemote(destinationArg, appKeyIndexArg, boundNetKeyIndexArg))
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.getKeyRefreshPhase$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val destinationArg = args[0] as Long
+            val netKeyIndexArg = args[1] as Long
+            val wrapped: List<Any?> = try {
+              listOf(api.getKeyRefreshPhase(destinationArg, netKeyIndexArg))
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setKeyRefreshPhaseTransition$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val destinationArg = args[0] as Long
+            val netKeyIndexArg = args[1] as Long
+            val transitionArg = args[2] as Long
+            val wrapped: List<Any?> = try {
+              listOf(api.setKeyRefreshPhaseTransition(destinationArg, netKeyIndexArg, transitionArg))
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.resetLocalMeshState$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            val wrapped: List<Any?> = try {
+              listOf(api.resetLocalMeshState())
             } catch (exception: Throwable) {
               PigeonGeneratedPigeonUtils.wrapError(exception)
             }

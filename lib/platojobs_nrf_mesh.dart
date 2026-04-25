@@ -25,6 +25,7 @@ export 'src/models/mesh_message.dart'
         GenericOnOffStatus,
         GenericLevelStatus;
 export 'src/models/raw_access_message.dart' show RawAccessMessage;
+export 'src/utils/mesh_virtual_address.dart' show meshVirtualAddressFromLabel;
 export 'src/models/rx_access_message.dart' show RxAccessMessage, RxMetadataStatus;
 export 'src/platform_interface/pigeon_generated.dart'
     show ProvisioningEvent, ProvisioningEventType;
@@ -110,6 +111,7 @@ class PlatoJobsNrfMeshManager {
     required List<int> parameters,
     required int address,
     required int appKeyIndex,
+    List<int>? virtualLabel,
   }) async {
     return await _meshManagerApi.sendMessage(
       raw_models.RawAccessMessage(
@@ -117,6 +119,7 @@ class PlatoJobsNrfMeshManager {
         parameters: parameters,
         address: address,
         appKeyIndex: appKeyIndex,
+        virtualLabel: virtualLabel,
       ),
     );
   }
@@ -179,6 +182,39 @@ class PlatoJobsNrfMeshManager {
 
   Future<void> addNodeToGroup(String nodeId, String groupId) async {
     return await _meshManagerApi.addNodeToGroup(nodeId, groupId);
+  }
+
+  // M3: virtual label groups
+  Future<group_models.MeshGroup> createVirtualGroup(String name, List<int> labelUuid) async {
+    return await _meshManagerApi.createVirtualGroup(name, labelUuid);
+  }
+
+  Future<bool> removeGroup(String groupId) async {
+    return await _meshManagerApi.removeGroup(groupId);
+  }
+
+  Future<bool> addSubscriptionVirtual(int elementAddress, int modelId, List<int> labelUuid) async {
+    return await _meshManagerApi.addSubscriptionVirtual(elementAddress, modelId, labelUuid);
+  }
+
+  Future<bool> removeSubscriptionVirtual(int elementAddress, int modelId, List<int> labelUuid) async {
+    return await _meshManagerApi.removeSubscriptionVirtual(elementAddress, modelId, labelUuid);
+  }
+
+  Future<bool> setPublicationVirtual(
+    int elementAddress,
+    int modelId,
+    List<int> labelUuid,
+    int appKeyIndex, {
+    int? ttl,
+  }) async {
+    return await _meshManagerApi.setPublicationVirtual(
+      elementAddress,
+      modelId,
+      labelUuid,
+      appKeyIndex,
+      ttl: ttl,
+    );
   }
 
   // Configuration (P1 - minimal)
@@ -280,6 +316,47 @@ class PlatoJobsNrfMeshManager {
 
   Future<bool> importConfigurationBundle(String path) async {
     return await _meshManagerApi.importConfigurationBundle(path);
+  }
+
+  /// M2: Config Net Key Delete (remote node).
+  Future<bool> removeNetworkKeyRemote(int destination, int netKeyIndex) async {
+    return await _meshManagerApi.removeNetworkKeyRemote(destination, netKeyIndex);
+  }
+
+  /// M2: Config App Key Delete (remote node).
+  Future<bool> removeAppKeyRemote(
+    int destination,
+    int appKeyIndex,
+    int boundNetKeyIndex,
+  ) async {
+    return await _meshManagerApi.removeAppKeyRemote(
+      destination,
+      appKeyIndex,
+      boundNetKeyIndex,
+    );
+  }
+
+  /// M2: Key Refresh phase (0/1/2), or `-1` on failure.
+  Future<int> getKeyRefreshPhase(int destination, int netKeyIndex) async {
+    return await _meshManagerApi.getKeyRefreshPhase(destination, netKeyIndex);
+  }
+
+  /// M2: Key Refresh transition — `2` = use new keys, `3` = revoke old keys.
+  Future<bool> setKeyRefreshPhaseTransition(
+    int destination,
+    int netKeyIndex,
+    int transition,
+  ) async {
+    return await _meshManagerApi.setKeyRefreshPhaseTransition(
+      destination,
+      netKeyIndex,
+      transition,
+    );
+  }
+
+  /// M2: Clear local mesh DB + secure state; then [createNetwork] or [import].
+  Future<bool> resetLocalMeshState() async {
+    return await _meshManagerApi.resetLocalMeshState();
   }
 
   // Proxy (P1 real-transport prerequisite)

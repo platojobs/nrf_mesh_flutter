@@ -53,6 +53,21 @@ abstract class MeshApi {
   List<MeshGroup> getGroups();
   void addNodeToGroup(String nodeId, String groupId);
 
+  // M3: virtual label groups + configuration to virtual address
+  //
+  // [labelUuid] is always 16 bytes (MSB..LSB of the 128-bit Label UUID).
+  MeshGroup createVirtualGroup(String name, List<int> labelUuid);
+  bool removeGroup(String groupId);
+  bool addSubscriptionVirtual(int elementAddress, int modelId, List<int> labelUuid);
+  bool removeSubscriptionVirtual(int elementAddress, int modelId, List<int> labelUuid);
+  bool setPublicationVirtual(
+    int elementAddress,
+    int modelId,
+    List<int> labelUuid,
+    int appKeyIndex, {
+    int? ttl,
+  });
+
   // M2: Configuration foundation
   //
   // These APIs make configuration flows deterministic by ensuring that
@@ -114,6 +129,32 @@ abstract class MeshApi {
 
   /// Import a configuration bundle from a file path.
   bool importConfigurationBundle(String path);
+
+  // M2 (closeout): remote key management + key refresh
+
+  /// Remove a network key on a **remote** node (Config NetKey Delete).
+  ///
+  /// [destination] is the unicast address of the element with the Configuration Server (usually primary).
+  bool removeNetworkKeyRemote(int destination, int netKeyIndex);
+
+  /// Remove an application key on a **remote** node (Config App Key Delete).
+  ///
+  /// [boundNetKeyIndex] is the NetKey that the AppKey is bound to.
+  bool removeAppKeyRemote(int destination, int appKeyIndex, int boundNetKeyIndex);
+
+  /// Read Key Refresh phase for [netKeyIndex] on a node (Config Key Refresh Phase Get).
+  ///
+  /// Returns `0` = normal, `1` = key distribution, `2` = using new keys, or `-1` if unavailable.
+  int getKeyRefreshPhase(int destination, int netKeyIndex);
+
+  /// Set Key Refresh phase transition (Config Key Refresh Phase Set).
+  ///
+  /// [transition] uses Nordic / Mesh values: `2` = use new keys, `3` = revoke old keys.
+  bool setKeyRefreshPhaseTransition(int destination, int netKeyIndex, int transition);
+
+  /// Clears the loaded mesh, persisted plugin storage, and secure state (Android) so the app can
+  /// [createNetwork] or [import] a fresh database.
+  bool resetLocalMeshState();
 
   // Configuration (P1 - minimal)
   //
@@ -262,6 +303,8 @@ class MeshGroup {
   String? name;
   int? address;
   List<String>? nodeIds;
+  /// 16-byte Label UUID (MSB..LSB) when this is a virtual group, otherwise null/empty.
+  List<int>? labelUuid;
 }
 
 class MeshMessage {
