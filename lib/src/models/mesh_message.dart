@@ -1,4 +1,5 @@
 import 'raw_access_message.dart';
+import '../messages/scene/scene_status.dart';
 
 abstract class MeshMessage {
   /// Opcode as hex string (e.g. `0x8201`).
@@ -80,6 +81,23 @@ abstract class MeshMessage {
     int? appKeyIndex,
   }) {
     final opcodeHex = '0x${opcode.toRadixString(16)}';
+
+    final sceneStatus = SceneStatusMessage.tryDecode(
+      opcode: opcode,
+      parameters: parameters,
+      address: address,
+      appKeyIndex: appKeyIndex,
+    );
+    if (sceneStatus != null) return sceneStatus;
+
+    final sceneRegisterStatus = SceneRegisterStatusMessage.tryDecode(
+      opcode: opcode,
+      parameters: parameters,
+      address: address,
+      appKeyIndex: appKeyIndex,
+    );
+    if (sceneRegisterStatus != null) return sceneRegisterStatus;
+
     switch (opcode) {
       // Generic OnOff Status (0x8204)
       case 0x8204:
