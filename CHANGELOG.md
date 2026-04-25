@@ -1,3 +1,18 @@
+## 6.6.0
+
+### Features
+- Virtual groups: add `MeshGroup.labelUuid` and virtual group workflows (create/remove, sub/unsub, virtual publication, and send with `virtualLabel`).
+- M2 (deliverable loop): add key refresh + remote key deletion + local reset APIs:
+  - `removeNetworkKeyRemote(destination, netKeyIndex)`
+  - `removeAppKeyRemote(destination, appKeyIndex, boundNetKeyIndex)`
+  - `getKeyRefreshPhase(destination, netKeyIndex)`
+  - `setKeyRefreshPhaseTransition(destination, netKeyIndex, transition)` (2=UseNewKeys, 3=RevokeOldKeys)
+  - `resetLocalMeshState()`
+- Bundle import/export parity: iOS `exportConfigurationBundle`/`importConfigurationBundle` now uses the same JSON bundle shape as Android (`meshDbBase64` + `secureStateJson`), with backward-compatible fallback import for legacy raw mesh bytes.
+
+### Example
+- Add a group messaging page demonstrating virtual groups.
+
 ## 6.0.0
 
 ### Features

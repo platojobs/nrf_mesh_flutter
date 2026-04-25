@@ -8,6 +8,7 @@ import '../models/rx_access_message.dart';
 import '../models/unprovisioned_device.dart';
 import '../platform_interface/platojobs_mesh_platform.dart';
 import '../platform_interface/pigeon_generated.dart' as pigeon;
+import '../utils/mesh_virtual_address.dart';
 
 class FakeMeshScenarioStep {
   FakeMeshScenarioStep._(this.delay, this.action);
@@ -341,6 +342,50 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
   }
 
   @override
+  Future<MeshGroup> createVirtualGroup(String name, List<int> labelUuid) async {
+    final v = meshVirtualAddressFromLabel(labelUuid);
+    final group = MeshGroup(
+      groupId: 'fake-vg-${labelUuid.map((b) => b.toRadixString(16).padLeft(2, '0')).join()}',
+      name: name,
+      address: '0x${v.toRadixString(16).padLeft(4, '0')}',
+      nodeIds: const [],
+      labelUuid: List<int>.from(labelUuid),
+    );
+    _groups.add(group);
+    return group;
+  }
+
+  @override
+  Future<bool> removeGroup(String groupId) async {
+    _groups.removeWhere((g) => g.groupId == groupId);
+    return true;
+  }
+
+  @override
+  Future<bool> addSubscriptionVirtual(int elementAddress, int modelId, List<int> labelUuid) async {
+    final a = meshVirtualAddressFromLabel(labelUuid);
+    return addSubscription(elementAddress, modelId, a);
+  }
+
+  @override
+  Future<bool> removeSubscriptionVirtual(int elementAddress, int modelId, List<int> labelUuid) async {
+    final a = meshVirtualAddressFromLabel(labelUuid);
+    return removeSubscription(elementAddress, modelId, a);
+  }
+
+  @override
+  Future<bool> setPublicationVirtual(
+    int elementAddress,
+    int modelId,
+    List<int> labelUuid,
+    int appKeyIndex, {
+    int? ttl,
+  }) async {
+    final a = meshVirtualAddressFromLabel(labelUuid);
+    return setPublication(elementAddress, modelId, a, appKeyIndex, ttl: ttl);
+  }
+
+  @override
   Future<List<MeshGroup>> getGroups() async => List.unmodifiable(_groups);
 
   @override
@@ -353,6 +398,7 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
       name: group.name,
       address: group.address,
       nodeIds: <String>[...group.nodeIds, nodeId],
+      labelUuid: group.labelUuid,
     );
     _groups[idx] = updated;
   }
@@ -519,6 +565,70 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
     final loaded = _networksByPath['bundle:$path'];
     if (loaded == null) return false;
     _network = loaded;
+    return true;
+  }
+
+  @override
+  Future<bool> removeNetworkKeyRemote(int destination, int netKeyIndex) async {
+    final keys = List<net_models.NetworkKey>.from(_network.networkKeys)
+      ..removeWhere((k) => k.index == netKeyIndex);
+    _network = net_models.MeshNetwork(
+      networkId: _network.networkId,
+      name: _network.name,
+      networkKeys: keys,
+      appKeys: _network.appKeys,
+      nodes: _network.nodes,
+      groups: _network.groups,
+      provisioner: _network.provisioner,
+    );
+    return true;
+  }
+
+  @override
+  Future<bool> removeAppKeyRemote(
+    int destination,
+    int appKeyIndex,
+    int boundNetKeyIndex,
+  ) async {
+    final keys = List<net_models.AppKey>.from(_network.appKeys)
+      ..removeWhere((k) => k.index == appKeyIndex);
+    _network = net_models.MeshNetwork(
+      networkId: _network.networkId,
+      name: _network.name,
+      networkKeys: _network.networkKeys,
+      appKeys: keys,
+      nodes: _network.nodes,
+      groups: _network.groups,
+      provisioner: _network.provisioner,
+    );
+    return true;
+  }
+
+  @override
+  Future<int> getKeyRefreshPhase(int destination, int netKeyIndex) async {
+    return 0;
+  }
+
+  @override
+  Future<bool> setKeyRefreshPhaseTransition(
+    int destination,
+    int netKeyIndex,
+    int transition,
+  ) async {
+    return true;
+  }
+
+  @override
+  Future<bool> resetLocalMeshState() async {
+    _network = net_models.MeshNetwork(
+      networkId: 'fake-reset',
+      name: 'reset',
+      networkKeys: const [],
+      appKeys: const [],
+      nodes: const [],
+      groups: const [],
+      provisioner: _network.provisioner,
+    );
     return true;
   }
 

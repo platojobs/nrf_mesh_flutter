@@ -28,11 +28,19 @@ import no.nordicsemi.kotlin.mesh.core.MeshNetworkManager
 import no.nordicsemi.kotlin.mesh.core.SecurePropertiesStorage
 import no.nordicsemi.kotlin.mesh.core.Storage
 import no.nordicsemi.kotlin.mesh.core.messages.MeshMessage as KmMeshMessage
+import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigAppKeyDelete
+import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigKeyRefreshPhaseGet
+import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigKeyRefreshPhaseSet
+import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigKeyRefreshPhaseStatus
 import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigModelAppBind
 import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigModelAppUnbind
 import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigModelPublicationSet
+import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigModelPublicationVirtualAddressSet
 import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigModelSubscriptionAdd
 import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigModelSubscriptionDelete
+import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigModelSubscriptionVirtualAddressAdd
+import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigNetKeyDelete
+import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigModelSubscriptionVirtualAddressDelete
 import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigCompositionDataGet
 import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigDefaultTtlSet
 import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigRelaySet
@@ -42,12 +50,17 @@ import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigGa
 import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigNetworkTransmitSet
 import no.nordicsemi.kotlin.mesh.core.messages.foundation.configuration.ConfigNodeReset
 import no.nordicsemi.kotlin.mesh.core.model.IvIndex
+import no.nordicsemi.kotlin.mesh.core.model.KeyRefreshPhaseTransition
+import no.nordicsemi.kotlin.mesh.core.model.Group as KmGroup
+import no.nordicsemi.kotlin.mesh.core.model.GroupAddress
 import no.nordicsemi.kotlin.mesh.core.model.MeshAddress
 import no.nordicsemi.kotlin.mesh.core.model.Publish
 import no.nordicsemi.kotlin.mesh.core.model.PublishPeriod
 import no.nordicsemi.kotlin.mesh.core.model.Retransmit
+import no.nordicsemi.kotlin.mesh.core.model.Model as KmModel
 import no.nordicsemi.kotlin.mesh.core.model.SigModelId
 import no.nordicsemi.kotlin.mesh.core.model.UnicastAddress
+import no.nordicsemi.kotlin.mesh.core.model.VirtualAddress
 import no.nordicsemi.kotlin.mesh.core.model.isValidKeyIndex
 import no.nordicsemi.kotlin.mesh.provisioning.ProvisioningManager
 import no.nordicsemi.kotlin.mesh.provisioning.ProvisioningState
@@ -606,15 +619,26 @@ class PlatoJobsMeshPlugin :
             ?.toByteArray()
             ?: byteArrayOf()
 
+        @OptIn(ExperimentalUuidApi::class)
         runBlocking<Unit> {
             val net: no.nordicsemi.kotlin.mesh.core.model.MeshNetwork = km.meshNetwork.first()
             val appKey = requireNotNull(net.applicationKey(appKeyIndex)) {
                 "AppKey not found for index $appKeyIndex"
             }
+            val labelAny: Any? = message.parameters?.get("virtualLabel")
+            val vLabel: Uuid? = (labelAny as? List<*>)?.let { list ->
+                val li = list.mapNotNull { (it as? Number)?.toLong() }
+                if (li.size == 16) longs16ToUuid(li) else null
+            }
+            val destMesh: MeshAddress = if (vLabel != null) {
+                VirtualAddress(uuid = vLabel) as MeshAddress
+            } else {
+                MeshAddress.Companion.create(dst)
+            }
             km.send(
                 message = RawAccessMessage(opCode = opcode, parameters = bytes),
                 localElement = null,
-                destination = MeshAddress.Companion.create(dst),
+                destination = destMesh,
                 initialTtl = null,
                 applicationKey = appKey
             )
@@ -677,7 +701,8 @@ class PlatoJobsMeshPlugin :
                             groupId = java.util.UUID.randomUUID().toString(),
                             name = name,
                             address = 0xC000L,
-                            nodeIds = emptyList()
+                            nodeIds = emptyList(),
+                            labelUuid = null
                         )
                     }
                 }
@@ -689,7 +714,8 @@ class PlatoJobsMeshPlugin :
             groupId = java.util.UUID.randomUUID().toString(),
             name = name,
             address = 0xC000L,
-            nodeIds = emptyList()
+            nodeIds = emptyList(),
+            labelUuid = null
         )
     }
 
@@ -712,6 +738,173 @@ class PlatoJobsMeshPlugin :
         }
         return legacyManager?.getGroups() ?: emptyList()
     }
+
+    @OptIn(ExperimentalUuidApi::class)
+    override fun createVirtualGroup(name: String, labelUuid: List<Long>): MeshGroup {
+        val km = kotlinMeshManager
+        if (km != null) {
+            return runBlocking {
+                val u = longs16ToUuid(labelUuid)
+                    ?: throw IllegalArgumentException("labelUuid must be 16 bytes")
+                val net = km.meshNetwork.first()
+                val va = VirtualAddress(uuid = u)
+                val existing = net.group(va.address)
+                if (existing != null) {
+                    return@runBlocking requireNotNull(mapKmGroupToPigeon(existing)) { "Group mapping failed" }
+                }
+                val g = KmGroup(
+                    _name = name,
+                    address = va,
+                )
+                net.add(g)
+                km.save()
+                requireNotNull(mapKmGroupToPigeon(g)) { "Group mapping failed" }
+            }
+        }
+        throw IllegalStateException("Mesh manager is not ready")
+    }
+
+    @OptIn(ExperimentalUuidApi::class)
+    override fun removeGroup(groupId: String): Boolean {
+        val km = kotlinMeshManager
+        if (km != null) {
+            return try {
+                runBlocking {
+                    val net = km.meshNetwork.first()
+                    val g = findKmGroupById(net, groupId) ?: return@runBlocking false
+                    net.remove(g)
+                    km.save()
+                    true
+                }
+            } catch (_: Throwable) {
+                false
+            }
+        }
+        return false
+    }
+
+    @OptIn(ExperimentalUuidApi::class)
+    override fun addSubscriptionVirtual(elementAddress: Long, modelId: Long, labelUuid: List<Long>): Boolean =
+        try {
+            val km = kotlinMeshManager
+            if (proxyConnected) {
+                requireNotNull(km) { "Kotlin Mesh manager is not initialized" }
+                require(km.export() != null) { "Mesh DB is not loaded (importNetwork first)" }
+                val u = longs16ToUuid(labelUuid) ?: return false
+                runBlocking {
+                    val net = km.meshNetwork.first()
+                    val g = ensureVirtualGroupInNet(net, u)
+                    val m = findSigModel(net, elementAddress, modelId) ?: return@runBlocking false
+                    km.send(
+                        message = ConfigModelSubscriptionVirtualAddressAdd(g, m),
+                        destination = elementAddress.toUShort(),
+                        initialTtl = null
+                    )
+                    km.save()
+                }
+                true
+            } else {
+                legacyManager?.addSubscription(
+                    elementAddress, modelId,
+                    meshVirtualAddressUshort(labelUuid)
+                ) ?: false
+            }
+        } catch (t: Throwable) {
+            if (proxyConnected) throw t
+            legacyManager?.addSubscription(
+                elementAddress, modelId,
+                meshVirtualAddressUshort(labelUuid)
+            ) ?: false
+        }
+
+    @OptIn(ExperimentalUuidApi::class)
+    override fun removeSubscriptionVirtual(elementAddress: Long, modelId: Long, labelUuid: List<Long>): Boolean =
+        try {
+            val km = kotlinMeshManager
+            if (proxyConnected) {
+                requireNotNull(km) { "Kotlin Mesh manager is not initialized" }
+                require(km.export() != null) { "Mesh DB is not loaded (importNetwork first)" }
+                val u = longs16ToUuid(labelUuid) ?: return false
+                runBlocking {
+                    val net = km.meshNetwork.first()
+                    val g = ensureVirtualGroupInNet(net, u)
+                    val m = findSigModel(net, elementAddress, modelId) ?: return@runBlocking false
+                    km.send(
+                        message = ConfigModelSubscriptionVirtualAddressDelete(g, m),
+                        destination = elementAddress.toUShort(),
+                        initialTtl = null
+                    )
+                    km.save()
+                }
+                true
+            } else {
+                legacyManager?.removeSubscription(
+                    elementAddress, modelId,
+                    meshVirtualAddressUshort(labelUuid)
+                ) ?: false
+            }
+        } catch (t: Throwable) {
+            if (proxyConnected) throw t
+            legacyManager?.removeSubscription(
+                elementAddress, modelId,
+                meshVirtualAddressUshort(labelUuid)
+            ) ?: false
+        }
+
+    @OptIn(ExperimentalUuidApi::class)
+    override fun setPublicationVirtual(
+        elementAddress: Long,
+        modelId: Long,
+        labelUuid: List<Long>,
+        appKeyIndex: Long,
+        ttl: Long?
+    ): Boolean =
+        try {
+            val km = kotlinMeshManager
+            if (proxyConnected) {
+                requireNotNull(km) { "Kotlin Mesh manager is not initialized" }
+                require(km.export() != null) { "Mesh DB is not loaded (importNetwork first)" }
+                val u = longs16ToUuid(labelUuid) ?: return false
+                val keyIndex = appKeyIndex.toUShort()
+                require(keyIndex.isValidKeyIndex()) { "Invalid AppKeyIndex" }
+                runBlocking {
+                    val net = km.meshNetwork.first()
+                    val m = findSigModel(net, elementAddress, modelId) ?: return@runBlocking false
+                    val appKey = requireNotNull(net.applicationKey(keyIndex)) { "AppKey" }
+                    val va = VirtualAddress(uuid = u)
+                    val pubAddr: no.nordicsemi.kotlin.mesh.core.model.PublicationAddress = va
+                    val publish = Publish(
+                        address = pubAddr,
+                        index = keyIndex,
+                        ttl = (ttl ?: 0L).coerceIn(0, 255).toUByte(),
+                        period = PublishPeriod.disabled,
+                        credentials = no.nordicsemi.kotlin.mesh.core.model.MasterSecurity,
+                        retransmit = Retransmit.disabled
+                    )
+                    km.send(
+                        message = ConfigModelPublicationVirtualAddressSet(
+                            publish = publish,
+                            model = m
+                        ),
+                        destination = elementAddress.toUShort(),
+                        initialTtl = null
+                    )
+                    km.save()
+                }
+                true
+            } else {
+                legacyManager?.setPublication(
+                    elementAddress, modelId,
+                    meshVirtualAddressUshort(labelUuid), appKeyIndex, ttl
+                ) ?: false
+            }
+        } catch (t: Throwable) {
+            if (proxyConnected) throw t
+            legacyManager?.setPublication(
+                elementAddress, modelId,
+                meshVirtualAddressUshort(labelUuid), appKeyIndex, ttl
+            ) ?: false
+        }
 
     override fun addNodeToGroup(nodeId: String, groupId: String) {
         // Subscription is handled via Config Model ops in M2.
@@ -1098,6 +1291,141 @@ class PlatoJobsMeshPlugin :
             false
         }
     }
+
+    override fun removeNetworkKeyRemote(destination: Long, netKeyIndex: Long): Boolean =
+        try {
+            val km = kotlinMeshManager
+            if (proxyConnected) {
+                requireNotNull(km) { "Kotlin Mesh manager is not initialized" }
+                require(km.export() != null) { "Mesh DB is not loaded (importNetwork first)" }
+                runBlocking {
+                    val net = km.meshNetwork.first()
+                    val nk = net.networkKeys.find { it.index == netKeyIndex.toUShort() }
+                        ?: return@runBlocking false
+                    km.send(
+                        message = ConfigNetKeyDelete(nk),
+                        destination = destination.toUShort(),
+                        initialTtl = null
+                    )
+                    km.save()
+                }
+                true
+            } else {
+                false
+            }
+        } catch (t: Throwable) {
+            if (proxyConnected) throw t
+            false
+        }
+
+    override fun removeAppKeyRemote(
+        destination: Long,
+        appKeyIndex: Long,
+        boundNetKeyIndex: Long
+    ): Boolean =
+        try {
+            val km = kotlinMeshManager
+            if (proxyConnected) {
+                requireNotNull(km) { "Kotlin Mesh manager is not initialized" }
+                require(km.export() != null) { "Mesh DB is not loaded (importNetwork first)" }
+                runBlocking {
+                    val net = km.meshNetwork.first()
+                    val ak = net.applicationKeys.find { it.index == appKeyIndex.toUShort() }
+                        ?: return@runBlocking false
+                    if (ak.boundNetworkKey.index != boundNetKeyIndex.toUShort()) return@runBlocking false
+                    km.send(
+                        message = ConfigAppKeyDelete(ak),
+                        destination = destination.toUShort(),
+                        initialTtl = null
+                    )
+                    km.save()
+                }
+                true
+            } else {
+                false
+            }
+        } catch (t: Throwable) {
+            if (proxyConnected) throw t
+            false
+        }
+
+    override fun getKeyRefreshPhase(destination: Long, netKeyIndex: Long): Long =
+        try {
+            val km = kotlinMeshManager
+            if (proxyConnected) {
+                requireNotNull(km) { "Kotlin Mesh manager is not initialized" }
+                require(km.export() != null) { "Mesh DB is not loaded (importNetwork first)" }
+                runBlocking {
+                    val net = km.meshNetwork.first()
+                    val nk = net.networkKeys.find { it.index == netKeyIndex.toUShort() }
+                        ?: return@runBlocking -1L
+                    val r = km.send(
+                        message = ConfigKeyRefreshPhaseGet(nk),
+                        destination = destination.toUShort(),
+                        initialTtl = null
+                    ) as? ConfigKeyRefreshPhaseStatus
+                    (r?.refreshPhase?.phase ?: -1).toLong()
+                }
+            } else {
+                -1L
+            }
+        } catch (t: Throwable) {
+            if (proxyConnected) throw t
+            -1L
+        }
+
+    override fun setKeyRefreshPhaseTransition(
+        destination: Long,
+        netKeyIndex: Long,
+        transition: Long
+    ): Boolean =
+        try {
+            val km = kotlinMeshManager
+            if (proxyConnected) {
+                requireNotNull(km) { "Kotlin Mesh manager is not initialized" }
+                require(km.export() != null) { "Mesh DB is not loaded (importNetwork first)" }
+                val tr = when (transition.toInt()) {
+                    2 -> KeyRefreshPhaseTransition.UseNewKeys
+                    3 -> KeyRefreshPhaseTransition.RevokeOldKeys
+                    else -> throw IllegalArgumentException("Invalid transition: $transition (2 or 3)")
+                }
+                runBlocking {
+                    val net = km.meshNetwork.first()
+                    val nk = net.networkKeys.find { it.index == netKeyIndex.toUShort() }
+                        ?: return@runBlocking false
+                    km.send(
+                        message = ConfigKeyRefreshPhaseSet(networkKey = nk, transition = tr),
+                        destination = destination.toUShort(),
+                        initialTtl = null
+                    )
+                    km.save()
+                }
+                true
+            } else {
+                false
+            }
+        } catch (t: Throwable) {
+            if (proxyConnected) throw t
+            false
+        }
+
+    override fun resetLocalMeshState(): Boolean =
+        try {
+            val km = kotlinMeshManager ?: return false
+            runBlocking { km.clear() }
+            (secureStorage as? PersistentSecurePropertiesStorage)?.clearAll()
+            try {
+                runBlocking {
+                    bearer?.close()
+                }
+            } catch (_: Throwable) {
+            }
+            bearer = null
+            proxyConnected = false
+            true
+        } catch (_: Throwable) {
+            false
+        }
 
     // Configuration (P1 - minimal, in-memory)
     override fun bindAppKey(elementAddress: Long, modelId: Long, appKeyIndex: Long): Boolean =
@@ -1547,6 +1875,9 @@ private fun tryExtractSigModelId(model: Any): Long? {
 
 private fun tryGetKmGroups(net: Any): List<MeshGroup> {
     return try {
+        if (net is no.nordicsemi.kotlin.mesh.core.model.MeshNetwork) {
+            return net.groups.mapNotNull { mapKmGroupToPigeon(it) }
+        }
         val g = net.javaClass.methods.firstOrNull { it.name == "getGroups" }?.invoke(net) as? List<*>
         g?.mapNotNull { it?.let { gg -> mapKmGroupToPigeon(gg) } } ?: emptyList()
     } catch (_: Throwable) {
@@ -1564,7 +1895,104 @@ private fun tryCreateGroupInKm(net: Any, name: String): MeshGroup? {
     }
 }
 
+@OptIn(ExperimentalUuidApi::class)
+private fun longs16ToUuid(label: List<Long>): Uuid? {
+    if (label.size != 16) return null
+    val b = label.map { it.toInt() and 0xFF }.map { it.toByte() }.toByteArray()
+    val msb = java.nio.ByteBuffer.wrap(b, 0, 8).long
+    val lsb = java.nio.ByteBuffer.wrap(b, 8, 8).long
+    return Uuid.fromLongs(msb, lsb)
+}
+
+@OptIn(ExperimentalUuidApi::class)
+private fun findKmGroupById(
+    net: no.nordicsemi.kotlin.mesh.core.model.MeshNetwork,
+    groupId: String,
+): KmGroup? {
+    for (g in net.groups) {
+        when (val a = g.address) {
+            is VirtualAddress -> {
+                if (a.uuid.toString() == groupId) return g
+            }
+            is GroupAddress -> {
+                val h = a.address
+                val hex = "0x" + h.toUShort().toString(16).padStart(4, '0')
+                if (groupId.equals(hex, true)) return g
+            }
+            else -> { }
+        }
+    }
+    return null
+}
+
+@OptIn(ExperimentalUuidApi::class)
+private fun ensureVirtualGroupInNet(
+    net: no.nordicsemi.kotlin.mesh.core.model.MeshNetwork,
+    u: Uuid,
+): KmGroup {
+    val va = VirtualAddress(uuid = u)
+    val existing = net.group(va.address)
+    if (existing != null) return existing
+    val g = KmGroup(
+        _name = "Virtual (auto)",
+        address = va,
+    )
+    net.add(g)
+    return g
+}
+
+@OptIn(ExperimentalUuidApi::class)
+private fun findSigModel(
+    net: no.nordicsemi.kotlin.mesh.core.model.MeshNetwork,
+    elementAddress: Long,
+    modelId: Long
+): KmModel? {
+    val want = elementAddress.toUShort()
+    for (n in net.nodes) {
+        for (el in n.elements) {
+            if (el.unicastAddress.address != want) continue
+            return el.models.find { m ->
+                m.modelId is SigModelId && (m.modelId as SigModelId).modelIdentifier == modelId.toUShort()
+            }
+        }
+    }
+    return null
+}
+
+@OptIn(ExperimentalUuidApi::class)
+private fun meshVirtualAddressUshort(label: List<Long>): Long {
+    val u = longs16ToUuid(label) ?: return 0L
+    return (VirtualAddress(uuid = u).address and 0xFFFFu).toLong()
+}
+
 private fun mapKmGroupToPigeon(group: Any): MeshGroup? {
+    if (group is KmGroup) {
+        return try {
+            when (val a = group.address) {
+                is VirtualAddress -> MeshGroup(
+                    groupId = a.uuid.toString(),
+                    name = group.name,
+                    address = a.address.toLong() and 0xFFFFL,
+                    nodeIds = emptyList(),
+                    labelUuid = kotlinUuidToBytes(a.uuid),
+                )
+                is GroupAddress -> {
+                    val h = a.address
+                    val hex = "0x" + h.toUShort().toString(16).padStart(4, '0')
+                    MeshGroup(
+                        groupId = hex,
+                        name = group.name,
+                        address = h.toLong() and 0xFFFFL,
+                        nodeIds = emptyList(),
+                        labelUuid = null
+                    )
+                }
+                else -> null
+            }
+        } catch (_: Throwable) {
+            null
+        }
+    }
     return try {
         val id = try { group.javaClass.methods.firstOrNull { it.name == "getUuid" }?.invoke(group)?.toString() } catch (_: Throwable) { null }
         val name = try { group.javaClass.methods.firstOrNull { it.name == "getName" }?.invoke(group) as? String } catch (_: Throwable) { null }
@@ -1583,6 +2011,7 @@ private fun mapKmGroupToPigeon(group: Any): MeshGroup? {
             name = name,
             address = addr,
             nodeIds = emptyList(),
+            labelUuid = null
         )
     } catch (_: Throwable) {
         null
@@ -1810,7 +2239,8 @@ class MeshManager {
             groupId = java.util.UUID.randomUUID().toString(),
             name = name,
             address = 0xC000L,
-            nodeIds = emptyList()
+            nodeIds = emptyList(),
+            labelUuid = null
         )
         groups.add(group)
         return group
@@ -2017,7 +2447,8 @@ class MeshManager {
             groupId = o.optString("groupId"),
             name = o.optString("name"),
             address = o.optLong("address"),
-            nodeIds = ids
+            nodeIds = ids,
+            labelUuid = null
         )
     }
 

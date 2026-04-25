@@ -12,12 +12,26 @@ class RawAccessMessage extends MeshMessage {
     required List<int> parameters,
     required int address,
     required int appKeyIndex,
-  }) : super(
+    List<int>? virtualLabel,
+  })  : assert(
+          virtualLabel == null || _isLabel16(virtualLabel),
+          'virtualLabel must be 16 bytes when set',
+        ),
+        super(
           opcode: _formatOpcode(opCode),
           parameters: _validateBytes(parameters),
           address: _validateAddress(address),
           appKeyIndex: _validateAppKeyIndex(appKeyIndex),
+          virtualLabel: virtualLabel,
         );
+
+  static bool _isLabel16(List<int> l) {
+    if (l.length != 16) return false;
+    for (final b in l) {
+      if (b < 0 || b > 255) return false;
+    }
+    return true;
+  }
 
   static String _formatOpcode(int opCode) {
     if (opCode < 0 || opCode > 0xFFFFFFFF) {

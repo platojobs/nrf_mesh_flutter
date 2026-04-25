@@ -71,6 +71,19 @@ abstract class PlatoJobsMeshBridge {
 
   Future<void> addNodeToGroup(String nodeId, String groupId);
 
+  // M3: virtual label groups
+  Future<group_models.MeshGroup> createVirtualGroup(String name, List<int> labelUuid);
+  Future<bool> removeGroup(String groupId);
+  Future<bool> addSubscriptionVirtual(int elementAddress, int modelId, List<int> labelUuid);
+  Future<bool> removeSubscriptionVirtual(int elementAddress, int modelId, List<int> labelUuid);
+  Future<bool> setPublicationVirtual(
+    int elementAddress,
+    int modelId,
+    List<int> labelUuid,
+    int appKeyIndex, {
+    int? ttl,
+  });
+
   // Configuration (P1 - minimal)
   Future<bool> bindAppKey(int elementAddress, int modelId, int appKeyIndex);
   Future<bool> unbindAppKey(int elementAddress, int modelId, int appKeyIndex);
@@ -106,6 +119,13 @@ abstract class PlatoJobsMeshBridge {
   Future<bool> nodeReset(int destination);
   Future<bool> exportConfigurationBundle(String path);
   Future<bool> importConfigurationBundle(String path);
+
+  // M2 closeout: remote key delete + key refresh + local reset
+  Future<bool> removeNetworkKeyRemote(int destination, int netKeyIndex);
+  Future<bool> removeAppKeyRemote(int destination, int appKeyIndex, int boundNetKeyIndex);
+  Future<int> getKeyRefreshPhase(int destination, int netKeyIndex);
+  Future<bool> setKeyRefreshPhaseTransition(int destination, int netKeyIndex, int transition);
+  Future<bool> resetLocalMeshState();
 
   // Proxy (P1 real-transport prerequisite)
   Future<bool> connectProxy(String deviceId, int proxyUnicastAddress);
@@ -258,11 +278,16 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
   Future<void> sendMessage(msg_models.MeshMessage message) async {
     final opcodeStr = message.opcode.toLowerCase().replaceAll('0x', '');
     final opcodeInt = int.tryParse(opcodeStr, radix: 16);
+    final params = <String, Object?>{'bytes': message.parameters};
+    final vl = message.virtualLabel;
+    if (vl != null && vl.length == 16) {
+      params['virtualLabel'] = vl.map((e) => e as Object).toList();
+    }
     final pigeonMessage = pigeon.MeshMessage(
       opcode: opcodeInt,
       address: message.address ?? 0,
       appKeyIndex: message.appKeyIndex ?? 0,
-      parameters: <String, Object?>{'bytes': message.parameters},
+      parameters: params,
     );
     await _meshApi.sendMessage(pigeonMessage);
   }
@@ -308,6 +333,48 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
   @override
   Future<void> addNodeToGroup(String nodeId, String groupId) async {
     await _meshApi.addNodeToGroup(nodeId, groupId);
+  }
+
+  @override
+  Future<group_models.MeshGroup> createVirtualGroup(String name, List<int> labelUuid) async {
+    final result = await _meshApi.createVirtualGroup(name, labelUuid);
+    return _convertToMeshGroup(result);
+  }
+
+  @override
+  Future<bool> removeGroup(String groupId) async {
+    return await _meshApi.removeGroup(groupId);
+  }
+
+  @override
+  Future<bool> addSubscriptionVirtual(int elementAddress, int modelId, List<int> labelUuid) async {
+    return await _meshApi.addSubscriptionVirtual(elementAddress, modelId, labelUuid);
+  }
+
+  @override
+  Future<bool> removeSubscriptionVirtual(
+    int elementAddress,
+    int modelId,
+    List<int> labelUuid,
+  ) async {
+    return await _meshApi.removeSubscriptionVirtual(elementAddress, modelId, labelUuid);
+  }
+
+  @override
+  Future<bool> setPublicationVirtual(
+    int elementAddress,
+    int modelId,
+    List<int> labelUuid,
+    int appKeyIndex, {
+    int? ttl,
+  }) async {
+    return await _meshApi.setPublicationVirtual(
+      elementAddress,
+      modelId,
+      labelUuid,
+      appKeyIndex,
+      ttl: ttl,
+    );
   }
 
   @override
@@ -445,6 +512,47 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
   @override
   Future<bool> importConfigurationBundle(String path) async {
     return await _meshApi.importConfigurationBundle(path);
+  }
+
+  @override
+  Future<bool> removeNetworkKeyRemote(int destination, int netKeyIndex) async {
+    return await _meshApi.removeNetworkKeyRemote(destination, netKeyIndex);
+  }
+
+  @override
+  Future<bool> removeAppKeyRemote(
+    int destination,
+    int appKeyIndex,
+    int boundNetKeyIndex,
+  ) async {
+    return await _meshApi.removeAppKeyRemote(
+      destination,
+      appKeyIndex,
+      boundNetKeyIndex,
+    );
+  }
+
+  @override
+  Future<int> getKeyRefreshPhase(int destination, int netKeyIndex) async {
+    return await _meshApi.getKeyRefreshPhase(destination, netKeyIndex);
+  }
+
+  @override
+  Future<bool> setKeyRefreshPhaseTransition(
+    int destination,
+    int netKeyIndex,
+    int transition,
+  ) async {
+    return await _meshApi.setKeyRefreshPhaseTransition(
+      destination,
+      netKeyIndex,
+      transition,
+    );
+  }
+
+  @override
+  Future<bool> resetLocalMeshState() async {
+    return await _meshApi.resetLocalMeshState();
   }
 
   @override
@@ -595,6 +703,7 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
       name: pigeonGroup.name ?? '',
       address: pigeonGroup.address?.toString() ?? '',
       nodeIds: pigeonGroup.nodeIds ?? [],
+      labelUuid: pigeonGroup.labelUuid,
     );
   }
 }

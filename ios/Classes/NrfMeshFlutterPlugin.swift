@@ -143,20 +143,32 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
     }
 
     private func groupToDict(_ g: MeshGroup) -> [String: Any] {
-        [
+        var o: [String: Any] = [
             "groupId": g.groupId ?? "",
             "name": g.name ?? "",
             "address": g.address ?? 0,
             "nodeIds": g.nodeIds ?? []
         ]
+        o["labelUuid"] = g.labelUuid ?? []
+        return o
     }
 
     private func groupFromDict(_ o: [String: Any]) -> MeshGroup {
-        MeshGroup(
+        let rawLabel: [Int64]?
+        if let a = o["labelUuid"] as? [Int64] {
+            rawLabel = a.isEmpty ? nil : a
+        } else if let a = o["labelUuid"] as? [Int] {
+            let m = a.map { Int64($0) }
+            rawLabel = m.isEmpty ? nil : m
+        } else {
+            rawLabel = nil
+        }
+        return MeshGroup(
             groupId: o["groupId"] as? String ?? "",
             name: o["name"] as? String ?? "",
             address: (o["address"] as? NSNumber)?.int64Value ?? 0,
-            nodeIds: o["nodeIds"] as? [String] ?? []
+            nodeIds: o["nodeIds"] as? [String] ?? [],
+            labelUuid: rawLabel
         )
     }
 
@@ -402,7 +414,14 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         }
         
         let msg = RawAccessMessage(opCode: UInt32(truncatingIfNeeded: opcode), parameters: Data(bytes))
-        let destination = MeshAddress(Address(UInt16(truncatingIfNeeded: dst)))
+        let destination: MeshAddress
+        if let p = message.parameters,
+           let vArr = int64sFromParametersVirtualLabel(p),
+           let vu = int64sToUuid(vArr) {
+            destination = MeshAddress(vu)
+        } else {
+            destination = MeshAddress(Address(UInt16(truncatingIfNeeded: dst)))
+        }
         
         // MeshNetworkManager uses async/await; Pigeon HostApi is sync.
         let sem = DispatchSemaphore(value: 0)
@@ -464,12 +483,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
             let group = try Group(name: name, address: addr)
             try net.add(group: group)
             _ = meshManager.save()
-            return MeshGroup(
-                groupId: group.uuid.uuidString,
-                name: group.name,
-                address: Int64(group.address.address),
-                nodeIds: []
-            )
+            return meshGroupToPigeon(group)
         }
 
         // Legacy in-memory fallback.
@@ -477,22 +491,52 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
             groupId: UUID().uuidString,
             name: name,
             address: 0xC000,
-            nodeIds: []
+            nodeIds: [],
+            labelUuid: nil
         )
         groups.append(group)
         return group
     }
 
+    func createVirtualGroup(name: String, labelUuid: [Int64]) throws -> MeshGroup {
+        guard meshManager.isNetworkCreated, let net = meshManager.meshNetwork else {
+            throw NSError(domain: "nrf_mesh_flutter", code: 400, userInfo: [
+                NSLocalizedDescriptionKey: "Mesh DB is not loaded"
+            ])
+        }
+        guard let vu = int64sToUuid(labelUuid), labelUuid.count == 16 else {
+            throw NSError(domain: "nrf_mesh_flutter", code: 400, userInfo: [
+                NSLocalizedDescriptionKey: "labelUuid must be 16 bytes"
+            ])
+        }
+        let ma = MeshAddress(vu)
+        if let g = net.group(withAddress: ma) {
+            return meshGroupToPigeon(g)
+        }
+        let g = try Group(name: name, address: ma)
+        try net.add(group: g)
+        _ = meshManager.save()
+        return meshGroupToPigeon(g)
+    }
+
+    func removeGroup(groupId: String) throws -> Bool {
+        guard meshManager.isNetworkCreated, let net = meshManager.meshNetwork else { return false }
+        let g = net.groups.first { grp in
+            if let vl = grp.address.virtualLabel {
+                return vl.uuidString.caseInsensitiveCompare(groupId) == .orderedSame
+            }
+            let hex4 = String(format: "%04X", grp.address.address).uppercased()
+            return hex4 == groupId.uppercased() || grp.name == groupId
+        }
+        guard let g else { return false }
+        try net.remove(group: g)
+        _ = meshManager.save()
+        return true
+    }
+
     func getGroups() throws -> [MeshGroup] {
         if meshManager.isNetworkCreated, let net = meshManager.meshNetwork {
-            return net.groups.map {
-                MeshGroup(
-                    groupId: $0.uuid.uuidString,
-                    name: $0.name,
-                    address: Int64($0.address.address),
-                    nodeIds: []
-                )
-            }
+            return net.groups.map { meshGroupToPigeon($0) }
         }
         return groups
     }
@@ -532,57 +576,35 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
     }
 
     func addAppKey(appKeyIndex: Int64, keyHex: String) throws -> Bool {
-        guard meshManager.isNetworkCreated, let net = meshManager.meshNetwork else {
+        guard meshManager.isNetworkCreated else {
             throw NSError(domain: "nrf_mesh_flutter", code: 400, userInfo: [
                 NSLocalizedDescriptionKey: "Mesh DB is not loaded"
             ])
         }
-        guard let keyData = Data(hexString: keyHex.replacingOccurrences(of: " ", with: "")) else {
+        let hex = keyHex.replacingOccurrences(of: " ", with: "").uppercased()
+        guard hex.count == 32, Data(hexString: hex) != nil else {
             throw NSError(domain: "nrf_mesh_flutter", code: 400, userInfo: [
-                NSLocalizedDescriptionKey: "Invalid AppKey hex"
+                NSLocalizedDescriptionKey: "AppKey must be 16 bytes (32 hex chars)"
             ])
         }
-        guard keyData.count == 16 else {
-            throw NSError(domain: "nrf_mesh_flutter", code: 400, userInfo: [
-                NSLocalizedDescriptionKey: "AppKey must be 16 bytes"
-            ])
-        }
-
-        let idx = KeyIndex(UInt16(truncatingIfNeeded: appKeyIndex))
-        if let existing = net.applicationKeys.first(where: { $0.index == idx }) {
-            existing.key = keyData
-        } else {
-            let key = try ApplicationKey(name: "AppKey \(idx)", index: idx, key: keyData)
-            try net.add(applicationKey: key)
-        }
+        try reimportMeshJsonPatchingAppKey(index: Int(appKeyIndex), keyHex: hex, boundNetKey: 0)
         _ = meshManager.save()
         return true
     }
 
     func addNetworkKey(netKeyIndex: Int64, keyHex: String) throws -> Bool {
-        guard meshManager.isNetworkCreated, let net = meshManager.meshNetwork else {
+        guard meshManager.isNetworkCreated else {
             throw NSError(domain: "nrf_mesh_flutter", code: 400, userInfo: [
                 NSLocalizedDescriptionKey: "Mesh DB is not loaded"
             ])
         }
-        guard let keyData = Data(hexString: keyHex.replacingOccurrences(of: " ", with: "")) else {
+        let hex = keyHex.replacingOccurrences(of: " ", with: "").uppercased()
+        guard hex.count == 32, Data(hexString: hex) != nil else {
             throw NSError(domain: "nrf_mesh_flutter", code: 400, userInfo: [
-                NSLocalizedDescriptionKey: "Invalid NetworkKey hex"
+                NSLocalizedDescriptionKey: "NetworkKey must be 16 bytes (32 hex chars)"
             ])
         }
-        guard keyData.count == 16 else {
-            throw NSError(domain: "nrf_mesh_flutter", code: 400, userInfo: [
-                NSLocalizedDescriptionKey: "NetworkKey must be 16 bytes"
-            ])
-        }
-
-        let idx = KeyIndex(UInt16(truncatingIfNeeded: netKeyIndex))
-        if let existing = net.networkKeys.first(where: { $0.index == idx }) {
-            existing.key = keyData
-        } else {
-            let key = try NetworkKey(name: "NetKey \(idx)", index: idx, key: keyData)
-            try net.add(networkKey: key)
-        }
+        try reimportMeshJsonPatchingNetKey(index: Int(netKeyIndex), keyHex: hex)
         _ = meshManager.save()
         return true
     }
@@ -591,7 +613,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         guard meshManager.isNetworkCreated, let net = meshManager.meshNetwork else { return [] }
         return net.networkKeys.map {
             NetworkKey(
-                keyId: $0.uuid.uuidString,
+                keyId: "netKey:\($0.index)",
                 key: $0.key.hexUpper,
                 index: Int64($0.index),
                 enabled: true
@@ -603,7 +625,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         guard meshManager.isNetworkCreated, let net = meshManager.meshNetwork else { return [] }
         return net.applicationKeys.map {
             AppKey(
-                keyId: $0.uuid.uuidString,
+                keyId: "appKey:\($0.index)",
                 key: $0.key.hexUpper,
                 index: Int64($0.index),
                 enabled: true
@@ -625,12 +647,14 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
     func setNodeRelay(destination: Int64, enabled: Bool, retransmitCount: Int64, retransmitIntervalMs: Int64) throws -> Bool {
         guard proxyConnected, meshManager.isNetworkCreated else { return false }
         let dst = Address(UInt16(truncatingIfNeeded: destination))
-        let intervalSteps = UInt8((retransmitIntervalMs / 10).clamped(to: 1...32))
-        let msg = ConfigRelaySet(
-            isEnabled: enabled,
-            retransmitCount: UInt8(retransmitCount.clamped(to: 0...7)),
-            retransmitIntervalSteps: intervalSteps
-        )
+        let msg: ConfigRelaySet
+        if enabled {
+            let steps = UInt8((retransmitIntervalMs / 10).clamped(to: 1...32)) - 1
+            let cnt = UInt8(retransmitCount.clamped(to: 0...7))
+            msg = ConfigRelaySet(count: cnt, steps: steps)
+        } else {
+            msg = ConfigRelaySet()
+        }
         _ = try sendConfig(msg, destination: dst)
         _ = meshManager.save()
         return true
@@ -639,7 +663,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
     func setNodeGattProxy(destination: Int64, enabled: Bool) throws -> Bool {
         guard proxyConnected, meshManager.isNetworkCreated else { return false }
         let dst = Address(UInt16(truncatingIfNeeded: destination))
-        let msg = ConfigGATTProxySet(isEnabled: enabled)
+        let msg = ConfigGATTProxySet(enable: enabled)
         _ = try sendConfig(msg, destination: dst)
         _ = meshManager.save()
         return true
@@ -648,7 +672,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
     func setNodeFriend(destination: Int64, enabled: Bool) throws -> Bool {
         guard proxyConnected, meshManager.isNetworkCreated else { return false }
         let dst = Address(UInt16(truncatingIfNeeded: destination))
-        let msg = ConfigFriendSet(isEnabled: enabled)
+        let msg = ConfigFriendSet(enable: enabled)
         _ = try sendConfig(msg, destination: dst)
         _ = meshManager.save()
         return true
@@ -657,7 +681,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
     func setNodeBeacon(destination: Int64, enabled: Bool) throws -> Bool {
         guard proxyConnected, meshManager.isNetworkCreated else { return false }
         let dst = Address(UInt16(truncatingIfNeeded: destination))
-        let msg = ConfigBeaconSet(isEnabled: enabled)
+        let msg = ConfigBeaconSet(enable: enabled)
         _ = try sendConfig(msg, destination: dst)
         _ = meshManager.save()
         return true
@@ -666,10 +690,10 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
     func setNodeNetworkTransmit(destination: Int64, count: Int64, intervalMs: Int64) throws -> Bool {
         guard proxyConnected, meshManager.isNetworkCreated else { return false }
         let dst = Address(UInt16(truncatingIfNeeded: destination))
-        let intervalSteps = UInt8((intervalMs / 10).clamped(to: 1...32))
+        let steps = UInt8((intervalMs / 10).clamped(to: 1...32)) - 1
         let msg = ConfigNetworkTransmitSet(
             count: UInt8(count.clamped(to: 0...7)),
-            intervalSteps: intervalSteps
+            steps: steps
         )
         _ = try sendConfig(msg, destination: dst)
         _ = meshManager.save()
@@ -686,23 +710,111 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
     }
 
     func exportConfigurationBundle(path: String) throws -> Bool {
-        // iOS bundle = Mesh DB export bytes.
+        // JSON bundle (parity with Android): mesh DB + placeholder secure JSON (iOS stores seq/IV in mesh export).
         guard meshManager.isNetworkCreated else { return false }
         let data = meshManager.export()
+        let root: [String: Any] = [
+            "meshDbBase64": data.base64EncodedString(),
+            "secureStateJson": "{}"
+        ]
+        let json = try JSONSerialization.data(withJSONObject: root, options: [])
         let url = URL(fileURLWithPath: path)
-        try data.write(to: url, options: .atomic)
+        try json.write(to: url, options: .atomic)
         return true
     }
 
     func importConfigurationBundle(path: String) throws -> Bool {
         let url = URL(fileURLWithPath: path)
-        let data = try Data(contentsOf: url)
-        _ = try meshManager.import(from: data)
+        let raw = try Data(contentsOf: url)
+        if let obj = try? JSONSerialization.jsonObject(with: raw) as? [String: Any],
+           let b64 = obj["meshDbBase64"] as? String,
+           let meshData = Data(base64Encoded: b64) {
+            _ = try meshManager.import(from: meshData)
+            _ = meshManager.save()
+            nordicNetwork = meshManager.meshNetwork
+            meshManager.localElements = []
+            networkName = nordicNetwork?.meshName ?? networkName
+            return true
+        }
+        if let _ = try? meshManager.import(from: raw) {
+            _ = meshManager.save()
+            nordicNetwork = meshManager.meshNetwork
+            meshManager.localElements = []
+            networkName = nordicNetwork?.meshName ?? networkName
+            return true
+        }
+        return false
+    }
+
+    func removeNetworkKeyRemote(destination: Int64, netKeyIndex: Int64) throws -> Bool {
+        guard proxyConnected, meshManager.isNetworkCreated, let net = meshManager.meshNetwork else { return false }
+        let idx = KeyIndex(UInt16(truncatingIfNeeded: netKeyIndex))
+        guard let nk = net.networkKeys.first(where: { $0.index == idx }) else { return false }
+        let dst = Address(UInt16(truncatingIfNeeded: destination))
+        let msg = ConfigNetKeyDelete(networkKey: nk)
+        _ = try sendConfig(msg, destination: dst)
         _ = meshManager.save()
-        nordicNetwork = meshManager.meshNetwork
-        // Required for correct parsing of incoming Status messages.
-        meshManager.localElements = []
-        networkName = nordicNetwork?.meshName ?? networkName
+        return true
+    }
+
+    func removeAppKeyRemote(
+        destination: Int64,
+        appKeyIndex: Int64,
+        boundNetKeyIndex: Int64
+    ) throws -> Bool {
+        guard proxyConnected, meshManager.isNetworkCreated, let net = meshManager.meshNetwork else { return false }
+        let aIdx = KeyIndex(UInt16(truncatingIfNeeded: appKeyIndex))
+        guard let appKey = net.applicationKeys.first(where: { $0.index == aIdx }) else { return false }
+        let nIdx = KeyIndex(UInt16(truncatingIfNeeded: boundNetKeyIndex))
+        guard appKey.boundNetworkKeyIndex == nIdx else { return false }
+        let dst = Address(UInt16(truncatingIfNeeded: destination))
+        let msg = ConfigAppKeyDelete(applicationKey: appKey)
+        _ = try sendConfig(msg, destination: dst)
+        _ = meshManager.save()
+        return true
+    }
+
+    func getKeyRefreshPhase(destination: Int64, netKeyIndex: Int64) throws -> Int64 {
+        guard proxyConnected, meshManager.isNetworkCreated, let net = meshManager.meshNetwork else { return -1 }
+        let idx = KeyIndex(UInt16(truncatingIfNeeded: netKeyIndex))
+        guard let nk = net.networkKeys.first(where: { $0.index == idx }) else { return -1 }
+        let dst = Address(UInt16(truncatingIfNeeded: destination))
+        let msg = ConfigKeyRefreshPhaseGet(networkKey: nk)
+        do {
+            let resp = try sendConfig(msg, destination: dst)
+            if let st = resp as? ConfigKeyRefreshPhaseStatus, st.status == .success {
+                return Int64(st.phase.rawValue)
+            }
+        } catch {
+            return -1
+        }
+        return -1
+    }
+
+    func setKeyRefreshPhaseTransition(
+        destination: Int64,
+        netKeyIndex: Int64,
+        transition: Int64
+    ) throws -> Bool {
+        guard proxyConnected, meshManager.isNetworkCreated, let net = meshManager.meshNetwork else { return false }
+        let idx = KeyIndex(UInt16(truncatingIfNeeded: netKeyIndex))
+        guard let nk = net.networkKeys.first(where: { $0.index == idx }) else { return false }
+        guard let tr = KeyRefreshPhaseTransition(rawValue: UInt8(truncatingIfNeeded: transition)) else { return false }
+        let dst = Address(UInt16(truncatingIfNeeded: destination))
+        let msg = ConfigKeyRefreshPhaseSet(networkKey: nk, transition: tr)
+        _ = try sendConfig(msg, destination: dst)
+        _ = meshManager.save()
+        return true
+    }
+
+    func resetLocalMeshState() throws -> Bool {
+        _ = meshManager.clear()
+        nordicNetwork = nil
+        nodes.removeAll()
+        groups.removeAll()
+        proxyBearer?.close()
+        proxyBearer = nil
+        proxyConnected = false
         return true
     }
 
@@ -833,6 +945,81 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
             pub.appKeyIndex = appKeyIndex
             pub.ttl = ttl
             m.publication = pub
+        }
+    }
+
+    func addSubscriptionVirtual(elementAddress: Int64, modelId: Int64, labelUuid: [Int64]) throws -> Bool {
+        if proxyConnected, meshManager.isNetworkCreated {
+            guard let model = resolveSigModel(elementAddress: elementAddress, modelId: modelId) else { return false }
+            let g = try resolveOrCreateVirtualGroup(label: labelUuid, defaultName: "Virtual (auto)")
+            guard let msg = ConfigModelSubscriptionVirtualAddressAdd(group: g, to: model) else { return false }
+            _ = try sendConfig(msg, destination: model.parentElement!.unicastAddress)
+            _ = meshManager.save()
+            return true
+        }
+        return updateModel(elementAddress: elementAddress, modelId: modelId) { m in
+            if let a = int64sToVirtualAddressInt(labelUuid) {
+                var set = Set(m.subscriptions ?? [])
+                set.insert(a)
+                m.subscriptions = Array(set).sorted()
+            }
+        }
+    }
+
+    func removeSubscriptionVirtual(elementAddress: Int64, modelId: Int64, labelUuid: [Int64]) throws -> Bool {
+        if proxyConnected, meshManager.isNetworkCreated {
+            guard let model = resolveSigModel(elementAddress: elementAddress, modelId: modelId) else { return false }
+            let g = try resolveOrCreateVirtualGroup(label: labelUuid, defaultName: "Virtual (auto)")
+            guard let msg = ConfigModelSubscriptionVirtualAddressDelete(group: g, from: model) else { return false }
+            _ = try sendConfig(msg, destination: model.parentElement!.unicastAddress)
+            _ = meshManager.save()
+            return true
+        }
+        return updateModel(elementAddress: elementAddress, modelId: modelId) { m in
+            if let a = int64sToVirtualAddressInt(labelUuid) {
+                var set = Set(m.subscriptions ?? [])
+                set.remove(a)
+                m.subscriptions = Array(set).sorted()
+            }
+        }
+    }
+
+    func setPublicationVirtual(
+        elementAddress: Int64,
+        modelId: Int64,
+        labelUuid: [Int64],
+        appKeyIndex: Int64,
+        ttl: Int64?
+    ) throws -> Bool {
+        if proxyConnected, meshManager.isNetworkCreated {
+            guard let (appKey, model) = resolveAppKeyAndSigModel(
+                elementAddress: elementAddress,
+                modelId: modelId,
+                appKeyIndex: appKeyIndex
+            ) else { return false }
+            guard let vu = int64sToUuid(labelUuid), labelUuid.count == 16 else { return false }
+            let destination = MeshAddress(vu)
+            let publish = Publish(
+                to: destination,
+                using: appKey,
+                usingFriendshipMaterial: false,
+                ttl: UInt8((ttl ?? 0).clamped(to: 0...255)),
+                period: .disabled,
+                retransmit: .disabled
+            )
+            guard let msg = ConfigModelPublicationVirtualAddressSet(publish, to: model) else { return false }
+            _ = try sendConfig(msg, destination: model.parentElement!.unicastAddress)
+            _ = meshManager.save()
+            return true
+        }
+        return updateModel(elementAddress: elementAddress, modelId: modelId) { m in
+            if let a = int64sToVirtualAddressInt(labelUuid) {
+                var pub = Publication()
+                pub.address = a
+                pub.appKeyIndex = appKeyIndex
+                pub.ttl = ttl
+                m.publication = pub
+            }
         }
     }
 
@@ -1334,11 +1521,11 @@ extension PlatoJobsMeshPlugin: BearerDelegate {
 }
 
 private extension PlatoJobsMeshPlugin {
-    func convertNordicNodeToPigeon(_ node: NordicMesh.Node) -> ProvisionedNode? {
+    func convertNordicNodeToPigeon(_ node: Node) -> ProvisionedNode? {
         let elements: [Element] = node.elements.map { el in
-            let models: [Model] = el.models.compactMap { m in
-                // Only expose SIG models here (companyIdentifier == nil) for now.
-                guard m.companyIdentifier == nil else { return nil }
+            var models: [Model] = []
+            for m in el.models {
+                if m.companyIdentifier != nil { continue }
                 var out = Model()
                 out.modelId = Int64(m.modelIdentifier)
                 out.modelName = m.name
@@ -1349,16 +1536,16 @@ private extension PlatoJobsMeshPlugin {
                 if let pub = m.publish {
                     out.publication = Publication(
                         address: Int64(pub.publicationAddress.address),
-                        appKeyIndex: Int64(pub.applicationKey.index),
+                        appKeyIndex: Int64(pub.index),
                         ttl: pub.ttl == 0xFF ? nil : Int64(pub.ttl)
                     )
                 } else {
                     out.publication = nil
                 }
-                return out
+                models.append(out)
             }
             return Element(
-                address: Int64(el.unicastAddress.address),
+                address: Int64(el.unicastAddress),
                 models: models
             )
         }
@@ -1372,7 +1559,7 @@ private extension PlatoJobsMeshPlugin {
         return ProvisionedNode(
             nodeId: node.uuid.uuidString,
             name: node.name ?? "Node",
-            unicastAddress: Int64(node.unicastAddress.address),
+            unicastAddress: Int64(node.primaryUnicastAddress),
             uuid: uuidBytes,
             elements: elements,
             provisioned: true
@@ -1381,11 +1568,11 @@ private extension PlatoJobsMeshPlugin {
 
     // Best-effort helper for allocating group addresses.
     // Nordic iOS library doesn't expose a convenience, so we scan for the next free group address.
-    func nextAvailableGroupAddress(in net: MeshNetwork) -> Address {
+    func nextAvailableGroupAddress(in net: NordicMesh.MeshNetwork) -> Address {
         let used = Set(net.groups.map { $0.address })
-        var a = Address(0xC000)
-        while used.contains(a) && a.address < 0xFEFF {
-            a = Address(a.address + 1)
+        var a: Address = 0xC000
+        while used.contains(MeshAddress(a)) && a < 0xFEFF {
+            a += 1
         }
         return a
     }
@@ -1463,6 +1650,141 @@ private extension PlatoJobsMeshPlugin {
             return nil
         }
     }
+
+    private func resolveOrCreateVirtualGroup(label: [Int64], defaultName: String) throws -> Group {
+        guard let net = meshManager.meshNetwork else {
+            throw NSError(domain: "nrf_mesh_flutter", code: 400, userInfo: [
+                NSLocalizedDescriptionKey: "Mesh DB is not loaded"
+            ])
+        }
+        guard let vu = int64sToUuid(label), label.count == 16 else {
+            throw NSError(domain: "nrf_mesh_flutter", code: 400, userInfo: [
+                NSLocalizedDescriptionKey: "labelUuid must be 16 bytes"
+            ])
+        }
+        let ma = MeshAddress(vu)
+        if let g = net.group(withAddress: ma) { return g }
+        let g = try Group(name: defaultName, address: ma)
+        try net.add(group: g)
+        return g
+    }
+
+    private func meshGroupToPigeon(_ g: Group) -> MeshGroup {
+        var label: [Int64]?
+        if let vl = g.address.virtualLabel {
+            label = int64sFromUuid(vl)
+        }
+        let gid: String
+        if let vl = g.address.virtualLabel {
+            gid = vl.uuidString
+        } else {
+            gid = String(format: "%04X", g.address.address)
+        }
+        return MeshGroup(
+            groupId: gid,
+            name: g.name,
+            address: Int64(g.address.address),
+            nodeIds: [],
+            labelUuid: label
+        )
+    }
+
+    /// `MeshNetwork.add(networkKey:)` / mutating keys are internal to nRFMeshProvision; re-import JSON like CDB 1.0.1.
+    private func reimportMeshJsonPatchingNetKey(index: Int, keyHex: String) throws {
+        let data = meshManager.export()
+        var root = try JSONSerialization.jsonObject(with: data, options: []) as! [String: Any]
+        guard var netKeys = root["netKeys"] as? [[String: Any]], !netKeys.isEmpty else {
+            throw NSError(domain: "nrf_mesh_flutter", code: 400, userInfo: [
+                NSLocalizedDescriptionKey: "Invalid mesh export (no netKeys)"
+            ])
+        }
+        let ts = ISO8601DateFormatter().string(from: Date())
+        if let j = netKeys.firstIndex(where: { jsonKeyIndex($0) == index }) {
+            var row = netKeys[j]
+            row["key"] = keyHex
+            row["timestamp"] = ts
+            netKeys[j] = row
+        } else {
+            var template = netKeys[0]
+            template["name"] = "NetKey \(index)"
+            template["index"] = index
+            template["key"] = keyHex
+            template["timestamp"] = ts
+            template.removeValue(forKey: "oldKey")
+            netKeys.append(template)
+        }
+        root["netKeys"] = netKeys
+        let newData = try JSONSerialization.data(withJSONObject: root, options: [])
+        _ = try meshManager.import(from: newData)
+        meshManager.localElements = []
+        nordicNetwork = meshManager.meshNetwork
+    }
+
+    private func reimportMeshJsonPatchingAppKey(index: Int, keyHex: String, boundNetKey: Int) throws {
+        let data = meshManager.export()
+        var root = try JSONSerialization.jsonObject(with: data, options: []) as! [String: Any]
+        var appKeys = root["appKeys"] as? [[String: Any]] ?? []
+        if appKeys.isEmpty {
+            appKeys = [[
+                "name": "AppKey \(index)",
+                "index": index,
+                "key": keyHex,
+                "boundNetKey": boundNetKey
+            ]]
+        } else if let j = appKeys.firstIndex(where: { jsonKeyIndex($0) == index }) {
+            var row = appKeys[j]
+            row["key"] = keyHex
+            appKeys[j] = row
+        } else {
+            var template = appKeys[0]
+            template["name"] = "AppKey \(index)"
+            template["index"] = index
+            template["key"] = keyHex
+            template["boundNetKey"] = boundNetKey
+            template.removeValue(forKey: "oldKey")
+            appKeys.append(template)
+        }
+        root["appKeys"] = appKeys
+        let newData = try JSONSerialization.data(withJSONObject: root, options: [])
+        _ = try meshManager.import(from: newData)
+        meshManager.localElements = []
+        nordicNetwork = meshManager.meshNetwork
+    }
+
+    private func jsonKeyIndex(_ dict: [String: Any]) -> Int? {
+        if let n = dict["index"] as? Int { return n }
+        if let n = dict["index"] as? NSNumber { return n.intValue }
+        return nil
+    }
+}
+
+// MARK: - Label UUID (16 bytes) ↔ Foundation.UUID
+private func int64sFromParametersVirtualLabel(_ p: [String: Any?]) -> [Int64]? {
+    guard let vAny = p["virtualLabel"] else { return nil }
+    if let a = vAny as? [Int64] { return a.count == 16 ? a : nil }
+    if let a = vAny as? [Int] { let m = a.map { Int64($0) }; return m.count == 16 ? m : nil }
+    if let a = vAny as? [NSNumber] { let m = a.map { $0.int64Value }; return m.count == 16 ? m : nil }
+    return nil
+}
+
+private func int64sToUuid(_ bytes: [Int64]) -> Foundation.UUID? {
+    guard bytes.count == 16 else { return nil }
+    let b = Data(bytes.map { UInt8(truncatingIfNeeded: $0) })
+    return b.withUnsafeBytes { raw in
+        guard raw.count == 16 else { return nil }
+        return Foundation.UUID(uuid: raw.load(as: uuid_t.self))
+    }
+}
+
+private func int64sFromUuid(_ u: Foundation.UUID) -> [Int64] {
+    var b = [UInt8](repeating: 0, count: 16)
+    (u as NSUUID).getBytes(&b)
+    return b.map { Int64($0) }
+}
+
+private func int64sToVirtualAddressInt(_ a: [Int64]) -> Int64? {
+    guard a.count == 16, let u = int64sToUuid(a) else { return nil }
+    return Int64(MeshAddress(u).address)
 }
 
 private extension Comparable {

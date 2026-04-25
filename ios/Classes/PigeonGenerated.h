@@ -169,11 +169,14 @@ typedef NS_ENUM(NSUInteger, ProvisioningEventType) {
 + (instancetype)makeWithGroupId:(nullable NSString *)groupId
     name:(nullable NSString *)name
     address:(nullable NSNumber *)address
-    nodeIds:(nullable NSArray<NSString *> *)nodeIds;
+    nodeIds:(nullable NSArray<NSString *> *)nodeIds
+    labelUuid:(nullable NSArray<NSNumber *> *)labelUuid;
 @property(nonatomic, copy, nullable) NSString * groupId;
 @property(nonatomic, copy, nullable) NSString * name;
 @property(nonatomic, strong, nullable) NSNumber * address;
 @property(nonatomic, copy, nullable) NSArray<NSString *> * nodeIds;
+/// 16-byte Label UUID (MSB..LSB) when this is a virtual group, otherwise null/empty.
+@property(nonatomic, copy, nullable) NSArray<NSNumber *> * labelUuid;
 @end
 
 @interface MeshMessage : NSObject
@@ -283,6 +286,16 @@ NSObject<FlutterMessageCodec> *nullGetPigeonGeneratedCodec(void);
 /// @return `nil` only when `error != nil`.
 - (nullable NSArray<MeshGroup *> *)getGroupsWithError:(FlutterError *_Nullable *_Nonnull)error;
 - (void)addNodeToGroupNodeId:(NSString *)nodeId groupId:(NSString *)groupId error:(FlutterError *_Nullable *_Nonnull)error;
+/// @return `nil` only when `error != nil`.
+- (nullable MeshGroup *)createVirtualGroupName:(NSString *)name labelUuid:(NSArray<NSNumber *> *)labelUuid error:(FlutterError *_Nullable *_Nonnull)error;
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)removeGroupGroupId:(NSString *)groupId error:(FlutterError *_Nullable *_Nonnull)error;
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)addSubscriptionVirtualElementAddress:(NSInteger)elementAddress modelId:(NSInteger)modelId labelUuid:(NSArray<NSNumber *> *)labelUuid error:(FlutterError *_Nullable *_Nonnull)error;
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)removeSubscriptionVirtualElementAddress:(NSInteger)elementAddress modelId:(NSInteger)modelId labelUuid:(NSArray<NSNumber *> *)labelUuid error:(FlutterError *_Nullable *_Nonnull)error;
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)setPublicationVirtualElementAddress:(NSInteger)elementAddress modelId:(NSInteger)modelId labelUuid:(NSArray<NSNumber *> *)labelUuid appKeyIndex:(NSInteger)appKeyIndex ttl:(nullable NSNumber *)ttl error:(FlutterError *_Nullable *_Nonnull)error;
 /// Fetch Composition Data for a given node and persist it in the Mesh DB.
 ///
 /// - `destination`: the node's unicast address.
@@ -354,6 +367,35 @@ NSObject<FlutterMessageCodec> *nullGetPigeonGeneratedCodec(void);
 ///
 /// @return `nil` only when `error != nil`.
 - (nullable NSNumber *)importConfigurationBundlePath:(NSString *)path error:(FlutterError *_Nullable *_Nonnull)error;
+/// Remove a network key on a **remote** node (Config NetKey Delete).
+///
+/// [destination] is the unicast address of the element with the Configuration Server (usually primary).
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)removeNetworkKeyRemoteDestination:(NSInteger)destination netKeyIndex:(NSInteger)netKeyIndex error:(FlutterError *_Nullable *_Nonnull)error;
+/// Remove an application key on a **remote** node (Config App Key Delete).
+///
+/// [boundNetKeyIndex] is the NetKey that the AppKey is bound to.
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)removeAppKeyRemoteDestination:(NSInteger)destination appKeyIndex:(NSInteger)appKeyIndex boundNetKeyIndex:(NSInteger)boundNetKeyIndex error:(FlutterError *_Nullable *_Nonnull)error;
+/// Read Key Refresh phase for [netKeyIndex] on a node (Config Key Refresh Phase Get).
+///
+/// Returns `0` = normal, `1` = key distribution, `2` = using new keys, or `-1` if unavailable.
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)getKeyRefreshPhaseDestination:(NSInteger)destination netKeyIndex:(NSInteger)netKeyIndex error:(FlutterError *_Nullable *_Nonnull)error;
+/// Set Key Refresh phase transition (Config Key Refresh Phase Set).
+///
+/// [transition] uses Nordic / Mesh values: `2` = use new keys, `3` = revoke old keys.
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)setKeyRefreshPhaseTransitionDestination:(NSInteger)destination netKeyIndex:(NSInteger)netKeyIndex transition:(NSInteger)transition error:(FlutterError *_Nullable *_Nonnull)error;
+/// Clears the loaded mesh, persisted plugin storage, and secure state (Android) so the app can
+/// [createNetwork] or [import] a fresh database.
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)resetLocalMeshStateWithError:(FlutterError *_Nullable *_Nonnull)error;
 /// Bind an AppKey to a model on a given element address.
 ///
 /// @return `nil` only when `error != nil`.
