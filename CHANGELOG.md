@@ -1,3 +1,9 @@
+## 6.8.0
+
+### Features
+- M4 Scenes: add Scenes client message wrappers (`SceneStore/Recall/Delete/Get/RegisterGet`) and decode incoming `SceneStatus` / `SceneRegisterStatus` from `rxAccessMessageStream`.
+- Example: add a Scenes demo page for store/recall/delete/get/register.
+
 ## 6.6.0
 
 ### Features

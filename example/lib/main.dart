@@ -3,6 +3,7 @@ import 'dart:async';
 
 import 'package:nrf_mesh_flutter/nrf_mesh_flutter.dart';
 import 'group_messaging_page.dart';
+import 'scenes_page.dart';
 import 'real_p1_page.dart';
 import 'provisioning_demo_page.dart';
 
@@ -253,6 +254,17 @@ class _MyAppState extends State<MyApp> {
                       );
                     },
                     child: const Text('M3 Groupcast'),
+                  ),
+                  const SizedBox(width: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const ScenesPage(),
+                        ),
+                      );
+                    },
+                    child: const Text('M4 Scenes'),
                   ),
                 ],
               ),

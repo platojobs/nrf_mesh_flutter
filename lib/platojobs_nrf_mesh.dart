@@ -8,6 +8,8 @@ import 'src/models/mesh_group.dart' as group_models;
 import 'src/models/mesh_message.dart' as msg_models;
 import 'src/models/raw_access_message.dart' as raw_models;
 import 'src/models/rx_access_message.dart' as rx_models;
+import 'src/messages/scene/scene_messages.dart' as scene_msgs;
+import 'src/messages/scene/scene_status.dart' as scene_status;
 import 'src/platform_interface/platojobs_mesh_platform.dart' as platform;
 import 'src/platform_interface/pigeon_generated.dart' as pigeon;
 
@@ -27,6 +29,10 @@ export 'src/models/mesh_message.dart'
 export 'src/models/raw_access_message.dart' show RawAccessMessage;
 export 'src/utils/mesh_virtual_address.dart' show meshVirtualAddressFromLabel;
 export 'src/models/rx_access_message.dart' show RxAccessMessage, RxMetadataStatus;
+export 'src/messages/scene/scene_messages.dart'
+    show SceneOpcode, SceneStore, SceneRecall, SceneDelete, SceneGet, SceneRegisterGet;
+export 'src/messages/scene/scene_status.dart'
+    show SceneStatusCode, SceneStatusMessage, SceneRegisterStatusMessage;
 export 'src/platform_interface/pigeon_generated.dart'
     show ProvisioningEvent, ProvisioningEventType;
 export 'src/core/mesh_exceptions.dart'
@@ -130,6 +136,119 @@ class PlatoJobsNrfMeshManager {
 
   Stream<rx_models.RxAccessMessage> get rxAccessMessageStream {
     return _meshManagerApi.rxAccessMessageStream;
+  }
+
+  /// Convenience stream: decoded Scene Status (opcode 0x5E).
+  Stream<scene_status.SceneStatusMessage> get sceneStatusStream {
+    return rxAccessMessageStream
+        .map(
+          (e) => msg_models.MeshMessage.fromIncoming(
+            opcode: e.opcode,
+            parameters: e.parameters,
+            address: e.source,
+            appKeyIndex: null,
+          ),
+        )
+        .where((m) => m is scene_status.SceneStatusMessage)
+        .cast<scene_status.SceneStatusMessage>();
+  }
+
+  /// Convenience stream: decoded Scene Register Status (opcode 0x8245).
+  Stream<scene_status.SceneRegisterStatusMessage> get sceneRegisterStatusStream {
+    return rxAccessMessageStream
+        .map(
+          (e) => msg_models.MeshMessage.fromIncoming(
+            opcode: e.opcode,
+            parameters: e.parameters,
+            address: e.source,
+            appKeyIndex: null,
+          ),
+        )
+        .where((m) => m is scene_status.SceneRegisterStatusMessage)
+        .cast<scene_status.SceneRegisterStatusMessage>();
+  }
+
+  // M4: Scenes (client-side helpers).
+  Future<void> sceneStore({
+    required int destination,
+    required int appKeyIndex,
+    required int sceneNumber,
+    List<int>? virtualLabel,
+  }) async {
+    return await sendMessage(
+      scene_msgs.SceneStore(
+        sceneNumber: sceneNumber,
+        address: destination,
+        appKeyIndex: appKeyIndex,
+        virtualLabel: virtualLabel,
+      ),
+    );
+  }
+
+  Future<void> sceneRecall({
+    required int destination,
+    required int appKeyIndex,
+    required int sceneNumber,
+    int? tid,
+    int? transitionTime,
+    int? delay,
+    List<int>? virtualLabel,
+  }) async {
+    return await sendMessage(
+      scene_msgs.SceneRecall(
+        sceneNumber: sceneNumber,
+        tid: tid,
+        transitionTime: transitionTime,
+        delay: delay,
+        address: destination,
+        appKeyIndex: appKeyIndex,
+        virtualLabel: virtualLabel,
+      ),
+    );
+  }
+
+  Future<void> sceneDelete({
+    required int destination,
+    required int appKeyIndex,
+    required int sceneNumber,
+    List<int>? virtualLabel,
+  }) async {
+    return await sendMessage(
+      scene_msgs.SceneDelete(
+        sceneNumber: sceneNumber,
+        address: destination,
+        appKeyIndex: appKeyIndex,
+        virtualLabel: virtualLabel,
+      ),
+    );
+  }
+
+  Future<void> sceneGet({
+    required int destination,
+    required int appKeyIndex,
+    List<int>? virtualLabel,
+  }) async {
+    return await sendMessage(
+      scene_msgs.SceneGet(
+        address: destination,
+        appKeyIndex: appKeyIndex,
+        virtualLabel: virtualLabel,
+      ),
+    );
+  }
+
+  Future<void> sceneRegisterGet({
+    required int destination,
+    required int appKeyIndex,
+    List<int>? virtualLabel,
+  }) async {
+    return await sendMessage(
+      scene_msgs.SceneRegisterGet(
+        address: destination,
+        appKeyIndex: appKeyIndex,
+        virtualLabel: virtualLabel,
+      ),
+    );
   }
 
   Stream<pigeon.ProvisioningEvent> get provisioningEventStream {
