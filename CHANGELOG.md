@@ -1,3 +1,9 @@
+## 6.8.2
+
+### Docs
+- README: keep install snippet aligned with latest published patch.
+- CI: enforce README install snippet version matches `pubspec.yaml`.
+
 ## 6.8.1
 
 ### Docs
