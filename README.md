@@ -25,7 +25,7 @@ Add `nrf_mesh_flutter` to your `pubspec.yaml`:
 dependencies:
   flutter:
     sdk: flutter
-  nrf_mesh_flutter: ^6.0.0
+  nrf_mesh_flutter: ^6.8.0
 ```
 
 ## Release notes language
@@ -400,6 +400,4 @@ For the full history, see [`CHANGELOG.md`](CHANGELOG.md).
 
 ### Latest
 
-- **1.1.1**: Improve mocking with scripted scenarios (devices/messages) + failure injection.
-- **1.1.0**: DX improvements (mock bridge + tests + permissions/background notes).
-- **1.0.4**: Fix changelog ordering (latest first).
+See `CHANGELOG.md` for the full history and the latest release notes.

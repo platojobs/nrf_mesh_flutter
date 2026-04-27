@@ -1,3 +1,8 @@
+## 6.8.1
+
+### Docs
+- README: update install snippet version and remove stale "Latest" list.
+
 ## 6.8.0
 
 ### Features
