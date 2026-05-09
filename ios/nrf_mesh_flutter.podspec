@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'nrf_mesh_flutter'
-  s.version          = '6.6.0'
+  s.version          = '6.9.0'
   s.summary          = 'Flutter plugin for Bluetooth Mesh using Nordic nRF Mesh libraries'
   s.description      = <<-DESC
 Flutter plugin for Bluetooth Mesh using Nordic nRF Mesh libraries.
@@ -12,7 +12,7 @@ Supports device provisioning, network management, and mesh message communication
                        DESC
   s.homepage         = 'https://github.com/platojobs/nrf_mesh_flutter'
   s.license          = { :file => '../LICENSE' }
-  s.author           = { 'PlatoJobs' => 'platojobs@example.com' }
+  s.author           = { 'PlatoJobs' => 'platojobs@gmail.com' }
   s.source           = { :path => '.' }
   s.source_files = 'Classes/**/*'
   s.dependency 'Flutter'

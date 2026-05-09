@@ -1,7 +1,9 @@
 name: nrf_mesh_flutter
 description: Flutter plugin for Bluetooth Mesh using Nordic nRF Mesh libraries
-version: 6.8.2
+version: 6.9.0
 homepage: https://github.com/platojobs/nrf_mesh_flutter
+repository: https://github.com/platojobs/nrf_mesh_flutter
+issue_tracker: https://github.com/platojobs/nrf_mesh_flutter/issues
 
 environment:
   sdk: ^3.11.4
@@ -10,12 +12,12 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  plugin_platform_interface: ^2.0.2
-  convert: ^3.1.1
-  crypto: ^3.0.3
-  meta: ^1.10.0
+  plugin_platform_interface: ^2.1.8
+  convert: ^3.1.2
+  crypto: ^3.0.7
+  meta: ^1.17.0
   # AES-CMAC (Bluetooth Mesh: virtual address hash / S1 over "vtad") — see mesh_virtual_address.dart
-  pointycastle: ^3.7.0
+  pointycastle: ^4.0.0
 
 dev_dependencies:
   flutter_test:

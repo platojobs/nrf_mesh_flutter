@@ -204,9 +204,13 @@ class PlatoJobsMeshPlugin :
                 }
             } else {
                 rxSourceAddressSupported = false
-                km.incomingMeshMessages.collect { msg ->
+                km.networkEvents.collect { event ->
                     try {
-                        val bytes = (msg.parameters ?: byteArrayOf()).map { (it.toInt() and 0xFF).toLong() }
+                        val received = event as? no.nordicsemi.kotlin.mesh.core.NetworkEvent.MeshMessageReceived
+                            ?: return@collect
+                        val msg = received.message
+                        val params = msg.parameters ?: byteArrayOf()
+                        val bytes = params.map { (it.toInt() and 0xFF).toLong() }
                         val op = (msg as? KmMeshMessage)?.opCode?.toLong() ?: 0L
                         flutterApi?.onMessageReceived(
                             MeshMessage(
@@ -221,9 +225,9 @@ class PlatoJobsMeshPlugin :
                             RxAccessMessage(
                                 opcode = op,
                                 parameters = bytes,
-                                source = null,
+                                source = (received.source.toInt() and 0xFFFF).toLong(),
                                 destination = null,
-                                metadataStatus = RxMetadataStatus.UNAVAILABLE,
+                                metadataStatus = RxMetadataStatus.AVAILABLE,
                             )
                         ) {}
                     } catch (_: Throwable) {
@@ -382,7 +386,7 @@ class PlatoJobsMeshPlugin :
             uuid = uuid
         )
 
-        val meshNetwork = runBlocking { km.meshNetwork.first() }
+        val meshNetwork = requireNotNull(km.network) { "Mesh DB is not loaded (importNetwork first)" }
         val pm = ProvisioningManager(
             unprovisionedDevice = kmDevice,
             meshNetwork = meshNetwork,
@@ -414,11 +418,11 @@ class PlatoJobsMeshPlugin :
                             ) {}
 
                             val method = (params.oobMethod?.toInt() ?: 0)
-                            val cfg = state.parameters
+                            var cfg = state.defaultParameters
 
                             when (method) {
-                                0 -> cfg.authMethod = AuthenticationMethod.NoOob
-                                1 -> cfg.authMethod = AuthenticationMethod.StaticOob
+                                0 -> cfg = cfg.copy(authMethod = AuthenticationMethod.NoOob)
+                                1 -> cfg = cfg.copy(authMethod = AuthenticationMethod.StaticOob)
                                 // Input/Output OOB selection is constrained by the capabilities list,
                                 // but capabilities are not exposed from ProvisioningParameters (private).
                                 // We'll keep the default method and handle AuthActionRequired below.
@@ -621,7 +625,8 @@ class PlatoJobsMeshPlugin :
 
         @OptIn(ExperimentalUuidApi::class)
         runBlocking<Unit> {
-            val net: no.nordicsemi.kotlin.mesh.core.model.MeshNetwork = km.meshNetwork.first()
+            val net: no.nordicsemi.kotlin.mesh.core.model.MeshNetwork =
+                requireNotNull(km.network) { "Mesh DB is not loaded (importNetwork first)" }
             val appKey = requireNotNull(net.applicationKey(appKeyIndex)) {
                 "AppKey not found for index $appKeyIndex"
             }
@@ -650,7 +655,7 @@ class PlatoJobsMeshPlugin :
         if (km != null) {
             return try {
                 runBlocking {
-                    val net = km.meshNetwork.first()
+                    val net = requireNotNull(km.network) { "Mesh DB is not loaded (importNetwork first)" }
                     net.nodes.map { n -> kmNodeToPigeon(n) }
                 }
             } catch (_: Throwable) {
@@ -665,7 +670,7 @@ class PlatoJobsMeshPlugin :
         if (km != null) {
             try {
                 runBlocking {
-                    val net = km.meshNetwork.first()
+                    val net = requireNotNull(km.network) { "Mesh DB is not loaded (importNetwork first)" }
                     val uuid = try { kotlin.uuid.Uuid.parse(nodeId) } catch (_: Throwable) { null }
                     val node = if (uuid != null) net.nodes.firstOrNull { it.uuid == uuid } else null
                     if (node != null) {
@@ -691,7 +696,7 @@ class PlatoJobsMeshPlugin :
         if (km != null) {
             try {
                 return runBlocking {
-                    val net = km.meshNetwork.first()
+                    val net = requireNotNull(km.network) { "Mesh DB is not loaded (importNetwork first)" }
                     val group = tryCreateGroupInKm(net, name)
                     if (group != null) {
                         km.save()
@@ -724,7 +729,7 @@ class PlatoJobsMeshPlugin :
         if (km != null) {
             try {
                 return runBlocking {
-                    val net = km.meshNetwork.first()
+                    val net = requireNotNull(km.network) { "Mesh DB is not loaded (importNetwork first)" }
                     val groups = tryGetKmGroups(net)
                     if (groups.isNotEmpty()) {
                         groups
@@ -746,7 +751,7 @@ class PlatoJobsMeshPlugin :
             return runBlocking {
                 val u = longs16ToUuid(labelUuid)
                     ?: throw IllegalArgumentException("labelUuid must be 16 bytes")
-                val net = km.meshNetwork.first()
+                val net = requireNotNull(km.network) { "Mesh DB is not loaded (importNetwork first)" }
                 val va = VirtualAddress(uuid = u)
                 val existing = net.group(va.address)
                 if (existing != null) {
@@ -770,7 +775,7 @@ class PlatoJobsMeshPlugin :
         if (km != null) {
             return try {
                 runBlocking {
-                    val net = km.meshNetwork.first()
+                    val net = requireNotNull(km.network) { "Mesh DB is not loaded (importNetwork first)" }
                     val g = findKmGroupById(net, groupId) ?: return@runBlocking false
                     net.remove(g)
                     km.save()
@@ -792,7 +797,7 @@ class PlatoJobsMeshPlugin :
                 require(km.export() != null) { "Mesh DB is not loaded (importNetwork first)" }
                 val u = longs16ToUuid(labelUuid) ?: return false
                 runBlocking {
-                    val net = km.meshNetwork.first()
+                    val net = requireNotNull(km.network) { "Mesh DB is not loaded (importNetwork first)" }
                     val g = ensureVirtualGroupInNet(net, u)
                     val m = findSigModel(net, elementAddress, modelId) ?: return@runBlocking false
                     km.send(
@@ -826,7 +831,7 @@ class PlatoJobsMeshPlugin :
                 require(km.export() != null) { "Mesh DB is not loaded (importNetwork first)" }
                 val u = longs16ToUuid(labelUuid) ?: return false
                 runBlocking {
-                    val net = km.meshNetwork.first()
+                    val net = requireNotNull(km.network) { "Mesh DB is not loaded (importNetwork first)" }
                     val g = ensureVirtualGroupInNet(net, u)
                     val m = findSigModel(net, elementAddress, modelId) ?: return@runBlocking false
                     km.send(
@@ -868,7 +873,7 @@ class PlatoJobsMeshPlugin :
                 val keyIndex = appKeyIndex.toUShort()
                 require(keyIndex.isValidKeyIndex()) { "Invalid AppKeyIndex" }
                 runBlocking {
-                    val net = km.meshNetwork.first()
+                    val net = requireNotNull(km.network) { "Mesh DB is not loaded (importNetwork first)" }
                     val m = findSigModel(net, elementAddress, modelId) ?: return@runBlocking false
                     val appKey = requireNotNull(net.applicationKey(keyIndex)) { "AppKey" }
                     val va = VirtualAddress(uuid = u)
@@ -942,7 +947,7 @@ class PlatoJobsMeshPlugin :
             val key = hexToBytes(keyHex.trim().replace(" ", "").replace(":", "").replace("-", ""))
             require(key.size == 16) { "AppKey must be 16 bytes" }
             runBlocking {
-                val net = km.meshNetwork.first()
+                val net = requireNotNull(km.network) { "Mesh DB is not loaded (importNetwork first)" }
                 // Best-effort: update DB via reflection (API varies by library version).
                 val existing = try { net.applicationKey(keyIndex) } catch (_: Throwable) { null }
                 if (existing != null) {
@@ -1001,7 +1006,7 @@ class PlatoJobsMeshPlugin :
             val key = hexToBytes(keyHex.trim().replace(" ", "").replace(":", "").replace("-", ""))
             require(key.size == 16) { "NetworkKey must be 16 bytes" }
             runBlocking {
-                val net = km.meshNetwork.first()
+                val net = requireNotNull(km.network) { "Mesh DB is not loaded (importNetwork first)" }
                 val existing = try {
                     val keys = (net.javaClass.methods.firstOrNull { it.name == "getNetworkKeys" }?.invoke(net) as? List<*>) ?: emptyList<Any>()
                     keys.firstOrNull { k ->
@@ -1045,7 +1050,7 @@ class PlatoJobsMeshPlugin :
         val km = kotlinMeshManager ?: return emptyList()
         return try {
             runBlocking {
-                val net = km.meshNetwork.first()
+                val net = requireNotNull(km.network) { "Mesh DB is not loaded (importNetwork first)" }
                 val keys = (net.javaClass.methods.firstOrNull { it.name == "getNetworkKeys" }?.invoke(net) as? List<*>) ?: emptyList<Any>()
                 keys.mapNotNull { nk ->
                     if (nk == null) return@mapNotNull null
@@ -1077,7 +1082,7 @@ class PlatoJobsMeshPlugin :
         val km = kotlinMeshManager ?: return emptyList()
         return try {
             runBlocking {
-                val net = km.meshNetwork.first()
+                val net = requireNotNull(km.network) { "Mesh DB is not loaded (importNetwork first)" }
                 val keys = (net.javaClass.methods.firstOrNull { it.name == "getApplicationKeys" }?.invoke(net) as? List<*>) ?: emptyList<Any>()
                 keys.mapNotNull { ak ->
                     if (ak == null) return@mapNotNull null
@@ -1136,7 +1141,7 @@ class PlatoJobsMeshPlugin :
                 km.send(
                     message = if (enabled) {
                         ConfigRelaySet(
-                            count = retransmitCount.toInt(),
+                            count = retransmitCount.toUByte(),
                             steps = intervalSteps,
                         )
                     } else {
@@ -1299,7 +1304,7 @@ class PlatoJobsMeshPlugin :
                 requireNotNull(km) { "Kotlin Mesh manager is not initialized" }
                 require(km.export() != null) { "Mesh DB is not loaded (importNetwork first)" }
                 runBlocking {
-                    val net = km.meshNetwork.first()
+                    val net = requireNotNull(km.network) { "Mesh DB is not loaded (importNetwork first)" }
                     val nk = net.networkKeys.find { it.index == netKeyIndex.toUShort() }
                         ?: return@runBlocking false
                     km.send(
@@ -1329,7 +1334,7 @@ class PlatoJobsMeshPlugin :
                 requireNotNull(km) { "Kotlin Mesh manager is not initialized" }
                 require(km.export() != null) { "Mesh DB is not loaded (importNetwork first)" }
                 runBlocking {
-                    val net = km.meshNetwork.first()
+                    val net = requireNotNull(km.network) { "Mesh DB is not loaded (importNetwork first)" }
                     val ak = net.applicationKeys.find { it.index == appKeyIndex.toUShort() }
                         ?: return@runBlocking false
                     if (ak.boundNetworkKey.index != boundNetKeyIndex.toUShort()) return@runBlocking false
@@ -1356,7 +1361,7 @@ class PlatoJobsMeshPlugin :
                 requireNotNull(km) { "Kotlin Mesh manager is not initialized" }
                 require(km.export() != null) { "Mesh DB is not loaded (importNetwork first)" }
                 runBlocking {
-                    val net = km.meshNetwork.first()
+                    val net = requireNotNull(km.network) { "Mesh DB is not loaded (importNetwork first)" }
                     val nk = net.networkKeys.find { it.index == netKeyIndex.toUShort() }
                         ?: return@runBlocking -1L
                     val r = km.send(
@@ -1390,7 +1395,7 @@ class PlatoJobsMeshPlugin :
                     else -> throw IllegalArgumentException("Invalid transition: $transition (2 or 3)")
                 }
                 runBlocking {
-                    val net = km.meshNetwork.first()
+                    val net = requireNotNull(km.network) { "Mesh DB is not loaded (importNetwork first)" }
                     val nk = net.networkKeys.find { it.index == netKeyIndex.toUShort() }
                         ?: return@runBlocking false
                     km.send(
@@ -1439,7 +1444,7 @@ class PlatoJobsMeshPlugin :
                 runBlocking {
                     km.send(
                         message = ConfigModelAppBind(
-                            keyIndex = keyIndex,
+                            applicationKeyIndex = keyIndex,
                             elementAddress = UnicastAddress(elementAddress.toUShort()),
                             modelId = SigModelId(modelIdentifier = modelId.toUShort())
                         ),
@@ -1469,7 +1474,7 @@ class PlatoJobsMeshPlugin :
                 runBlocking {
                     km.send(
                         message = ConfigModelAppUnbind(
-                            keyIndex = keyIndex,
+                            applicationKeyIndex = keyIndex,
                             elementAddress = UnicastAddress(elementAddress.toUShort()),
                             modelId = SigModelId(modelIdentifier = modelId.toUShort())
                         ),

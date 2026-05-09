@@ -12,7 +12,7 @@ class RawAccessMessage extends MeshMessage {
     required List<int> parameters,
     required int address,
     required int appKeyIndex,
-    List<int>? virtualLabel,
+    super.virtualLabel,
   })  : assert(
           virtualLabel == null || _isLabel16(virtualLabel),
           'virtualLabel must be 16 bytes when set',
@@ -22,7 +22,6 @@ class RawAccessMessage extends MeshMessage {
           parameters: _validateBytes(parameters),
           address: _validateAddress(address),
           appKeyIndex: _validateAppKeyIndex(appKeyIndex),
-          virtualLabel: virtualLabel,
         );
 
   static bool _isLabel16(List<int> l) {

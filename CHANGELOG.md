@@ -1,3 +1,19 @@
+## 6.9.0
+
+### Native (Android)
+- Align Nordic **Kotlin Mesh** artifacts with **1.0.0** (`core`, `bearer`, `bearer-gatt`, `bearer-pbgatt`, `bearer-provisioning`, `provisioning`) and update the plugin bridge for API changes (`MeshNetworkManager.network`, `networkEvents` / `MeshMessageReceived`, provisioning `defaultParameters` + immutable `ProvisioningParameters`, updated config message constructors).
+
+### Dart / publishing
+- Bump **pointycastle** to **^4.0.0** (virtual-address CMAC path unchanged).
+- Refresh direct dependency constraints (`convert`, `crypto`, `plugin_platform_interface`) and keep `meta: ^1.17.0` aligned with the Flutter SDK / `flutter_test` pin.
+- Add `repository` and `issue_tracker` fields to `pubspec.yaml` for package metadata on pub.dev.
+
+### Native (iOS)
+- CocoaPods podspec version **6.9.0** (still depends on `nRFMeshProvision` ~> 4.8.0).
+
+### Docs
+- README install snippet aligned with **6.9.0**.
+
 ## 6.8.2
 
 ### Docs
