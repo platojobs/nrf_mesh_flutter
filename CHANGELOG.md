@@ -1,3 +1,16 @@
+## 6.9.1
+
+### Docs (Phase 0 baseline)
+- README: document incoming **`messageStream`** vs **`rxAccessMessageStream`**, and a cross-platform table for **source / destination** metadata (Android Kotlin Mesh `MeshMessageReceived` vs iOS `MeshNetworkDelegate`).
+- README: clarify **`supportsRxSourceAddress`** / experimental RX metadata on Android and delegate expectations on iOS.
+- README install snippet aligned with **6.9.1**.
+
+### Native (Android)
+- Incoming Access forwarding: populate **`MeshMessage.address`** (source), **`RxAccessMessage.destination`**, and report **`supportsRxSourceAddress() == true`** when using **`NetworkEvent.MeshMessageReceived`** (Kotlin Mesh 1.0+), aligning RX metadata with iOS delegate behaviour documented above.
+
+### Native (iOS)
+- CocoaPods podspec version **6.9.1** (unchanged `nRFMeshProvision` ~> 4.8.0).
+
 ## 6.9.0
 
 ### Native (Android)

@@ -25,7 +25,7 @@ Add `nrf_mesh_flutter` to your `pubspec.yaml`:
 dependencies:
   flutter:
     sdk: flutter
-  nrf_mesh_flutter: ^6.9.0
+  nrf_mesh_flutter: ^6.9.1
 ```
 
 ## Release notes language
@@ -45,8 +45,30 @@ await PlatoJobsNrfMeshManager.instance.sendAccess(
 );
 ```
 
-Notes:
-- `messageStream` may emit messages with `address == null` on some platforms / library versions (when the native side cannot reliably extract the source address). Always handle that case.
+### Incoming messages (Phase 0 baseline)
+
+Incoming Access PDUs are surfaced on:
+
+| Stream | Model | Typical contents |
+|--------|--------|------------------|
+| `messageStream` | `MeshMessage` | `opcode`, `parameters['bytes']`, `address` (**source** unicast when known) |
+| `rxAccessMessageStream` | `RxAccessMessage` | `opcode`, `parameters`, `source`, `destination`, `metadataStatus` |
+
+Cross-platform mapping (Nordic stacks):
+
+| Field | Android (Kotlin Mesh **1.0+**, GATT proxy session) | iOS (`nRFMeshProvision`, `MeshNetworkDelegate`) |
+|-------|------------------------------------------------------|-----------------------------------------------|
+| Payload | `message.parameters` | `message.parameters` |
+| Source → `MeshMessage.address` / `RxAccessMessage.source` | `NetworkEvent.MeshMessageReceived.source` | `didReceiveMessage ... sentFrom source` |
+| `RxAccessMessage.destination` | `MeshMessageReceived.destination` (`MeshAddress`) | Delegate `to destination` |
+
+**Portable Dart code**: keep **null-safe** handling for `address`, `source`, and `destination` (legacy paths, bearers, or transient states may omit them).
+
+**Android**: `supportsRxSourceAddress()` reflects whether the active bridge populates source for incoming traffic (public `networkEvents` path on Kotlin Mesh 1.0+). `setExperimentalRxMetadataEnabled` switches an optional reflection-based path; prefer defaults on current Nordic artifacts.
+
+**iOS**: `supportsRxSourceAddress()` is `true` when the mesh delegate delivers `sentFrom`.
+
+Future RX fields (e.g. RX **AppKey index**) are not part of this baseline; they would be added explicitly with dual-platform parity in mind.
 
 ### iOS Configuration
 

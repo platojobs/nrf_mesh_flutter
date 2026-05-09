@@ -203,7 +203,8 @@ class PlatoJobsMeshPlugin :
                     }
                 }
             } else {
-                rxSourceAddressSupported = false
+                // Nordic Kotlin Mesh 1.0+: `NetworkEvent.MeshMessageReceived` exposes source + destination.
+                rxSourceAddressSupported = true
                 km.networkEvents.collect { event ->
                     try {
                         val received = event as? no.nordicsemi.kotlin.mesh.core.NetworkEvent.MeshMessageReceived
@@ -212,10 +213,14 @@ class PlatoJobsMeshPlugin :
                         val params = msg.parameters ?: byteArrayOf()
                         val bytes = params.map { (it.toInt() and 0xFF).toLong() }
                         val op = (msg as? KmMeshMessage)?.opCode?.toLong() ?: 0L
+                        val src = (received.source.toInt() and 0xFFFF).toLong()
+                        val dst = received.destination?.let { d ->
+                            (d.address.toInt() and 0xFFFF).toLong()
+                        }
                         flutterApi?.onMessageReceived(
                             MeshMessage(
                                 opcode = op,
-                                address = null,
+                                address = src,
                                 appKeyIndex = null,
                                 parameters = mapOf("bytes" to bytes),
                             )
@@ -225,8 +230,8 @@ class PlatoJobsMeshPlugin :
                             RxAccessMessage(
                                 opcode = op,
                                 parameters = bytes,
-                                source = (received.source.toInt() and 0xFFFF).toLong(),
-                                destination = null,
+                                source = src,
+                                destination = dst,
                                 metadataStatus = RxMetadataStatus.AVAILABLE,
                             )
                         ) {}
