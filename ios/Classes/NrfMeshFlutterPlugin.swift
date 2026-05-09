@@ -1138,6 +1138,16 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         return true
     }
 
+    func supportsRxAppKeyIndex() throws -> Bool {
+        // Phase 1.4 — Nordic delegate does not expose decrypted AppKey index on this path yet.
+        return false
+    }
+
+    func supportsProxyFilter() throws -> Bool {
+        // Phase 3.2 — Proxy Filter controls not surfaced through this bridge yet.
+        return false
+    }
+
     func clearSecureStorage() throws {
         // iOS secure mesh state is managed by the underlying library.
         // This is a no-op for now (kept for API parity and debugging hooks).

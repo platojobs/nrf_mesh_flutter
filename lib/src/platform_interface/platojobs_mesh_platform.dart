@@ -179,10 +179,20 @@ abstract class PlatoJobsMeshBridge {
   /// incoming Access messages (`messageStream`).
   Future<bool> supportsRxSourceAddress();
 
+  /// Whether inbound Application Key index could be populated on RX paths (Phase 1.4).
+  Future<bool> supportsRxAppKeyIndex();
+
+  /// Phase **3.2**: whether Proxy Filter can be configured from Flutter.
+  Future<bool> supportsProxyFilter();
+
   /// Clear persisted secure mesh state used for stable Access sending.
   Future<void> clearSecureStorage();
 
-  /// Enable/disable experimental RX metadata extraction on Android.
+  /// **Deprecated (Phase 1.3).** Prefer Kotlin Mesh **1.0+** `networkEvents` /
+  /// `MeshMessageReceived` without reflection.
+  @Deprecated(
+    'Phase 1.3: Prefer default Android public RX path; reflection may break across Nordic releases.',
+  )
   Future<void> setExperimentalRxMetadataEnabled(bool enabled);
 }
 
@@ -686,6 +696,16 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
   @override
   Future<bool> supportsRxSourceAddress() async {
     return await _meshApi.supportsRxSourceAddress();
+  }
+
+  @override
+  Future<bool> supportsRxAppKeyIndex() async {
+    return await _meshApi.supportsRxAppKeyIndex();
+  }
+
+  @override
+  Future<bool> supportsProxyFilter() async {
+    return await _meshApi.supportsProxyFilter();
   }
 
   @override

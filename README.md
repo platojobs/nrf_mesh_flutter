@@ -25,12 +25,20 @@ Add `nrf_mesh_flutter` to your `pubspec.yaml`:
 dependencies:
   flutter:
     sdk: flutter
-  nrf_mesh_flutter: ^6.9.3
+  nrf_mesh_flutter: ^6.9.4
 ```
 
 ## Release notes language
 
 Release notes in `CHANGELOG.md` are maintained in **English only**.
+
+## Dependency policy
+
+**Avoid adding new third-party Dart dependencies** unless they are strictly required for Bluetooth Mesh interoperability or the Flutter plugin contract.
+
+- **Prefer** the Dart / Flutter SDK (`dart:*`, `package:flutter/...`) and small **in-repo** utilities (for example **`debounceMeshNetworkUpdates`** uses only **`dart:async`**).
+- **Runtime** packages today (`convert`, `crypto`, `pointycastle`, `plugin_platform_interface`, `meta`) exist for encoding/hashing/AES-CMAC and platform abstraction; expanding this set should include a **CHANGELOG rationale** and stay minimal.
+- **Development** dependencies are intentionally narrow: **`flutter_test`**, **`flutter_lints`**, and **`pigeon`** — do not pull in extra pub packages for tests or tooling convenience.
 
 ## Recommended: sending raw Access messages
 
@@ -54,6 +62,32 @@ Incoming Access PDUs are surfaced on:
 | `messageStream` | `MeshMessage` | `opcode`, `parameters['bytes']`, `address` (**source** unicast when known) |
 | `rxAccessMessageStream` | `RxAccessMessage` | `opcode`, `parameters`, `source`, `destination`, `metadataStatus` |
 
+#### Receive path inventory (Phase 0.1)
+
+| Surface | Opcode / payload | Source | Destination | RX AppKey index | Network TTL | Platform notes |
+|---------|------------------|--------|-------------|-----------------|-------------|----------------|
+| `messageStream` | `opcode` + `parameters['bytes']` | `MeshMessage.address` (incoming) | — | always **`null` today** | not exposed | Matches Access payload after decode |
+| `rxAccessMessageStream` | `opcode` + `parameters` | `RxAccessMessage.source` | `RxAccessMessage.destination` | always **`null` today** (Phase **1.4**) | not exposed | Use `metadataStatus` when fields absent |
+| `provisioningEventStream` | `ProvisioningEventType` + text fields | `deviceId` | — | — | — | **Not** Access-layer RX |
+| `meshNetworkUpdatedStream` | monotonic `int` sequence | — | — | — | — | DB lifecycle hint, not a mesh PDU |
+
+#### Platform gaps (Phase 0.2)
+
+- **Inbound Application Key index** on receive: **not** forwarded on Android or iOS today → tracked as **Phase 1.4** (nullable + docs / capability when stacks align). Query **`supportsRxAppKeyIndex()`** — it returns **`false`** until native metadata is wired.
+- **Network / relay TTL** on inbound PDUs: **not** exposed on either bridge path.
+- **Android reflection RX path**: **`setExperimentalRxMetadataEnabled(true)`** is **deprecated** (Phase **1.3**); default Kotlin Mesh **`MeshMessageReceived`** path should be used.
+- **Bluetooth Mesh Proxy Filter** driven from Flutter: **not** implemented (**Phase 3.2**). Query **`supportsProxyFilter()`** — **`false`** until Nordic bearer/filter hooks are bridged.
+
+#### Phase 0.3: Guaranteed vs best-effort
+
+This plugin aims for **the same Dart API** on Android and iOS: method names, parameter meaning, and whether a call **succeeds or throws** should match unless this README says otherwise.
+
+| Class | Meaning |
+|-------|---------|
+| **Guaranteed** | **Wire contract**: Pigeon methods and stream types are stable; documented behaviors (e.g. **`supportsRxSourceAddress()`** meaning, deprecation of experimental Android RX) are intentional. |
+| **Best-effort** | **RX field completeness**: source / destination / opcode bytes may be absent when the Nordic stack or bearer does not supply them — treat **`RxMetadataStatus`** and nullability as authoritative. |
+| **Best-effort** | **Topology snapshots**: `getNodes()` / `getGroups()` reflect the **native mesh DB** at query time; live RF state can diverge until you reconnect or reprovision. Use **`meshNetworkUpdatedStream`** (+ optional **`debounceMeshNetworkUpdates`**) to refresh caches after DB edits. |
+
 Cross-platform mapping (Nordic stacks):
 
 | Field | Android (Kotlin Mesh **1.0+**, GATT proxy session) | iOS (`nRFMeshProvision`, `MeshNetworkDelegate`) |
@@ -64,20 +98,99 @@ Cross-platform mapping (Nordic stacks):
 
 **Portable Dart code**: keep **null-safe** handling for `address`, `source`, and `destination` (legacy paths, bearers, or transient states may omit them).
 
-**Android**: `supportsRxSourceAddress()` reflects whether the active bridge populates source for incoming traffic (public `networkEvents` path on Kotlin Mesh 1.0+). `setExperimentalRxMetadataEnabled` switches an optional reflection-based path; prefer defaults on current Nordic artifacts.
+**Android**: `supportsRxSourceAddress()` reflects whether the active bridge populates source for incoming traffic (public `networkEvents` path on Kotlin Mesh 1.0+). Legacy reflection tuning via `setExperimentalRxMetadataEnabled` is **deprecated** (Phase 1.3); enabling it logs **`Log.w`** on Android.
 
 **iOS**: `supportsRxSourceAddress()` is `true` when the mesh delegate delivers `sentFrom`.
 
-Future RX fields (e.g. RX **AppKey index**) are not part of this baseline; they would be added explicitly with dual-platform parity in mind.
+Optional inbound metadata (**AppKey index** on receive, richer TTL/network fields, etc.) belongs to **Phase 1.4** in the [Roadmap (planning checklist)](#roadmap-planning-checklist)—implemented only when Nordic stacks expose it consistently or documented as platform-specific.
 
 ### Mesh DB change hints (Phase 2)
 
-When the native mesh configuration database may have changed (nodes, groups, keys, provisioning saves, etc.), the plugin emits on **`meshNetworkUpdatedStream`**. Each event is a monotonically increasing **`int`** sequence number—apps typically debounce and then refresh `getNodes()` / `getGroups()` / key APIs as needed.
+When the native mesh configuration database may have changed (nodes, groups, keys, provisioning saves, etc.), the plugin emits on **`meshNetworkUpdatedStream`**. Each event is a monotonically increasing **`int`** sequence number—apps typically debounce and then refresh `getNodes()` / `getGroups()` / key APIs as needed. For a dependency-free debounce, use **`debounceMeshNetworkUpdates`** from this package (Phase **2.2** helper).
 
 | Platform | Typical trigger |
 |----------|-----------------|
 | Android (Kotlin Mesh) | `NetworkEvent.NetworkUpdated` from `networkEvents` |
 | iOS (`nRFMeshProvision`) | After successful `MeshNetworkManager.save()` and after loads / imports that affect the DB |
+
+### Roadmap (planning checklist)
+
+Product parity work is tracked **by phase 0–5** below (not by release tags). The technical sections [Incoming messages (Phase 0 baseline)](#incoming-messages-phase-0-baseline) and [Mesh DB change hints (Phase 2)](#mesh-db-change-hints-phase-2) are **part of** those phases.
+
+#### Acceptance principles
+
+1. **Same Dart API semantics on Android and iOS**: success vs failure, parameter meaning, and **stream field meanings** must align unless explicitly documented otherwise.
+2. **When parity is impossible**: call it out in docs and/or **`RxMetadataStatus`** / a dedicated enum—**no silent behavioral forks** between platforms.
+3. **Each milestone** should ship **Pigeon changes** (when applicable), an **example page or integration test**, and a **CHANGELOG** entry.
+
+#### Phase 0 — Baseline & documentation (~1–2 days)
+
+| ID | Item | Deliverable |
+|----|------|-------------|
+| **0.1** | Inventory receive/uplink paths: `messageStream`, `rxAccessMessageStream`, provisioning callbacks | Comparison table (opcode, bytes, source, destination, appKey, TTL, …) |
+| **0.2** | Check whether iOS can achieve **Android `MeshMessageReceived`-grade** source/destination | Written gap list |
+| **0.3** | README «platform differences»: what is **guaranteed** vs **best-effort** | [Phase 0.3: Guaranteed vs best-effort](#phase-03-guaranteed-vs-best-effort) — overlaps inventory tables; extend when stacks change |
+
+#### Phase 1 — Receive-path parity (high priority, ~1–2 weeks)
+
+| ID | Item | Android | iOS | Acceptance |
+|----|------|---------|-----|------------|
+| **1.1** | Align **`MeshMessage.address`** with **`RxAccessMessage.source` / `destination`** semantics | Uses `NetworkEvent.MeshMessageReceived` source & destination on Kotlin Mesh 1.0+ | `MeshNetworkDelegate` path supplies source & destination | Same opcode fixture → same reported source in integration/unit coverage where feasible |
+| **1.2** | **`supportsRxSourceAddress()`** matches reality | `true` on default `networkEvents` receive path | `true` when delegate delivers `sentFrom` | Tests or assertions on representative builds |
+| **1.3** | Deprecate / demote Android **reflection experimental** RX path | **`setExperimentalRxMetadataEnabled` deprecated** + **`Log.w`** when enabled (6.9.4); default public API | N/A | Default CI build **without** reflection dependency |
+| **1.4** | **Inbound `appKeyIndex`** (optional) | Evaluate Kotlin Mesh / security APIs | Evaluate delegate/callback surface | **`supportsRxAppKeyIndex()`** reflects capability; **same semantics if filled**; otherwise document + nullable fields |
+
+#### Phase 2 — Network lifecycle (~1–2 weeks, medium priority)
+
+| ID | Item | Android | iOS | Acceptance |
+|----|------|---------|-----|------------|
+| **2.1** | **`NetworkUpdated`-class signal** to Flutter | `networkEvents` → `NetworkUpdated` | Save/load/import/reset-driven notify (current bridge) | **`meshNetworkUpdatedStream`** (today: monotonic `int` seq); optional future: reasons / `Stream<void>` |
+| **2.2** | **Debounce & merge** (avoid event storms) | App/plugin policy | Same | Example + **`debounceMeshNetworkUpdates`**: debounced refresh drives `getNodes()` / `getGroups()` consistently |
+
+**Current plugin note:** **2.1** is implemented end-to-end; **2.2** ships **`debounceMeshNetworkUpdates`** and the example uses it; **centralized coalescing inside the plugin** remains optional follow-up.
+
+#### Phase 3 — Proxy & connection strategy (~2–3 weeks, medium priority, as needed)
+
+| ID | Item | Notes |
+|----|------|------|
+| **3.1** | Abstract **proxy / bearer state machine** | Align Kotlin Mesh bearer vs iOS GATT proxy states → unified Dart model (`disconnected` / `connecting` / `proxyReady` / `provisioning`, …) |
+| **3.2** | **Proxy Filter** (advanced subset) | **`supportsProxyFilter()`** (**false** today = explicit unsupported probe); expose Nordic Proxy Filter subset on Android + parity/doc on iOS when implemented |
+| **3.3** | **Auto-reconnect** (optional) | Configurable policy aligned with Nordic guidance; example toggle + compliance/power warnings |
+
+**Current plugin note:** **3.1** (partial) — **`MeshBearerSnapshot`** / **`getMeshBearerSnapshot()`** fold **`isProxyConnected`** + **`isProvisioningConnected`** into **`MeshBearerPhase`** (`disconnected` / **`proxyReady`** / **`provisioning`**) with **provisioning precedence** when both natives report connected. A distinct **`connecting`** phase is **not** observable from these booleans alone — track in-flight connects via local **`Future`** state.
+
+**3.2** (probe) — **`supportsProxyFilter()`** returns **`false`** on Android and iOS today (explicit «unsupported» capability); mesh traffic uses Nordic stack defaults until filter configuration is wired.
+
+#### Phase 4 — Provisioning parity (Mesh 1.1 / enhanced) (~2–4 weeks, business-driven)
+
+| ID | Item | Notes |
+|----|------|------|
+| **4.1** | **Capabilities → Flutter** (OOB list, etc.) | Structured Pigeon types; Kotlin ↔ iOS symmetry |
+| **4.2** | **Enhanced provisioning / Mesh 1.1** params | Follow Nordic API deltas on both stacks + capability probes |
+| **4.3** | **Static / output OOB state machine** parity | Callback naming & ordering aligned; E2E provisioning tests |
+
+#### Phase 5 — Dependencies & health (ongoing)
+
+| ID | Item |
+|----|------|
+| **5.1** | Android: Kotlin Mesh + **kotlin-ble** aligned with Nordic’s recommended matrix (BOM / sample versions) |
+| **5.2** | iOS: **`nRFMeshProvision`** patch bumps + Swift/Xcode compatibility; note in CHANGELOG |
+| **5.3** | Dart: dependency constraints + pub health (`dart pub outdated`, dry-run before release) |
+
+#### Suggested sequencing (shortest path to «dual-stack consistent»)
+
+1. **Phase 1** (receive metadata + `supportsRxSourceAddress`) — highest user-visible impact.  
+2. **Phase 0** docs & matrices — avoids ambiguity during Phase 1 reviews.  
+3. **Phase 2** — better refresh model & power (partially delivered).  
+4. **Phase 4** — only if Mesh 1.1 / advanced provisioning is required.  
+5. **Phase 3** & **Phase 5** — parallel or interleaved with the above.
+
+#### Engineering hygiene (all phases)
+
+- Follow the **[Dependency policy](#dependency-policy)** — no new optional third-party Dart deps without strong justification.  
+- Regenerate **Pigeon** / CocoaPods when `pigeon/mesh_api.dart` or native versioning changes.  
+- Keep **example** pages aligned with new APIs.  
+- Run **`dart pub publish --dry-run`** / **`pana`** before release.
 
 ### iOS Configuration
 
@@ -286,6 +399,10 @@ PlatoJobsNrfMeshManager.instance
 | `createGroup(name)` | Create a new group |
 | `getGroups()` | Get all groups |
 | `addNodeToGroup(nodeId, groupId)` | Add a node to a group |
+| `supportsRxSourceAddress()` | Whether inbound messages can include a reliable source address |
+| `supportsRxAppKeyIndex()` | Whether inbound metadata can include Application Key index (**Phase 1.4**; **`false`** until native wiring) |
+| `getMeshBearerSnapshot()` | Phase **3.1**: **`MeshBearerPhase`** from native proxy vs provisioning connection flags |
+| `supportsProxyFilter()` | Phase **3.2**: whether Proxy Filter can be configured (**`false`** until bridged) |
 
 **Properties:**
 
@@ -295,6 +412,10 @@ PlatoJobsNrfMeshManager.instance
 | `meshNetworkUpdatedStream` | `Stream<int>` | Hint when native mesh DB may have changed (refresh topology caches) |
 
 ### Data Models
+
+#### `MeshBearerSnapshot` / `MeshBearerPhase` (Phase 3.1)
+
+Portable snapshot of **mesh-proxy vs PB-GATT provisioning** bearer activity. Built by querying native **`isProxyConnected`** and **`isProvisioningConnected`** together — see the **Phase 3** roadmap table (above) for precedence rules and **`connecting`** limitations.
 
 #### `MeshNetwork`
 

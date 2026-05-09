@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'src/core/mesh_manager_api.dart';
+import 'src/models/mesh_bearer_snapshot.dart';
 import 'src/models/mesh_network.dart' as net_models;
 import 'src/models/provisioned_node.dart' as node_models;
 import 'src/models/unprovisioned_device.dart' as dev_models;
@@ -19,6 +20,8 @@ export 'src/models/unprovisioned_device.dart' show UnprovisionedDevice;
 export 'src/models/provisioned_node.dart'
     show ProvisionedNode, NodeFeatures, Element, Model, Publication;
 export 'src/models/mesh_group.dart' show MeshGroup;
+export 'src/models/mesh_bearer_snapshot.dart'
+    show MeshBearerSnapshot, MeshBearerPhase;
 export 'src/models/mesh_message.dart'
     show
         MeshMessage,
@@ -29,6 +32,8 @@ export 'src/models/mesh_message.dart'
         GenericLevelStatus;
 export 'src/models/raw_access_message.dart' show RawAccessMessage;
 export 'src/utils/mesh_virtual_address.dart' show meshVirtualAddressFromLabel;
+export 'src/utils/mesh_network_update_debounce.dart'
+    show debounceMeshNetworkUpdates;
 export 'src/models/rx_access_message.dart'
     show RxAccessMessage, RxMetadataStatus;
 export 'src/messages/scene/scene_messages.dart'
@@ -313,15 +318,28 @@ class PlatoJobsNrfMeshManager {
     return await _meshManagerApi.supportsRxSourceAddress();
   }
 
+  /// Phase **1.4**: whether inbound AppKey index **could** be exposed on RX paths.
+  ///
+  /// Currently **false** until Nordic stacks align; avoids silent assumptions.
+  Future<bool> supportsRxAppKeyIndex() async {
+    return await _meshManagerApi.supportsRxAppKeyIndex();
+  }
+
+  /// Phase **3.2**: whether **Proxy Filter** can be configured from Dart (**false** today).
+  Future<bool> supportsProxyFilter() async {
+    return await _meshManagerApi.supportsProxyFilter();
+  }
+
   /// Clear persisted secure mesh state used for stable Access sending.
   Future<void> clearSecureStorage() async {
     return await _meshManagerApi.clearSecureStorage();
   }
 
-  /// Android-only: enable/disable experimental RX metadata extraction.
-  ///
-  /// When enabled, Android may use internal APIs (via reflection) to extract the
-  /// source address for incoming Access messages.
+  /// **Deprecated (Phase 1.3).** Prefer Kotlin Mesh **1.0+** public `networkEvents`
+  /// receive path; enabling this opts into fragile reflection on Android.
+  @Deprecated(
+    'Phase 1.3: Prefer default Android public RX path; reflection may break across Nordic releases.',
+  )
   Future<void> setExperimentalRxMetadataEnabled(bool enabled) async {
     return await _meshManagerApi.setExperimentalRxMetadataEnabled(enabled);
   }
@@ -646,6 +664,15 @@ class PlatoJobsNrfMeshManager {
   /// Whether provisioning GATT link is active.
   Future<bool> isProvisioningConnected() async {
     return await _meshManagerApi.isProvisioningConnected();
+  }
+
+  /// Phase **3.1**: unified bearer view from **`isProxyConnected`** /
+  /// **`isProvisioningConnected`** (provisioning phase wins if both report true).
+  ///
+  /// See [MeshBearerSnapshot] — **`connecting`** is not represented; await native
+  /// connect calls locally if you need in-flight UI.
+  Future<MeshBearerSnapshot> getMeshBearerSnapshot() async {
+    return await _meshManagerApi.getMeshBearerSnapshot();
   }
 }
 

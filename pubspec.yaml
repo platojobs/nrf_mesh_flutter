@@ -1,6 +1,6 @@
 name: nrf_mesh_flutter
 description: Flutter plugin for Bluetooth Mesh using Nordic nRF Mesh libraries
-version: 6.9.3
+version: 6.9.4
 homepage: https://github.com/platojobs/nrf_mesh_flutter
 repository: https://github.com/platojobs/nrf_mesh_flutter
 issue_tracker: https://github.com/platojobs/nrf_mesh_flutter/issues
@@ -8,6 +8,11 @@ issue_tracker: https://github.com/platojobs/nrf_mesh_flutter/issues
 environment:
   sdk: ^3.11.4
   flutter: '>=3.3.0'
+
+# Dependency policy: do not add new third-party Dart packages for convenience.
+# Prefer `dart:*` / `package:flutter`. Runtime deps below support Mesh crypto /
+# codecs and the plugin surface; dev_dependencies stay limited to Flutter SDK
+# tooling (`flutter_test`, `flutter_lints`) plus `pigeon` code generation.
 
 dependencies:
   flutter:

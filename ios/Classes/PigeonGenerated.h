@@ -448,15 +448,28 @@ NSObject<FlutterMessageCodec> *nullGetPigeonGeneratedCodec(void);
 ///
 /// @return `nil` only when `error != nil`.
 - (nullable NSNumber *)supportsRxSourceAddressWithError:(FlutterError *_Nullable *_Nonnull)error;
+/// Whether inbound **Application Key index** can be populated on receive paths
+/// (future `RxAccessMessage` / `MeshMessage.appKeyIndex` parity — Phase 1.4).
+///
+/// Currently **false** on Android and iOS until Nordic stacks expose it consistently.
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)supportsRxAppKeyIndexWithError:(FlutterError *_Nullable *_Nonnull)error;
+/// Whether **Bluetooth Mesh Proxy Filter** controls can be driven from Flutter (**Phase 3.2**).
+///
+/// Currently **false** — Nordic bearer defaults apply; explicit Proxy Filter APIs are not wired yet.
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)supportsProxyFilterWithError:(FlutterError *_Nullable *_Nonnull)error;
 /// Clear persisted secure mesh state used for stable Access message sending.
 ///
 /// Intended for debugging and recovery (e.g. when switching Mesh DBs).
 - (void)clearSecureStorageWithError:(FlutterError *_Nullable *_Nonnull)error;
-/// Enable/disable experimental RX metadata extraction on Android.
+/// **Deprecated (Phase 1.3).** Prefer Kotlin Mesh **1.0+** `networkEvents` /
+/// `MeshMessageReceived`, which populate source without reflection.
 ///
-/// When enabled, Android may use internal APIs (via reflection) to extract the
-/// source address for incoming Access messages. When disabled, Android will
-/// use only public APIs and `MeshMessage.address` may be null.
+/// When enabled, Android may use internal APIs (via reflection) for RX metadata.
+/// Fragile across Nordic releases; logs a warning when toggled on.
 ///
 /// On iOS this is a no-op.
 - (void)setExperimentalRxMetadataEnabledEnabled:(BOOL)enabled error:(FlutterError *_Nullable *_Nonnull)error;

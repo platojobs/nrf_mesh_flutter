@@ -105,6 +105,18 @@ void main() {
     await fake.dispose();
   });
 
+  test('Fake bridge reports RX capability flags', () async {
+    final fake = FakePlatoJobsMeshBridge();
+    PlatoJobsNrfMeshManager.setBridgeForTesting(fake);
+    await PlatoJobsNrfMeshManager.instance.initialize();
+
+    expect(await PlatoJobsNrfMeshManager.instance.supportsRxSourceAddress(), true);
+    expect(await PlatoJobsNrfMeshManager.instance.supportsRxAppKeyIndex(), false);
+    expect(await PlatoJobsNrfMeshManager.instance.supportsProxyFilter(), false);
+
+    await fake.dispose();
+  });
+
   test('Fake bridge supports minimal configuration operations', () async {
     final fake = FakePlatoJobsMeshBridge();
     PlatoJobsNrfMeshManager.setBridgeForTesting(fake);
@@ -163,6 +175,31 @@ void main() {
     ); // 0x1000
     expect(model.boundAppKeyIndexes, isEmpty);
     expect(model.subscriptions, isEmpty);
+
+    await fake.dispose();
+  });
+
+  test('Mesh bearer snapshot reflects fake proxy connection', () async {
+    final fake = FakePlatoJobsMeshBridge();
+    PlatoJobsNrfMeshManager.setBridgeForTesting(fake);
+    await PlatoJobsNrfMeshManager.instance.initialize();
+
+    expect(
+      (await PlatoJobsNrfMeshManager.instance.getMeshBearerSnapshot()).phase,
+      MeshBearerPhase.disconnected,
+    );
+
+    await PlatoJobsNrfMeshManager.instance.connectProxy('dev-proxy', 0x0003);
+    expect(
+      (await PlatoJobsNrfMeshManager.instance.getMeshBearerSnapshot()).phase,
+      MeshBearerPhase.proxyReady,
+    );
+
+    await PlatoJobsNrfMeshManager.instance.disconnectProxy();
+    expect(
+      (await PlatoJobsNrfMeshManager.instance.getMeshBearerSnapshot()).phase,
+      MeshBearerPhase.disconnected,
+    );
 
     await fake.dispose();
   });

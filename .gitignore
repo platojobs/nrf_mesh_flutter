@@ -37,5 +37,8 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Kotlin incremental compiler session files (e.g. Android example build)
+**/.kotlin/
+
 # Local maintenance doc (tracked optionally; keep ignored by default).
 PROJECT_SPECIFICATIONS.md

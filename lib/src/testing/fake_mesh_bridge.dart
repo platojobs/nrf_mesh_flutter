@@ -739,6 +739,16 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
   }
 
   @override
+  Future<bool> supportsRxAppKeyIndex() async {
+    return false;
+  }
+
+  @override
+  Future<bool> supportsProxyFilter() async {
+    return false;
+  }
+
+  @override
   Future<void> clearSecureStorage() async {
     // No persisted secure state in the fake bridge.
   }

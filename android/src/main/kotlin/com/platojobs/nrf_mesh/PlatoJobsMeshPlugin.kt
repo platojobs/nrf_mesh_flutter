@@ -4,6 +4,7 @@ package com.platojobs.nrf_mesh
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import org.json.JSONArray
 import org.json.JSONObject
@@ -102,6 +103,10 @@ class PlatoJobsMeshPlugin :
     private var networkUpdatesJob: Job? = null
     private var rxSourceAddressSupported: Boolean = false
     private var experimentalRxMetadataEnabled: Boolean = false
+
+    companion object {
+        private const val TAG = "PlatoJobsMeshPlugin"
+    }
 
     private data class PendingOob(
         val numeric: AuthAction.ProvideNumeric? = null,
@@ -1741,12 +1746,23 @@ class PlatoJobsMeshPlugin :
 
     override fun supportsRxSourceAddress(): Boolean = rxSourceAddressSupported
 
+    override fun supportsRxAppKeyIndex(): Boolean = false
+
+    override fun supportsProxyFilter(): Boolean = false
+
     override fun clearSecureStorage() {
         secureStorage?.clearAll()
     }
 
     override fun setExperimentalRxMetadataEnabled(enabled: Boolean) {
         experimentalRxMetadataEnabled = enabled
+        if (enabled) {
+            Log.w(
+                TAG,
+                "Experimental RX metadata (reflection) is enabled. Deprecated: prefer Kotlin Mesh " +
+                    "public networkEvents path (Phase 1.3); reflection may break across library versions.",
+            )
+        }
     }
 }
 

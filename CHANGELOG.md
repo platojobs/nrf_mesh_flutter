@@ -1,3 +1,25 @@
+## 6.9.4
+
+### Documentation (Phase 0.x + planning)
+- README: Phase **3** «current plugin note» + **`MeshBearerSnapshot`** model section.
+- README: **Phase 0.1** receive-path inventory table (streams vs opcode / source / destination / gaps).
+- README: **Phase 0.2** explicit gap list (inbound AppKey index, TTL, experimental RX deprecation).
+- README + `pubspec.yaml`: **dependency policy** — prefer SDK / in-repo helpers; avoid new optional third-party Dart packages; dev tooling limited to **`flutter_test`**, **`flutter_lints`**, **`pigeon`**.
+
+### API
+- Deprecate **`setExperimentalRxMetadataEnabled`** (Phase **1.3**): prefer Kotlin Mesh public `networkEvents` path; Android logs **`Log.w`** when reflection mode is enabled.
+- **`supportsRxAppKeyIndex()`** (Phase **1.4** probe): returns **`false`** on Android and iOS until inbound AppKey index metadata is wired consistently.
+- **`debounceMeshNetworkUpdates`** (Phase **2.2**): small **`dart:async`** helper to debounce **`meshNetworkUpdatedStream`** without extra runtime dependencies.
+- **`getMeshBearerSnapshot()`** + **`MeshBearerSnapshot`** / **`MeshBearerPhase`** (Phase **3.1** partial): unify **`isProxyConnected`** / **`isProvisioningConnected`** with documented provisioning precedence (no new native deps / Pigeon calls beyond existing probes).
+- **`supportsProxyFilter()`** (Phase **3.2** probe): returns **`false`** — Proxy Filter configuration not bridged yet.
+
+### Example
+- Home demo debounces mesh DB hints via **`debounceMeshNetworkUpdates`** instead of ad-hoc **`Timer`** wiring.
+- **Real P1** page: same **`debounceMeshNetworkUpdates`** for **`meshNetworkUpdatedStream`**; logs **`getMeshBearerSnapshot()`** after proxy connect/disconnect and exposes **Bearer + PF probe**.
+
+### Native (iOS) / Docs
+- CocoaPods podspec version **6.9.4**; README install snippet **6.9.4**.
+
 ## 6.9.3
 
 ### Documentation

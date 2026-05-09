@@ -8,6 +8,7 @@ import '../models/unprovisioned_device.dart' as dev_models;
 import '../models/mesh_message.dart' as msg_models;
 import '../models/mesh_group.dart' as group_models;
 import '../models/rx_access_message.dart' as rx_models;
+import '../models/mesh_bearer_snapshot.dart';
 import 'command_queue.dart';
 import 'mesh_exceptions.dart';
 import '../platform_interface/platojobs_mesh_platform.dart' as platform;
@@ -127,11 +128,25 @@ class MeshManagerApi {
     return await _guard(() => _platform.supportsRxSourceAddress());
   }
 
+  /// Phase **1.4** capability probe — currently **false** on both stacks.
+  Future<bool> supportsRxAppKeyIndex() async {
+    return await _guard(() => _platform.supportsRxAppKeyIndex());
+  }
+
+  /// Phase **3.2** capability probe — currently **false** (stack defaults only).
+  Future<bool> supportsProxyFilter() async {
+    return await _guard(() => _platform.supportsProxyFilter());
+  }
+
   /// Clear persisted secure mesh state used for stable Access sending.
   Future<void> clearSecureStorage() async {
     return await _guard(() => _platform.clearSecureStorage());
   }
 
+  /// **Deprecated (Phase 1.3).** See [PlatoJobsMeshBridge.setExperimentalRxMetadataEnabled].
+  @Deprecated(
+    'Phase 1.3: Prefer default Android public RX path; reflection may break across Nordic releases.',
+  )
   Future<void> setExperimentalRxMetadataEnabled(bool enabled) async {
     return await _guard(
       () => _platform.setExperimentalRxMetadataEnabled(enabled),
@@ -425,6 +440,17 @@ class MeshManagerApi {
 
   Future<bool> isProvisioningConnected() async {
     return await _guard(() => _platform.isProvisioningConnected());
+  }
+
+  Future<MeshBearerSnapshot> getMeshBearerSnapshot() async {
+    final proxyConnected = await _guard(() => _platform.isProxyConnected());
+    final provisioningConnected = await _guard(
+      () => _platform.isProvisioningConnected(),
+    );
+    return MeshBearerSnapshot.fromNativeFlags(
+      proxyConnected: proxyConnected,
+      provisioningConnected: provisioningConnected,
+    );
   }
 }
 

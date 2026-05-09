@@ -2298,6 +2298,47 @@ void SetUpMeshApiWithSuffix(id<FlutterBinaryMessenger> binaryMessenger, NSObject
       [channel setMessageHandler:nil];
     }
   }
+  /// Whether inbound **Application Key index** can be populated on receive paths
+  /// (future `RxAccessMessage` / `MeshMessage.appKeyIndex` parity — Phase 1.4).
+  ///
+  /// Currently **false** on Android and iOS until Nordic stacks expose it consistently.
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.supportsRxAppKeyIndex", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(supportsRxAppKeyIndexWithError:)], @"MeshApi api (%@) doesn't respond to @selector(supportsRxAppKeyIndexWithError:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        FlutterError *error;
+        NSNumber *output = [api supportsRxAppKeyIndexWithError:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  /// Whether **Bluetooth Mesh Proxy Filter** controls can be driven from Flutter (**Phase 3.2**).
+  ///
+  /// Currently **false** — Nordic bearer defaults apply; explicit Proxy Filter APIs are not wired yet.
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.supportsProxyFilter", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(supportsProxyFilterWithError:)], @"MeshApi api (%@) doesn't respond to @selector(supportsProxyFilterWithError:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        FlutterError *error;
+        NSNumber *output = [api supportsProxyFilterWithError:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
   /// Clear persisted secure mesh state used for stable Access message sending.
   ///
   /// Intended for debugging and recovery (e.g. when switching Mesh DBs).
@@ -2318,11 +2359,11 @@ void SetUpMeshApiWithSuffix(id<FlutterBinaryMessenger> binaryMessenger, NSObject
       [channel setMessageHandler:nil];
     }
   }
-  /// Enable/disable experimental RX metadata extraction on Android.
+  /// **Deprecated (Phase 1.3).** Prefer Kotlin Mesh **1.0+** `networkEvents` /
+  /// `MeshMessageReceived`, which populate source without reflection.
   ///
-  /// When enabled, Android may use internal APIs (via reflection) to extract the
-  /// source address for incoming Access messages. When disabled, Android will
-  /// use only public APIs and `MeshMessage.address` may be null.
+  /// When enabled, Android may use internal APIs (via reflection) for RX metadata.
+  /// Fragile across Nordic releases; logs a warning when toggled on.
   ///
   /// On iOS this is a no-op.
   {

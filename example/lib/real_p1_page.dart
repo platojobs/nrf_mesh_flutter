@@ -18,7 +18,6 @@ class _RealP1PageState extends State<RealP1Page> {
   StreamSubscription<UnprovisionedDevice>? _scanSub;
   StreamSubscription<MeshMessage>? _msgSub;
   StreamSubscription<int>? _meshDbSub;
-  Timer? _meshDbDebounce;
   final List<UnprovisionedDevice> _proxies = [];
   bool _scanning = false;
   bool _connecting = false;
@@ -71,14 +70,14 @@ class _RealP1PageState extends State<RealP1Page> {
       ),
       onError: (e) => _log('messageStream error: $e'),
     );
-    _meshDbSub = _mesh.meshNetworkUpdatedStream.listen((seq) {
-      _meshDbDebounce?.cancel();
-      _meshDbDebounce = Timer(const Duration(milliseconds: 400), () {
-        if (!mounted) return;
-        _log(
-          'meshNetworkUpdatedStream seq=$seq (debounced) — refresh topology caches if needed',
-        );
-      });
+    _meshDbSub = debounceMeshNetworkUpdates(
+      _mesh.meshNetworkUpdatedStream,
+      const Duration(milliseconds: 400),
+    ).listen((seq) {
+      if (!mounted) return;
+      _log(
+        'meshNetworkUpdatedStream seq=$seq (debounced) — refresh topology caches if needed',
+      );
     });
   }
 
@@ -87,7 +86,6 @@ class _RealP1PageState extends State<RealP1Page> {
     _scanSub?.cancel();
     _msgSub?.cancel();
     _meshDbSub?.cancel();
-    _meshDbDebounce?.cancel();
     _importPathCtrl.dispose();
     _proxyUnicastCtrl.dispose();
     _elementAddressCtrl.dispose();
@@ -117,6 +115,22 @@ class _RealP1PageState extends State<RealP1Page> {
     setState(() {
       _logs.insert(0, '[${DateTime.now().toIso8601String()}] $msg');
     });
+  }
+
+  Future<void> _logBearerSnapshot() async {
+    try {
+      final s = await _mesh.getMeshBearerSnapshot();
+      if (!mounted) return;
+      _log(
+        'MeshBearerSnapshot phase=${s.phase} proxyNative=${s.proxyConnected} provisioningNative=${s.provisioningConnected}',
+      );
+      final pf = await _mesh.supportsProxyFilter();
+      if (!mounted) return;
+      _log('supportsProxyFilter=$pf (Phase 3.2)');
+    } catch (e) {
+      if (!mounted) return;
+      _log('getMeshBearerSnapshot / supportsProxyFilter error: $e');
+    }
   }
 
   int _parseInt(String s) {
@@ -181,6 +195,7 @@ class _RealP1PageState extends State<RealP1Page> {
       final ok = await _mesh.connectProxy(d.deviceId, unicast);
       final connected = await _mesh.isProxyConnected();
       _log('connectProxy result=$ok isProxyConnected=$connected');
+      await _logBearerSnapshot();
     } catch (e) {
       _log('Connect error: $e');
     } finally {
@@ -194,6 +209,7 @@ class _RealP1PageState extends State<RealP1Page> {
       final ok = await _mesh.disconnectProxy();
       final connected = await _mesh.isProxyConnected();
       _log('disconnectProxy result=$ok isProxyConnected=$connected');
+      await _logBearerSnapshot();
     } catch (e) {
       _log('Disconnect error: $e');
     }
@@ -658,6 +674,11 @@ class _RealP1PageState extends State<RealP1Page> {
                   }
                 },
                 child: const Text('Check Connected'),
+              ),
+              const SizedBox(width: 12),
+              OutlinedButton(
+                onPressed: _logBearerSnapshot,
+                child: const Text('Bearer + PF probe'),
               ),
             ],
           ),

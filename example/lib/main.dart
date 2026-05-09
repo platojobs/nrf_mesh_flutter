@@ -30,7 +30,6 @@ class _MyAppState extends State<MyApp> {
   String _status = 'Ready';
 
   StreamSubscription<int>? _meshDbHintSub;
-  Timer? _meshDbDebounce;
 
   @override
   void initState() {
@@ -43,19 +42,18 @@ class _MyAppState extends State<MyApp> {
   @override
   void dispose() {
     _meshDbHintSub?.cancel();
-    _meshDbDebounce?.cancel();
     super.dispose();
   }
 
   /// Debounced refresh when native mesh DB changes (Phase 2 parity demo).
   void _listenMeshDbHints() {
-    _meshDbHintSub = _meshManager.meshNetworkUpdatedStream.listen((_) {
-      _meshDbDebounce?.cancel();
-      _meshDbDebounce = Timer(const Duration(milliseconds: 400), () async {
-        if (!mounted) return;
-        await _loadNodesAndGroups();
-        setState(() => _status = 'Mesh DB updated — refreshed nodes/groups');
-      });
+    _meshDbHintSub = debounceMeshNetworkUpdates(
+      _meshManager.meshNetworkUpdatedStream,
+      const Duration(milliseconds: 400),
+    ).listen((_) async {
+      if (!mounted) return;
+      await _loadNodesAndGroups();
+      setState(() => _status = 'Mesh DB updated — refreshed nodes/groups');
     });
   }
 

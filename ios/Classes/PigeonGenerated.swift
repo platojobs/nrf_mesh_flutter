@@ -1220,15 +1220,24 @@ protocol MeshApi {
   /// Whether the native implementation can reliably populate `MeshMessage.address`
   /// (source address) for incoming Access messages.
   func supportsRxSourceAddress() throws -> Bool
+  /// Whether inbound **Application Key index** can be populated on receive paths
+  /// (future `RxAccessMessage` / `MeshMessage.appKeyIndex` parity — Phase 1.4).
+  ///
+  /// Currently **false** on Android and iOS until Nordic stacks expose it consistently.
+  func supportsRxAppKeyIndex() throws -> Bool
+  /// Whether **Bluetooth Mesh Proxy Filter** controls can be driven from Flutter (**Phase 3.2**).
+  ///
+  /// Currently **false** — Nordic bearer defaults apply; explicit Proxy Filter APIs are not wired yet.
+  func supportsProxyFilter() throws -> Bool
   /// Clear persisted secure mesh state used for stable Access message sending.
   ///
   /// Intended for debugging and recovery (e.g. when switching Mesh DBs).
   func clearSecureStorage() throws
-  /// Enable/disable experimental RX metadata extraction on Android.
+  /// **Deprecated (Phase 1.3).** Prefer Kotlin Mesh **1.0+** `networkEvents` /
+  /// `MeshMessageReceived`, which populate source without reflection.
   ///
-  /// When enabled, Android may use internal APIs (via reflection) to extract the
-  /// source address for incoming Access messages. When disabled, Android will
-  /// use only public APIs and `MeshMessage.address` may be null.
+  /// When enabled, Android may use internal APIs (via reflection) for RX metadata.
+  /// Fragile across Nordic releases; logs a warning when toggled on.
   ///
   /// On iOS this is a no-op.
   func setExperimentalRxMetadataEnabled(enabled: Bool) throws
@@ -2091,6 +2100,39 @@ class MeshApiSetup {
     } else {
       supportsRxSourceAddressChannel.setMessageHandler(nil)
     }
+    /// Whether inbound **Application Key index** can be populated on receive paths
+    /// (future `RxAccessMessage` / `MeshMessage.appKeyIndex` parity — Phase 1.4).
+    ///
+    /// Currently **false** on Android and iOS until Nordic stacks expose it consistently.
+    let supportsRxAppKeyIndexChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.supportsRxAppKeyIndex\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      supportsRxAppKeyIndexChannel.setMessageHandler { _, reply in
+        do {
+          let result = try api.supportsRxAppKeyIndex()
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      supportsRxAppKeyIndexChannel.setMessageHandler(nil)
+    }
+    /// Whether **Bluetooth Mesh Proxy Filter** controls can be driven from Flutter (**Phase 3.2**).
+    ///
+    /// Currently **false** — Nordic bearer defaults apply; explicit Proxy Filter APIs are not wired yet.
+    let supportsProxyFilterChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.supportsProxyFilter\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      supportsProxyFilterChannel.setMessageHandler { _, reply in
+        do {
+          let result = try api.supportsProxyFilter()
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      supportsProxyFilterChannel.setMessageHandler(nil)
+    }
     /// Clear persisted secure mesh state used for stable Access message sending.
     ///
     /// Intended for debugging and recovery (e.g. when switching Mesh DBs).
@@ -2107,11 +2149,11 @@ class MeshApiSetup {
     } else {
       clearSecureStorageChannel.setMessageHandler(nil)
     }
-    /// Enable/disable experimental RX metadata extraction on Android.
+    /// **Deprecated (Phase 1.3).** Prefer Kotlin Mesh **1.0+** `networkEvents` /
+    /// `MeshMessageReceived`, which populate source without reflection.
     ///
-    /// When enabled, Android may use internal APIs (via reflection) to extract the
-    /// source address for incoming Access messages. When disabled, Android will
-    /// use only public APIs and `MeshMessage.address` may be null.
+    /// When enabled, Android may use internal APIs (via reflection) for RX metadata.
+    /// Fragile across Nordic releases; logs a warning when toggled on.
     ///
     /// On iOS this is a no-op.
     let setExperimentalRxMetadataEnabledChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setExperimentalRxMetadataEnabled\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
