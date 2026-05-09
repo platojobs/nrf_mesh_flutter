@@ -47,7 +47,10 @@ class _GroupMessagingPageState extends State<GroupMessagingPage> {
 
   void _rollLabel() {
     final r = Random();
-    _labelHex.text = List.generate(32, (_) => r.nextInt(16).toRadixString(16)).join();
+    _labelHex.text = List.generate(
+      32,
+      (_) => r.nextInt(16).toRadixString(16),
+    ).join();
     _recomputeAddress();
   }
 
@@ -57,7 +60,10 @@ class _GroupMessagingPageState extends State<GroupMessagingPage> {
       _append('Label must be 32 hex chars (16 bytes).');
       return null;
     }
-    return List.generate(16, (i) => int.parse(s.substring(i * 2, i * 2 + 2), radix: 16));
+    return List.generate(
+      16,
+      (i) => int.parse(s.substring(i * 2, i * 2 + 2), radix: 16),
+    );
   }
 
   void _recomputeAddress() {
@@ -75,7 +81,9 @@ class _GroupMessagingPageState extends State<GroupMessagingPage> {
     if (b == null) return;
     try {
       final g = await _mesh.createVirtualGroup('Virtual (example)', b);
-      _append('createVirtualGroup -> ${g.groupId} @ ${g.address} (virtual=${g.isVirtual})');
+      _append(
+        'createVirtualGroup -> ${g.groupId} @ ${g.address} (virtual=${g.isVirtual})',
+      );
     } catch (e) {
       _append('createVirtualGroup error: $e');
     }
@@ -88,7 +96,9 @@ class _GroupMessagingPageState extends State<GroupMessagingPage> {
       final el = _readInt(_elementAddr);
       final mid = _readInt(_modelId);
       final ok = await _mesh.addSubscriptionVirtual(el, mid, b);
-      _append('addSubscriptionVirtual -> $ok (element=0x${el.toRadixString(16)} model=0x${mid.toRadixString(16)})');
+      _append(
+        'addSubscriptionVirtual -> $ok (element=0x${el.toRadixString(16)} model=0x${mid.toRadixString(16)})',
+      );
     } catch (e) {
       _append('addSubscriptionVirtual error: $e');
     }
@@ -154,7 +164,10 @@ class _GroupMessagingPageState extends State<GroupMessagingPage> {
       _append('raw hex even length only');
       return;
     }
-    final bytes = List<int>.generate(s.length >> 1, (i) => int.parse(s.substring(i * 2, i * 2 + 2), radix: 16));
+    final bytes = List<int>.generate(
+      s.length >> 1,
+      (i) => int.parse(s.substring(i * 2, i * 2 + 2), radix: 16),
+    );
     try {
       final ak = _readInt(_appKey);
       await _mesh.sendAccess(
@@ -164,7 +177,9 @@ class _GroupMessagingPageState extends State<GroupMessagingPage> {
         appKeyIndex: ak,
         virtualLabel: b,
       );
-      _append('raw 0x8202 ${bytes.length}B -> 0x${a.toRadixString(16)} (same as default OnOff params)');
+      _append(
+        'raw 0x8202 ${bytes.length}B -> 0x${a.toRadixString(16)} (same as default OnOff params)',
+      );
     } catch (e) {
       _append('sendAccess error: $e');
     }
@@ -173,9 +188,7 @@ class _GroupMessagingPageState extends State<GroupMessagingPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('M3 Virtual group messaging'),
-      ),
+      appBar: AppBar(title: const Text('M3 Virtual group messaging')),
       body: Padding(
         padding: const EdgeInsets.all(12.0),
         child: ListView(
@@ -198,9 +211,15 @@ class _GroupMessagingPageState extends State<GroupMessagingPage> {
             const SizedBox(height: 8),
             Row(
               children: [
-                FilledButton(onPressed: _rollLabel, child: const Text('Random label')),
+                FilledButton(
+                  onPressed: _rollLabel,
+                  child: const Text('Random label'),
+                ),
                 const SizedBox(width: 8),
-                FilledButton.tonal(onPressed: _createVirtualGroup, child: const Text('Create virtual group (DB)')),
+                FilledButton.tonal(
+                  onPressed: _createVirtualGroup,
+                  child: const Text('Create virtual group (DB)'),
+                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -218,13 +237,19 @@ class _GroupMessagingPageState extends State<GroupMessagingPage> {
               controller: _modelId,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
-                labelText: 'Model id (0x1000=Generic OnOff Srv, decimal or 0x..)',
+                labelText:
+                    'Model id (0x1000=Generic OnOff Srv, decimal or 0x..)',
                 border: OutlineInputBorder(),
                 isDense: true,
               ),
             ),
             const SizedBox(height: 8),
-            FilledButton(onPressed: _subscribe, child: const Text('Config: subscription virtual (proxy required)')),
+            FilledButton(
+              onPressed: _subscribe,
+              child: const Text(
+                'Config: subscription virtual (proxy required)',
+              ),
+            ),
             const Divider(height: 32),
             TextField(
               controller: _appKey,
@@ -238,9 +263,15 @@ class _GroupMessagingPageState extends State<GroupMessagingPage> {
             const SizedBox(height: 8),
             Row(
               children: [
-                FilledButton(onPressed: () => _sendOnOff(true), child: const Text('OnOff ON')),
+                FilledButton(
+                  onPressed: () => _sendOnOff(true),
+                  child: const Text('OnOff ON'),
+                ),
                 const SizedBox(width: 8),
-                FilledButton(onPressed: () => _sendOnOff(false), child: const Text('OnOff OFF')),
+                FilledButton(
+                  onPressed: () => _sendOnOff(false),
+                  child: const Text('OnOff OFF'),
+                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -259,7 +290,10 @@ class _GroupMessagingPageState extends State<GroupMessagingPage> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                FilledButton.tonal(onPressed: _sendLevel, child: const Text('Generic Level Set')),
+                FilledButton.tonal(
+                  onPressed: _sendLevel,
+                  child: const Text('Generic Level Set'),
+                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -272,10 +306,16 @@ class _GroupMessagingPageState extends State<GroupMessagingPage> {
                 hintText: 'e.g. 01 <tid> for onoff',
               ),
             ),
-            FilledButton.tonal(onPressed: _sendRaw, child: const Text('Send raw 0x8202')),
+            FilledButton.tonal(
+              onPressed: _sendRaw,
+              child: const Text('Send raw 0x8202'),
+            ),
             const SizedBox(height: 16),
             const Text('Log', style: TextStyle(fontWeight: FontWeight.bold)),
-            SelectableText(_log.isEmpty ? '—' : _log, style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
+            SelectableText(
+              _log.isEmpty ? '—' : _log,
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+            ),
           ],
         ),
       ),

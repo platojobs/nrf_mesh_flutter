@@ -20,23 +20,16 @@ void main() {
 
     test('staticOob rejects odd-length hex', () {
       expect(
-        () => ProvisioningParameters.staticOob(
-          deviceName: 'n',
-          hex: 'abc',
-        ),
+        () => ProvisioningParameters.staticOob(deviceName: 'n', hex: 'abc'),
         throwsArgumentError,
       );
     });
 
     test('staticOob rejects non-hex', () {
       expect(
-        () => ProvisioningParameters.staticOob(
-          deviceName: 'n',
-          hex: 'zz',
-        ),
+        () => ProvisioningParameters.staticOob(deviceName: 'n', hex: 'zz'),
         throwsArgumentError,
       );
     });
   });
 }
-

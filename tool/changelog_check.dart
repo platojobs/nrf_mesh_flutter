@@ -44,9 +44,10 @@ void main() {
   }
 
   final pubspecText = pubspec.readAsStringSync();
-  final pubspecVersionMatch =
-      RegExp(r'^\s*version:\s*([0-9]+\.[0-9]+\.[0-9]+)\s*$', multiLine: true)
-          .firstMatch(pubspecText);
+  final pubspecVersionMatch = RegExp(
+    r'^\s*version:\s*([0-9]+\.[0-9]+\.[0-9]+)\s*$',
+    multiLine: true,
+  ).firstMatch(pubspecText);
   if (pubspecVersionMatch == null) {
     stderr.writeln('ERROR: Could not find `version:` in pubspec.yaml.');
     exit(1);
@@ -57,16 +58,19 @@ void main() {
   final changelogText = changelog.readAsStringSync();
   final versions = <SemVer>[];
   final versionLines = <String>[];
-  for (final m in RegExp(r'^\s*##\s+([0-9]+\.[0-9]+\.[0-9]+)\s*$',
-          multiLine: true)
-      .allMatches(changelogText)) {
+  for (final m in RegExp(
+    r'^\s*##\s+([0-9]+\.[0-9]+\.[0-9]+)\s*$',
+    multiLine: true,
+  ).allMatches(changelogText)) {
     final v = m.group(1)!;
     versionLines.add(v);
     versions.add(SemVer.parse(v));
   }
 
   if (versions.isEmpty) {
-    stderr.writeln('ERROR: No versions found in CHANGELOG.md (expected `## x.y.z`).');
+    stderr.writeln(
+      'ERROR: No versions found in CHANGELOG.md (expected `## x.y.z`).',
+    );
     exit(1);
   }
 
@@ -85,11 +89,12 @@ void main() {
     final b = versions[i + 1];
     if (a.compareTo(b) < 0) {
       stderr.writeln('ERROR: CHANGELOG is not sorted (latest first).');
-      stderr.writeln('  Found ${versionLines[i]} above ${versionLines[i + 1]}.');
+      stderr.writeln(
+        '  Found ${versionLines[i]} above ${versionLines[i + 1]}.',
+      );
       exit(1);
     }
   }
 
   stdout.writeln('OK: changelog ordering and version match verified.');
 }
-

@@ -1,18 +1,28 @@
 import 'package:flutter/services.dart';
 import 'dart:async';
 
+/// Base exception type for structured failures originating from mesh workflows.
 sealed class PlatoJobsMeshException implements Exception {
+  /// Human-readable explanation suitable for logs / UI (sanitize secrets).
   const PlatoJobsMeshException(this.message, {this.code, this.details});
 
+  /// Operator-facing description.
   final String message;
+
+  /// Optional stable code from native (`PlatformException.code`, timeouts, etc.).
   final String? code;
+
+  /// Raw diagnostic payload when available.
   final Object? details;
 
   @override
-  String toString() => 'PlatoJobsMeshException(${code ?? runtimeType}): $message';
+  String toString() =>
+      'PlatoJobsMeshException(${code ?? runtimeType}): $message';
 }
 
+/// Wraps non-specific platform channel failures.
 class PlatoJobsMeshPlatformException extends PlatoJobsMeshException {
+  /// Creates platform-side mesh failure with optional structured details.
   const PlatoJobsMeshPlatformException(
     super.message, {
     super.code,
@@ -20,22 +30,47 @@ class PlatoJobsMeshPlatformException extends PlatoJobsMeshException {
   });
 }
 
+/// Raised when mesh operations exceed configured async timeouts.
 class PlatoJobsMeshTimeoutException extends PlatoJobsMeshException {
-  const PlatoJobsMeshTimeoutException(super.message, {super.code, super.details});
+  /// Timeout-oriented mesh failure.
+  const PlatoJobsMeshTimeoutException(
+    super.message, {
+    super.code,
+    super.details,
+  });
 }
 
+/// BLE/Mesh permission or authorization failures surfaced from OS.
 class PlatoJobsMeshPermissionException extends PlatoJobsMeshException {
-  const PlatoJobsMeshPermissionException(super.message, {super.code, super.details});
+  /// Permission-specific mesh failure.
+  const PlatoJobsMeshPermissionException(
+    super.message, {
+    super.code,
+    super.details,
+  });
 }
 
+/// Transport-layer failures (GATT drops, proxy loss, channel errors).
 class PlatoJobsMeshConnectionException extends PlatoJobsMeshException {
-  const PlatoJobsMeshConnectionException(super.message, {super.code, super.details});
+  /// Connection-oriented mesh failure.
+  const PlatoJobsMeshConnectionException(
+    super.message, {
+    super.code,
+    super.details,
+  });
 }
 
+/// Programming errors / illegal sequencing (e.g. mesh not initialized).
 class PlatoJobsMeshInvalidStateException extends PlatoJobsMeshException {
-  const PlatoJobsMeshInvalidStateException(super.message, {super.code, super.details});
+  /// Invalid lifecycle usage mesh failure.
+  const PlatoJobsMeshInvalidStateException(
+    super.message, {
+    super.code,
+    super.details,
+  });
 }
 
+/// Converts arbitrary errors ([PlatformException], timeouts, etc.) into [PlatoJobsMeshException].
 PlatoJobsMeshException platoJobsMeshMapException(Object error) {
   if (error is PlatoJobsMeshException) return error;
   if (error is TimeoutException) {
@@ -63,7 +98,11 @@ PlatoJobsMeshException platoJobsMeshMapException(Object error) {
 
     final lower = message.toLowerCase();
     if (lower.contains('permission') || lower.contains('not authorized')) {
-      return PlatoJobsMeshPermissionException(message, code: code, details: details);
+      return PlatoJobsMeshPermissionException(
+        message,
+        code: code,
+        details: details,
+      );
     }
     if (lower.contains('133') || lower.contains('gatt')) {
       return PlatoJobsMeshConnectionException(
@@ -80,10 +119,18 @@ PlatoJobsMeshException platoJobsMeshMapException(Object error) {
       );
     }
     if (lower.contains('invalid') || lower.contains('state')) {
-      return PlatoJobsMeshInvalidStateException(message, code: code, details: details);
+      return PlatoJobsMeshInvalidStateException(
+        message,
+        code: code,
+        details: details,
+      );
     }
-    return PlatoJobsMeshPlatformException(message, code: code, details: details);
+    return PlatoJobsMeshPlatformException(
+      message,
+      code: code,
+      details: details,
+    );
   }
+
   return PlatoJobsMeshPlatformException(error.toString());
 }
-

@@ -1,3 +1,5 @@
+// ignore_for_file: public_member_api_docs
+
 import 'dart:async';
 import 'dart:collection';
 
@@ -28,7 +30,9 @@ class PlatoJobsMeshCommandQueue {
       return Future<T>.error(StateError('CommandQueue is disposed'));
     }
     if (_queue.length >= maxPending) {
-      return Future<T>.error(StateError('CommandQueue overflow (maxPending=$maxPending)'));
+      return Future<T>.error(
+        StateError('CommandQueue overflow (maxPending=$maxPending)'),
+      );
     }
 
     final completer = Completer<T>();
@@ -90,4 +94,3 @@ class PlatoJobsMeshQueuedTask<T> {
   final Duration timeout;
   final String? debugLabel;
 }
-

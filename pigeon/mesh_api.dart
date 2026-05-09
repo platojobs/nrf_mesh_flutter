@@ -4,15 +4,18 @@ import 'package:pigeon/pigeon.dart';
 
 // Pigeon message definitions for nRF Mesh Flutter plugin
 
-@ConfigurePigeon(PigeonOptions(
-  dartOut: 'lib/src/platform_interface/pigeon_generated.dart',
-  swiftOut: 'ios/Classes/PigeonGenerated.swift',
-  objcHeaderOut: 'ios/Classes/PigeonGenerated.h',
-  objcSourceOut: 'ios/Classes/PigeonGenerated.m',
-  kotlinOut: 'android/src/main/kotlin/com/platojobs/nrf_mesh/PigeonGenerated.kt',
-  kotlinOptions: KotlinOptions(package: 'com.platojobs.nrf_mesh'),
-  dartPackageName: 'nrf_mesh_flutter',
-))
+@ConfigurePigeon(
+  PigeonOptions(
+    dartOut: 'lib/src/platform_interface/pigeon_generated.dart',
+    swiftOut: 'ios/Classes/PigeonGenerated.swift',
+    objcHeaderOut: 'ios/Classes/PigeonGenerated.h',
+    objcSourceOut: 'ios/Classes/PigeonGenerated.m',
+    kotlinOut:
+        'android/src/main/kotlin/com/platojobs/nrf_mesh/PigeonGenerated.kt',
+    kotlinOptions: KotlinOptions(package: 'com.platojobs.nrf_mesh'),
+    dartPackageName: 'nrf_mesh_flutter',
+  ),
+)
 @HostApi()
 abstract class MeshApi {
   // Network management
@@ -58,8 +61,16 @@ abstract class MeshApi {
   // [labelUuid] is always 16 bytes (MSB..LSB of the 128-bit Label UUID).
   MeshGroup createVirtualGroup(String name, List<int> labelUuid);
   bool removeGroup(String groupId);
-  bool addSubscriptionVirtual(int elementAddress, int modelId, List<int> labelUuid);
-  bool removeSubscriptionVirtual(int elementAddress, int modelId, List<int> labelUuid);
+  bool addSubscriptionVirtual(
+    int elementAddress,
+    int modelId,
+    List<int> labelUuid,
+  );
+  bool removeSubscriptionVirtual(
+    int elementAddress,
+    int modelId,
+    List<int> labelUuid,
+  );
   bool setPublicationVirtual(
     int elementAddress,
     int modelId,
@@ -103,7 +114,12 @@ abstract class MeshApi {
   bool setNodeDefaultTtl(int destination, int ttl);
 
   /// Enable/disable Relay on a node.
-  bool setNodeRelay(int destination, bool enabled, int retransmitCount, int retransmitIntervalMs);
+  bool setNodeRelay(
+    int destination,
+    bool enabled,
+    int retransmitCount,
+    int retransmitIntervalMs,
+  );
 
   /// Enable/disable GATT Proxy on a node.
   bool setNodeGattProxy(int destination, bool enabled);
@@ -140,7 +156,11 @@ abstract class MeshApi {
   /// Remove an application key on a **remote** node (Config App Key Delete).
   ///
   /// [boundNetKeyIndex] is the NetKey that the AppKey is bound to.
-  bool removeAppKeyRemote(int destination, int appKeyIndex, int boundNetKeyIndex);
+  bool removeAppKeyRemote(
+    int destination,
+    int appKeyIndex,
+    int boundNetKeyIndex,
+  );
 
   /// Read Key Refresh phase for [netKeyIndex] on a node (Config Key Refresh Phase Get).
   ///
@@ -150,7 +170,11 @@ abstract class MeshApi {
   /// Set Key Refresh phase transition (Config Key Refresh Phase Set).
   ///
   /// [transition] uses Nordic / Mesh values: `2` = use new keys, `3` = revoke old keys.
-  bool setKeyRefreshPhaseTransition(int destination, int netKeyIndex, int transition);
+  bool setKeyRefreshPhaseTransition(
+    int destination,
+    int netKeyIndex,
+    int transition,
+  );
 
   /// Clears the loaded mesh, persisted plugin storage, and secure state (Android) so the app can
   /// [createNetwork] or [import] a fresh database.
@@ -224,6 +248,13 @@ abstract class MeshFlutterApi {
 
   /// Provisioning lifecycle events (progress + OOB prompts).
   void onProvisioningEvent(ProvisioningEvent event);
+
+  /// Best-effort signal that the native mesh configuration database changed.
+  ///
+  /// Android (Kotlin Mesh): typically emitted on ``NetworkEvent.NetworkUpdated``.
+  /// iOS: emitted after successful Nordic ``MeshNetworkManager.save()`` (and related loads).
+  /// Apps should treat this as a hint to refresh `getNodes()` / `getGroups()` / keys—debounce if needed.
+  void onMeshNetworkUpdated();
 }
 
 // Data models
@@ -303,6 +334,7 @@ class MeshGroup {
   String? name;
   int? address;
   List<String>? nodeIds;
+
   /// 16-byte Label UUID (MSB..LSB) when this is a virtual group, otherwise null/empty.
   List<int>? labelUuid;
 }
@@ -314,10 +346,7 @@ class MeshMessage {
   Map<String, Object?>? parameters;
 }
 
-enum RxMetadataStatus {
-  available,
-  unavailable,
-}
+enum RxMetadataStatus { available, unavailable }
 
 class RxAccessMessage {
   int? opcode;
@@ -341,20 +370,44 @@ class ProvisioningParameters {
   bool? enablePrivacy;
 }
 
+/// Lifecycle stages reported during PB-GATT provisioning.
 enum ProvisioningEventType {
+  /// Provisioning session started for the device.
   started,
+
+  /// Device capabilities received from the provisionee.
   capabilitiesReceived,
+
+  /// App must supply input OOB data (user-entered).
   oobInputRequested,
+
+  /// Device is displaying output OOB data (user reads and confirms).
   oobOutputRequested,
+
+  /// Device successfully joined the network.
   provisioningCompleted,
+
+  /// Session ended with an error (see [ProvisioningEvent.message]).
   failed,
 }
 
+/// One provisioning lifecycle update for a single device.
+///
+/// Consumed from [MeshFlutterApi.onProvisioningEvent] / Dart-side provisioning streams.
 class ProvisioningEvent {
+  /// Native device identifier (typically BLE peripheral UUID string).
   String? deviceId;
+
+  /// Which phase this event represents.
   ProvisioningEventType? type;
+
+  /// Human-readable detail or error text from native code.
   String? message;
-  int? progress; // 0..100 best-effort
+
+  /// Best-effort progress percent (0–100), when provided.
+  int? progress;
+
+  /// Attention timer value when relevant for the provisioning UI flow.
   int? attentionTimer;
 }
 

@@ -183,12 +183,19 @@ enum RxMetadataStatus: Int {
   case unavailable = 1
 }
 
+/// Lifecycle stages reported during PB-GATT provisioning.
 enum ProvisioningEventType: Int {
+  /// Provisioning session started for the device.
   case started = 0
+  /// Device capabilities received from the provisionee.
   case capabilitiesReceived = 1
+  /// App must supply input OOB data (user-entered).
   case oobInputRequested = 2
+  /// Device is displaying output OOB data (user reads and confirms).
   case oobOutputRequested = 3
+  /// Device successfully joined the network.
   case provisioningCompleted = 4
+  /// Session ended with an error (see [ProvisioningEvent.message]).
   case failed = 5
 }
 
@@ -833,12 +840,21 @@ struct ProvisioningParameters: Hashable {
   }
 }
 
+/// One provisioning lifecycle update for a single device.
+///
+/// Consumed from [MeshFlutterApi.onProvisioningEvent] / Dart-side provisioning streams.
+///
 /// Generated class from Pigeon that represents data sent in messages.
 struct ProvisioningEvent: Hashable {
+  /// Native device identifier (typically BLE peripheral UUID string).
   var deviceId: String? = nil
+  /// Which phase this event represents.
   var type: ProvisioningEventType? = nil
+  /// Human-readable detail or error text from native code.
   var message: String? = nil
+  /// Best-effort progress percent (0–100), when provided.
   var progress: Int64? = nil
+  /// Attention timer value when relevant for the provisioning UI flow.
   var attentionTimer: Int64? = nil
 
 
@@ -2126,6 +2142,12 @@ protocol MeshFlutterApiProtocol {
   func onRxAccessMessage(event eventArg: RxAccessMessage, completion: @escaping (Result<Void, PigeonError>) -> Void)
   /// Provisioning lifecycle events (progress + OOB prompts).
   func onProvisioningEvent(event eventArg: ProvisioningEvent, completion: @escaping (Result<Void, PigeonError>) -> Void)
+  /// Best-effort signal that the native mesh configuration database changed.
+  ///
+  /// Android (Kotlin Mesh): typically emitted on ``NetworkEvent.NetworkUpdated``.
+  /// iOS: emitted after successful Nordic ``MeshNetworkManager.save()`` (and related loads).
+  /// Apps should treat this as a hint to refresh `getNodes()` / `getGroups()` / keys—debounce if needed.
+  func onMeshNetworkUpdated(completion: @escaping (Result<Void, PigeonError>) -> Void)
 }
 class MeshFlutterApi: MeshFlutterApiProtocol {
   private let binaryMessenger: FlutterBinaryMessenger
@@ -2200,6 +2222,29 @@ class MeshFlutterApi: MeshFlutterApiProtocol {
     let channelName: String = "dev.flutter.pigeon.nrf_mesh_flutter.MeshFlutterApi.onProvisioningEvent\(messageChannelSuffix)"
     let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
     channel.sendMessage([eventArg] as [Any?]) { response in
+      guard let listResponse = response as? [Any?] else {
+        completion(.failure(createConnectionError(withChannelName: channelName)))
+        return
+      }
+      if listResponse.count > 1 {
+        let code: String = listResponse[0] as! String
+        let message: String? = nilOrValue(listResponse[1])
+        let details: String? = nilOrValue(listResponse[2])
+        completion(.failure(PigeonError(code: code, message: message, details: details)))
+      } else {
+        completion(.success(()))
+      }
+    }
+  }
+  /// Best-effort signal that the native mesh configuration database changed.
+  ///
+  /// Android (Kotlin Mesh): typically emitted on ``NetworkEvent.NetworkUpdated``.
+  /// iOS: emitted after successful Nordic ``MeshNetworkManager.save()`` (and related loads).
+  /// Apps should treat this as a hint to refresh `getNodes()` / `getGroups()` / keys—debounce if needed.
+  func onMeshNetworkUpdated(completion: @escaping (Result<Void, PigeonError>) -> Void) {
+    let channelName: String = "dev.flutter.pigeon.nrf_mesh_flutter.MeshFlutterApi.onMeshNetworkUpdated\(messageChannelSuffix)"
+    let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
+    channel.sendMessage(nil) { response in
       guard let listResponse = response as? [Any?] else {
         completion(.failure(createConnectionError(withChannelName: channelName)))
         return

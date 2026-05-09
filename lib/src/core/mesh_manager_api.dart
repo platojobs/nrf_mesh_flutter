@@ -1,3 +1,5 @@
+// ignore_for_file: public_member_api_docs
+
 import 'dart:async';
 
 import '../models/mesh_network.dart' as net_models;
@@ -12,7 +14,8 @@ import '../platform_interface/platojobs_mesh_platform.dart' as platform;
 import '../platform_interface/pigeon_generated.dart' as pigeon;
 
 class MeshManagerApi {
-  platform.PlatoJobsMeshBridge get _platform => platform.PlatoJobsMeshBridge.instance;
+  platform.PlatoJobsMeshBridge get _platform =>
+      platform.PlatoJobsMeshBridge.instance;
   final PlatoJobsMeshCommandQueue _commandQueue = PlatoJobsMeshCommandQueue();
 
   Future<T> _guard<T>(Future<T> Function() call) async {
@@ -99,12 +102,24 @@ class MeshManagerApi {
     return _platform.provisioningEventStream;
   }
 
-  Future<bool> provideProvisioningOobNumeric(String deviceId, int value) async {
-    return await _guard(() => _platform.provideProvisioningOobNumeric(deviceId, value));
+  /// Hint stream when native mesh DB may have changed (refresh nodes/groups/keys).
+  Stream<int> get meshNetworkUpdatedStream {
+    return _platform.meshNetworkUpdatedStream;
   }
 
-  Future<bool> provideProvisioningOobAlphaNumeric(String deviceId, String value) async {
-    return await _guard(() => _platform.provideProvisioningOobAlphaNumeric(deviceId, value));
+  Future<bool> provideProvisioningOobNumeric(String deviceId, int value) async {
+    return await _guard(
+      () => _platform.provideProvisioningOobNumeric(deviceId, value),
+    );
+  }
+
+  Future<bool> provideProvisioningOobAlphaNumeric(
+    String deviceId,
+    String value,
+  ) async {
+    return await _guard(
+      () => _platform.provideProvisioningOobAlphaNumeric(deviceId, value),
+    );
   }
 
   /// Whether the native side can reliably populate source address for incoming Access messages.
@@ -118,7 +133,9 @@ class MeshManagerApi {
   }
 
   Future<void> setExperimentalRxMetadataEnabled(bool enabled) async {
-    return await _guard(() => _platform.setExperimentalRxMetadataEnabled(enabled));
+    return await _guard(
+      () => _platform.setExperimentalRxMetadataEnabled(enabled),
+    );
   }
 
   // Node management
@@ -143,7 +160,10 @@ class MeshManagerApi {
     return await _guard(() => _platform.getGroups());
   }
 
-  Future<group_models.MeshGroup> createVirtualGroup(String name, List<int> labelUuid) async {
+  Future<group_models.MeshGroup> createVirtualGroup(
+    String name,
+    List<int> labelUuid,
+  ) async {
     return await _guard(() => _platform.createVirtualGroup(name, labelUuid));
   }
 
@@ -151,8 +171,15 @@ class MeshManagerApi {
     return await _guard(() => _platform.removeGroup(groupId));
   }
 
-  Future<bool> addSubscriptionVirtual(int elementAddress, int modelId, List<int> labelUuid) async {
-    return await _guard(() => _platform.addSubscriptionVirtual(elementAddress, modelId, labelUuid));
+  Future<bool> addSubscriptionVirtual(
+    int elementAddress,
+    int modelId,
+    List<int> labelUuid,
+  ) async {
+    return await _guard(
+      () =>
+          _platform.addSubscriptionVirtual(elementAddress, modelId, labelUuid),
+    );
   }
 
   Future<bool> removeSubscriptionVirtual(
@@ -161,7 +188,11 @@ class MeshManagerApi {
     List<int> labelUuid,
   ) async {
     return await _guard(
-      () => _platform.removeSubscriptionVirtual(elementAddress, modelId, labelUuid),
+      () => _platform.removeSubscriptionVirtual(
+        elementAddress,
+        modelId,
+        labelUuid,
+      ),
     );
   }
 
@@ -185,7 +216,9 @@ class MeshManagerApi {
 
   // M2: Configuration foundation
   Future<bool> fetchCompositionData(int destination, {int page = 0}) async {
-    return await _guard(() => _platform.fetchCompositionData(destination, page: page));
+    return await _guard(
+      () => _platform.fetchCompositionData(destination, page: page),
+    );
   }
 
   Future<bool> addNetworkKey(int netKeyIndex, String keyHex) async {
@@ -237,8 +270,14 @@ class MeshManagerApi {
     return await _guard(() => _platform.setNodeBeacon(destination, enabled));
   }
 
-  Future<bool> setNodeNetworkTransmit(int destination, int count, int intervalMs) async {
-    return await _guard(() => _platform.setNodeNetworkTransmit(destination, count, intervalMs));
+  Future<bool> setNodeNetworkTransmit(
+    int destination,
+    int count,
+    int intervalMs,
+  ) async {
+    return await _guard(
+      () => _platform.setNodeNetworkTransmit(destination, count, intervalMs),
+    );
   }
 
   Future<bool> nodeReset(int destination) async {
@@ -254,7 +293,9 @@ class MeshManagerApi {
   }
 
   Future<bool> removeNetworkKeyRemote(int destination, int netKeyIndex) async {
-    return await _guard(() => _platform.removeNetworkKeyRemote(destination, netKeyIndex));
+    return await _guard(
+      () => _platform.removeNetworkKeyRemote(destination, netKeyIndex),
+    );
   }
 
   Future<bool> removeAppKeyRemote(
@@ -263,12 +304,18 @@ class MeshManagerApi {
     int boundNetKeyIndex,
   ) async {
     return await _guard(
-      () => _platform.removeAppKeyRemote(destination, appKeyIndex, boundNetKeyIndex),
+      () => _platform.removeAppKeyRemote(
+        destination,
+        appKeyIndex,
+        boundNetKeyIndex,
+      ),
     );
   }
 
   Future<int> getKeyRefreshPhase(int destination, int netKeyIndex) async {
-    return await _guard(() => _platform.getKeyRefreshPhase(destination, netKeyIndex));
+    return await _guard(
+      () => _platform.getKeyRefreshPhase(destination, netKeyIndex),
+    );
   }
 
   Future<bool> setKeyRefreshPhaseTransition(
@@ -277,7 +324,11 @@ class MeshManagerApi {
     int transition,
   ) async {
     return await _guard(
-      () => _platform.setKeyRefreshPhaseTransition(destination, netKeyIndex, transition),
+      () => _platform.setKeyRefreshPhaseTransition(
+        destination,
+        netKeyIndex,
+        transition,
+      ),
     );
   }
 
@@ -291,20 +342,44 @@ class MeshManagerApi {
   }
 
   // Configuration (P1 - minimal)
-  Future<bool> bindAppKey(int elementAddress, int modelId, int appKeyIndex) async {
-    return await _guard(() => _platform.bindAppKey(elementAddress, modelId, appKeyIndex));
+  Future<bool> bindAppKey(
+    int elementAddress,
+    int modelId,
+    int appKeyIndex,
+  ) async {
+    return await _guard(
+      () => _platform.bindAppKey(elementAddress, modelId, appKeyIndex),
+    );
   }
 
-  Future<bool> unbindAppKey(int elementAddress, int modelId, int appKeyIndex) async {
-    return await _guard(() => _platform.unbindAppKey(elementAddress, modelId, appKeyIndex));
+  Future<bool> unbindAppKey(
+    int elementAddress,
+    int modelId,
+    int appKeyIndex,
+  ) async {
+    return await _guard(
+      () => _platform.unbindAppKey(elementAddress, modelId, appKeyIndex),
+    );
   }
 
-  Future<bool> addSubscription(int elementAddress, int modelId, int address) async {
-    return await _guard(() => _platform.addSubscription(elementAddress, modelId, address));
+  Future<bool> addSubscription(
+    int elementAddress,
+    int modelId,
+    int address,
+  ) async {
+    return await _guard(
+      () => _platform.addSubscription(elementAddress, modelId, address),
+    );
   }
 
-  Future<bool> removeSubscription(int elementAddress, int modelId, int address) async {
-    return await _guard(() => _platform.removeSubscription(elementAddress, modelId, address));
+  Future<bool> removeSubscription(
+    int elementAddress,
+    int modelId,
+    int address,
+  ) async {
+    return await _guard(
+      () => _platform.removeSubscription(elementAddress, modelId, address),
+    );
   }
 
   Future<bool> setPublication(
@@ -327,7 +402,9 @@ class MeshManagerApi {
 
   // Proxy (P1 real-transport prerequisite)
   Future<bool> connectProxy(String deviceId, int proxyUnicastAddress) async {
-    return await _guard(() => _platform.connectProxy(deviceId, proxyUnicastAddress));
+    return await _guard(
+      () => _platform.connectProxy(deviceId, proxyUnicastAddress),
+    );
   }
 
   Future<bool> disconnectProxy() async {

@@ -26,14 +26,16 @@ class _ScenesPageState extends State<ScenesPage> {
     super.initState();
     _sub1 = _mgr.sceneStatusStream.listen((e) {
       setState(() {
-        _log = '[SceneStatus] code=${e.statusCode} current=${e.currentScene} '
-                'target=${e.targetScene} remain=${e.remainingTime}\n$_log';
+        _log =
+            '[SceneStatus] code=${e.statusCode} current=${e.currentScene} '
+            'target=${e.targetScene} remain=${e.remainingTime}\n$_log';
       });
     });
     _sub2 = _mgr.sceneRegisterStatusStream.listen((e) {
       setState(() {
-        _log = '[SceneRegisterStatus] code=${e.statusCode} current=${e.currentScene} '
-                'scenes=${e.scenes}\n$_log';
+        _log =
+            '[SceneRegisterStatus] code=${e.statusCode} current=${e.currentScene} '
+            'scenes=${e.scenes}\n$_log';
       });
     });
   }
@@ -71,7 +73,9 @@ class _ScenesPageState extends State<ScenesPage> {
           children: [
             TextField(
               controller: _dstController,
-              decoration: const InputDecoration(labelText: 'Destination (e.g. 0x0001)'),
+              decoration: const InputDecoration(
+                labelText: 'Destination (e.g. 0x0001)',
+              ),
             ),
             TextField(
               controller: _appKeyController,
@@ -80,7 +84,9 @@ class _ScenesPageState extends State<ScenesPage> {
             ),
             TextField(
               controller: _sceneController,
-              decoration: const InputDecoration(labelText: 'Scene number (1..65535)'),
+              decoration: const InputDecoration(
+                labelText: 'Scene number (1..65535)',
+              ),
               keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 12),
@@ -113,10 +119,8 @@ class _ScenesPageState extends State<ScenesPage> {
                   child: const Text('Scene Delete'),
                 ),
                 ElevatedButton(
-                  onPressed: () async => _mgr.sceneGet(
-                    destination: dst,
-                    appKeyIndex: appKeyIndex,
-                  ),
+                  onPressed: () async =>
+                      _mgr.sceneGet(destination: dst, appKeyIndex: appKeyIndex),
                   child: const Text('Scene Get'),
                 ),
                 ElevatedButton(
@@ -131,15 +135,10 @@ class _ScenesPageState extends State<ScenesPage> {
             const SizedBox(height: 12),
             const Text('Incoming Status:'),
             const SizedBox(height: 8),
-            Expanded(
-              child: SingleChildScrollView(
-                child: SelectableText(_log),
-              ),
-            ),
+            Expanded(child: SingleChildScrollView(child: SelectableText(_log))),
           ],
         ),
       ),
     );
   }
 }
-

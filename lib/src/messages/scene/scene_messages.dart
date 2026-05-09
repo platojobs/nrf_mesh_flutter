@@ -1,3 +1,5 @@
+// ignore_for_file: public_member_api_docs
+
 import '../../models/mesh_message.dart';
 
 /// Bluetooth Mesh Scenes model opcodes (SIG).
@@ -27,9 +29,9 @@ class SceneStore extends MeshMessage {
     super.appKeyIndex,
     super.virtualLabel,
   }) : super(
-          opcode: '0x${SceneOpcode.sceneStore.toRadixString(16)}',
-          parameters: _u16le(sceneNumber),
-        ) {
+         opcode: '0x${SceneOpcode.sceneStore.toRadixString(16)}',
+         parameters: _u16le(sceneNumber),
+       ) {
     _validateSceneNumber(sceneNumber);
   }
 }
@@ -49,16 +51,26 @@ class SceneRecall extends MeshMessage {
     super.address,
     super.appKeyIndex,
     super.virtualLabel,
-  })  : tid = (tid ?? DateTime.now().millisecondsSinceEpoch & 0xFF),
-        super(
-          opcode: '0x${SceneOpcode.sceneRecall.toRadixString(16)}',
-          parameters: _build(sceneNumber, tid ?? DateTime.now().millisecondsSinceEpoch & 0xFF, transitionTime, delay),
-        ) {
+  }) : tid = (tid ?? DateTime.now().millisecondsSinceEpoch & 0xFF),
+       super(
+         opcode: '0x${SceneOpcode.sceneRecall.toRadixString(16)}',
+         parameters: _build(
+           sceneNumber,
+           tid ?? DateTime.now().millisecondsSinceEpoch & 0xFF,
+           transitionTime,
+           delay,
+         ),
+       ) {
     _validateSceneNumber(sceneNumber);
     _validateOptionalTransition(transitionTime, delay);
   }
 
-  static List<int> _build(int sceneNumber, int tid, int? transitionTime, int? delay) {
+  static List<int> _build(
+    int sceneNumber,
+    int tid,
+    int? transitionTime,
+    int? delay,
+  ) {
     final out = <int>[];
     out.addAll(_u16le(sceneNumber));
     out.add(tid & 0xFF);
@@ -80,9 +92,9 @@ class SceneDelete extends MeshMessage {
     super.appKeyIndex,
     super.virtualLabel,
   }) : super(
-          opcode: '0x${SceneOpcode.sceneDelete.toRadixString(16)}',
-          parameters: _u16le(sceneNumber),
-        ) {
+         opcode: '0x${SceneOpcode.sceneDelete.toRadixString(16)}',
+         parameters: _u16le(sceneNumber),
+       ) {
     // Note: spec allows deleting scene 0? In practice, 0x0000 is prohibited for store/recall,
     // and delete typically uses a valid scene number. We'll keep the same validation.
     _validateSceneNumber(sceneNumber);
@@ -91,39 +103,38 @@ class SceneDelete extends MeshMessage {
 
 /// Scene Get (acknowledged). Responds with Scene Status.
 class SceneGet extends MeshMessage {
-  SceneGet({
-    super.address,
-    super.appKeyIndex,
-    super.virtualLabel,
-  }) : super(
-          opcode: '0x${SceneOpcode.sceneGet.toRadixString(16)}',
-          parameters: const <int>[],
-        );
+  SceneGet({super.address, super.appKeyIndex, super.virtualLabel})
+    : super(
+        opcode: '0x${SceneOpcode.sceneGet.toRadixString(16)}',
+        parameters: const <int>[],
+      );
 }
 
 /// Scene Register Get (acknowledged). Responds with Scene Register Status.
 class SceneRegisterGet extends MeshMessage {
-  SceneRegisterGet({
-    super.address,
-    super.appKeyIndex,
-    super.virtualLabel,
-  }) : super(
-          opcode: '0x${SceneOpcode.sceneRegisterGet.toRadixString(16)}',
-          parameters: const <int>[],
-        );
+  SceneRegisterGet({super.address, super.appKeyIndex, super.virtualLabel})
+    : super(
+        opcode: '0x${SceneOpcode.sceneRegisterGet.toRadixString(16)}',
+        parameters: const <int>[],
+      );
 }
 
 void _validateSceneNumber(int sceneNumber) {
   if (sceneNumber <= 0 || sceneNumber > 0xFFFF) {
-    throw ArgumentError.value(sceneNumber, 'sceneNumber', 'Must be 1..65535 (0x0000 is prohibited).');
+    throw ArgumentError.value(
+      sceneNumber,
+      'sceneNumber',
+      'Must be 1..65535 (0x0000 is prohibited).',
+    );
   }
 }
 
 void _validateOptionalTransition(int? transitionTime, int? delay) {
   if ((transitionTime == null) != (delay == null)) {
-    throw ArgumentError('transitionTime and delay must be provided together, or both null.');
+    throw ArgumentError(
+      'transitionTime and delay must be provided together, or both null.',
+    );
   }
 }
 
 List<int> _u16le(int v) => <int>[v & 0xFF, (v >> 8) & 0xFF];
-

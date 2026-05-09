@@ -20,7 +20,11 @@ void _requireLabel16(List<int> labelUuid) {
   }
   for (final b in labelUuid) {
     if (b < 0 || b > 255) {
-      throw ArgumentError.value(labelUuid, 'labelUuid', 'Each byte must be 0..255.');
+      throw ArgumentError.value(
+        labelUuid,
+        'labelUuid',
+        'Each byte must be 0..255.',
+      );
     }
   }
 }

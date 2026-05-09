@@ -29,11 +29,34 @@ class _MyAppState extends State<MyApp> {
   bool _isScanning = false;
   String _status = 'Ready';
 
+  StreamSubscription<int>? _meshDbHintSub;
+  Timer? _meshDbDebounce;
+
   @override
   void initState() {
     super.initState();
     _loadNetwork();
     _listenToMessages();
+    _listenMeshDbHints();
+  }
+
+  @override
+  void dispose() {
+    _meshDbHintSub?.cancel();
+    _meshDbDebounce?.cancel();
+    super.dispose();
+  }
+
+  /// Debounced refresh when native mesh DB changes (Phase 2 parity demo).
+  void _listenMeshDbHints() {
+    _meshDbHintSub = _meshManager.meshNetworkUpdatedStream.listen((_) {
+      _meshDbDebounce?.cancel();
+      _meshDbDebounce = Timer(const Duration(milliseconds: 400), () async {
+        if (!mounted) return;
+        await _loadNodesAndGroups();
+        setState(() => _status = 'Mesh DB updated — refreshed nodes/groups');
+      });
+    });
   }
 
   Future<void> _loadNetwork() async {
@@ -141,17 +164,25 @@ class _MyAppState extends State<MyApp> {
         setState(() => _status = 'Node has no models');
         return;
       }
-      final elementAddress = int.tryParse(
+      final elementAddress =
+          int.tryParse(
             first.elements.first.address.replaceAll('0x', ''),
             radix: 16,
           ) ??
           1;
-      final modelId = int.tryParse(first.elements.first.models.first.modelId) ?? 0x1000;
+      final modelId =
+          int.tryParse(first.elements.first.models.first.modelId) ?? 0x1000;
 
       setState(() => _status = 'Configuring model...');
       await _meshManager.bindAppKey(elementAddress, modelId, 0);
       await _meshManager.addSubscription(elementAddress, modelId, 0xC000);
-      await _meshManager.setPublication(elementAddress, modelId, 0xC000, 0, ttl: 5);
+      await _meshManager.setPublication(
+        elementAddress,
+        modelId,
+        0xC000,
+        0,
+        ttl: 5,
+      );
       setState(() => _status = 'Config updated');
       await _loadNodesAndGroups();
     } catch (e) {
@@ -279,8 +310,12 @@ class _MyAppState extends State<MyApp> {
                   itemCount: _nodes.length,
                   itemBuilder: (context, index) {
                     final node = _nodes[index];
-                    final element = node.elements.isNotEmpty ? node.elements.first : null;
-                    final model = (element != null && element.models.isNotEmpty) ? element.models.first : null;
+                    final element = node.elements.isNotEmpty
+                        ? node.elements.first
+                        : null;
+                    final model = (element != null && element.models.isNotEmpty)
+                        ? element.models.first
+                        : null;
                     return ListTile(
                       dense: true,
                       title: Text('Node ${node.uuid} @ ${node.unicastAddress}'),

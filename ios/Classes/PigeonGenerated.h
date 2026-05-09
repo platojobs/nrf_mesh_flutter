@@ -21,12 +21,19 @@ typedef NS_ENUM(NSUInteger, RxMetadataStatus) {
 - (instancetype)initWithValue:(RxMetadataStatus)value;
 @end
 
+/// Lifecycle stages reported during PB-GATT provisioning.
 typedef NS_ENUM(NSUInteger, ProvisioningEventType) {
+  /// Provisioning session started for the device.
   ProvisioningEventTypeStarted = 0,
+  /// Device capabilities received from the provisionee.
   ProvisioningEventTypeCapabilitiesReceived = 1,
+  /// App must supply input OOB data (user-entered).
   ProvisioningEventTypeOobInputRequested = 2,
+  /// Device is displaying output OOB data (user reads and confirms).
   ProvisioningEventTypeOobOutputRequested = 3,
+  /// Device successfully joined the network.
   ProvisioningEventTypeProvisioningCompleted = 4,
+  /// Session ended with an error (see [ProvisioningEvent.message]).
   ProvisioningEventTypeFailed = 5,
 };
 
@@ -217,16 +224,24 @@ typedef NS_ENUM(NSUInteger, ProvisioningEventType) {
 @property(nonatomic, strong, nullable) NSNumber * enablePrivacy;
 @end
 
+/// One provisioning lifecycle update for a single device.
+///
+/// Consumed from [MeshFlutterApi.onProvisioningEvent] / Dart-side provisioning streams.
 @interface ProvisioningEvent : NSObject
 + (instancetype)makeWithDeviceId:(nullable NSString *)deviceId
     type:(nullable ProvisioningEventTypeBox *)type
     message:(nullable NSString *)message
     progress:(nullable NSNumber *)progress
     attentionTimer:(nullable NSNumber *)attentionTimer;
+/// Native device identifier (typically BLE peripheral UUID string).
 @property(nonatomic, copy, nullable) NSString * deviceId;
+/// Which phase this event represents.
 @property(nonatomic, strong, nullable) ProvisioningEventTypeBox * type;
+/// Human-readable detail or error text from native code.
 @property(nonatomic, copy, nullable) NSString * message;
+/// Best-effort progress percent (0–100), when provided.
 @property(nonatomic, strong, nullable) NSNumber * progress;
+/// Attention timer value when relevant for the provisioning UI flow.
 @property(nonatomic, strong, nullable) NSNumber * attentionTimer;
 @end
 
@@ -464,6 +479,12 @@ extern void SetUpMeshApiWithSuffix(id<FlutterBinaryMessenger> binaryMessenger, N
 - (void)onRxAccessMessageEvent:(RxAccessMessage *)event completion:(void (^)(FlutterError *_Nullable))completion;
 /// Provisioning lifecycle events (progress + OOB prompts).
 - (void)onProvisioningEventEvent:(ProvisioningEvent *)event completion:(void (^)(FlutterError *_Nullable))completion;
+/// Best-effort signal that the native mesh configuration database changed.
+///
+/// Android (Kotlin Mesh): typically emitted on ``NetworkEvent.NetworkUpdated``.
+/// iOS: emitted after successful Nordic ``MeshNetworkManager.save()`` (and related loads).
+/// Apps should treat this as a hint to refresh `getNodes()` / `getGroups()` / keys—debounce if needed.
+- (void)onMeshNetworkUpdatedWithCompletion:(void (^)(FlutterError *_Nullable))completion;
 @end
 
 NS_ASSUME_NONNULL_END

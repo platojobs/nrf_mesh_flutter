@@ -1,3 +1,5 @@
+// ignore_for_file: public_member_api_docs
+
 import 'dart:async';
 
 import '../models/mesh_group.dart';
@@ -10,20 +12,21 @@ import '../platform_interface/platojobs_mesh_platform.dart';
 import '../platform_interface/pigeon_generated.dart' as pigeon;
 import '../utils/mesh_virtual_address.dart';
 
+/// Single timed action executed against a [FakePlatoJobsMeshBridge] during scripted flows.
 class FakeMeshScenarioStep {
   FakeMeshScenarioStep._(this.delay, this.action);
 
+  /// Pause before invoking [action].
   final Duration delay;
+
+  /// Callback executed with the active fake bridge instance.
   final void Function(FakePlatoJobsMeshBridge bridge) action;
 
   static FakeMeshScenarioStep discoveredDevice(
     UnprovisionedDevice device, {
     Duration delay = Duration.zero,
   }) {
-    return FakeMeshScenarioStep._(
-      delay,
-      (b) => b.emitDiscoveredDevice(device),
-    );
+    return FakeMeshScenarioStep._(delay, (b) => b.emitDiscoveredDevice(device));
   }
 
   static FakeMeshScenarioStep incomingMessage(
@@ -39,11 +42,19 @@ class FakeMeshScenarioStep {
   }) {
     return FakeMeshScenarioStep._(delay, (b) => b.emitScanError(error));
   }
+
+  /// Emits [FakePlatoJobsMeshBridge.meshNetworkUpdatedStream] tick (mirrors native DB hints).
+  static FakeMeshScenarioStep meshNetworkUpdated({
+    Duration delay = Duration.zero,
+  }) {
+    return FakeMeshScenarioStep._(delay, (b) => b.emitMeshNetworkUpdated());
+  }
 }
 
+/// Ordered list of [FakeMeshScenarioStep] entries played when scanning starts.
 class FakeMeshScenario {
   FakeMeshScenario({List<FakeMeshScenarioStep>? steps})
-      : steps = steps ?? <FakeMeshScenarioStep>[];
+    : steps = steps ?? <FakeMeshScenarioStep>[];
 
   final List<FakeMeshScenarioStep> steps;
 
@@ -53,14 +64,16 @@ class FakeMeshScenario {
   }
 }
 
-/// A lightweight fake implementation of [PlatoJobsMeshBridge] for UI development
+/// Lightweight fake implementation of [PlatoJobsMeshBridge] for UI development
 /// and unit tests without real Mesh hardware.
 class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
+  /// Optionally supplies scripted discovery/message events after [scanForDevices].
   FakePlatoJobsMeshBridge({this.scenario});
 
   /// Optional scripted scenario that will run when scanning starts.
   final FakeMeshScenario? scenario;
 
+  /// Artificial delay inserted before scripted scenario playback begins.
   Duration scanStartDelay = Duration.zero;
   bool echoSentMessagesToIncomingStream = true;
 
@@ -84,17 +97,22 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
       StreamController<RxAccessMessage>.broadcast();
   final StreamController<pigeon.ProvisioningEvent> _provController =
       StreamController<pigeon.ProvisioningEvent>.broadcast();
+  final StreamController<int> _meshNetworkUpdatedController =
+      StreamController<int>.broadcast();
   final StreamController<MeshMessage> _sentMessageController =
       StreamController<MeshMessage>.broadcast();
+  int _meshNetworkUpdateSeq = 0;
 
   bool _scanStarted = false;
   int _nextUnicastAddress = 1;
 
-  final Map<String, net_models.MeshNetwork> _networksByPath = <String, net_models.MeshNetwork>{};
+  final Map<String, net_models.MeshNetwork> _networksByPath =
+      <String, net_models.MeshNetwork>{};
   final List<MeshMessage> _sentMessages = <MeshMessage>[];
 
   Stream<MeshMessage> get sentMessageStream => _sentMessageController.stream;
-  List<MeshMessage> get sentMessages => List<MeshMessage>.unmodifiable(_sentMessages);
+  List<MeshMessage> get sentMessages =>
+      List<MeshMessage>.unmodifiable(_sentMessages);
 
   net_models.MeshNetwork _network = net_models.MeshNetwork(
     networkId: 'fake-network',
@@ -119,10 +137,11 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
   final Map<String, Set<int>> _boundAppKeysByModel = <String, Set<int>>{};
   final Map<String, Set<int>> _subscriptionsByModel = <String, Set<int>>{};
   final Map<String, ({int publishAddress, int appKeyIndex, int? ttl})>
-      _publicationByModel =
+  _publicationByModel =
       <String, ({int publishAddress, int appKeyIndex, int? ttl})>{};
 
-  String _modelKey(int elementAddress, int modelId) => '$elementAddress:$modelId';
+  String _modelKey(int elementAddress, int modelId) =>
+      '$elementAddress:$modelId';
 
   bool _proxyConnected = false;
 
@@ -315,11 +334,16 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
   Stream<MeshMessage> get messageStream => _messageController.stream;
 
   @override
-  Stream<RxAccessMessage> get rxAccessMessageStream => _rxAccessController.stream;
+  Stream<RxAccessMessage> get rxAccessMessageStream =>
+      _rxAccessController.stream;
 
   @override
   Stream<pigeon.ProvisioningEvent> get provisioningEventStream =>
       _provController.stream;
+
+  @override
+  Stream<int> get meshNetworkUpdatedStream =>
+      _meshNetworkUpdatedController.stream;
 
   @override
   Future<List<ProvisionedNode>> getNodes() async => List.unmodifiable(_nodes);
@@ -345,7 +369,8 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
   Future<MeshGroup> createVirtualGroup(String name, List<int> labelUuid) async {
     final v = meshVirtualAddressFromLabel(labelUuid);
     final group = MeshGroup(
-      groupId: 'fake-vg-${labelUuid.map((b) => b.toRadixString(16).padLeft(2, '0')).join()}',
+      groupId:
+          'fake-vg-${labelUuid.map((b) => b.toRadixString(16).padLeft(2, '0')).join()}',
       name: name,
       address: '0x${v.toRadixString(16).padLeft(4, '0')}',
       nodeIds: const [],
@@ -362,13 +387,21 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
   }
 
   @override
-  Future<bool> addSubscriptionVirtual(int elementAddress, int modelId, List<int> labelUuid) async {
+  Future<bool> addSubscriptionVirtual(
+    int elementAddress,
+    int modelId,
+    List<int> labelUuid,
+  ) async {
     final a = meshVirtualAddressFromLabel(labelUuid);
     return addSubscription(elementAddress, modelId, a);
   }
 
   @override
-  Future<bool> removeSubscriptionVirtual(int elementAddress, int modelId, List<int> labelUuid) async {
+  Future<bool> removeSubscriptionVirtual(
+    int elementAddress,
+    int modelId,
+    List<int> labelUuid,
+  ) async {
     final a = meshVirtualAddressFromLabel(labelUuid);
     return removeSubscription(elementAddress, modelId, a);
   }
@@ -404,7 +437,11 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
   }
 
   @override
-  Future<bool> bindAppKey(int elementAddress, int modelId, int appKeyIndex) async {
+  Future<bool> bindAppKey(
+    int elementAddress,
+    int modelId,
+    int appKeyIndex,
+  ) async {
     final key = _modelKey(elementAddress, modelId);
     final set = _boundAppKeysByModel.putIfAbsent(key, () => <int>{});
     set.add(appKeyIndex);
@@ -413,7 +450,11 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
   }
 
   @override
-  Future<bool> unbindAppKey(int elementAddress, int modelId, int appKeyIndex) async {
+  Future<bool> unbindAppKey(
+    int elementAddress,
+    int modelId,
+    int appKeyIndex,
+  ) async {
     final key = _modelKey(elementAddress, modelId);
     _boundAppKeysByModel[key]?.remove(appKeyIndex);
     _applyConfigToNodes(elementAddress: elementAddress, modelId: modelId);
@@ -421,7 +462,11 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
   }
 
   @override
-  Future<bool> addSubscription(int elementAddress, int modelId, int address) async {
+  Future<bool> addSubscription(
+    int elementAddress,
+    int modelId,
+    int address,
+  ) async {
     final key = _modelKey(elementAddress, modelId);
     final set = _subscriptionsByModel.putIfAbsent(key, () => <int>{});
     set.add(address);
@@ -430,7 +475,11 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
   }
 
   @override
-  Future<bool> removeSubscription(int elementAddress, int modelId, int address) async {
+  Future<bool> removeSubscription(
+    int elementAddress,
+    int modelId,
+    int address,
+  ) async {
     final key = _modelKey(elementAddress, modelId);
     _subscriptionsByModel[key]?.remove(address);
     _applyConfigToNodes(elementAddress: elementAddress, modelId: modelId);
@@ -446,8 +495,11 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
     int? ttl,
   }) async {
     final key = _modelKey(elementAddress, modelId);
-    _publicationByModel[key] =
-        (publishAddress: publishAddress, appKeyIndex: appKeyIndex, ttl: ttl);
+    _publicationByModel[key] = (
+      publishAddress: publishAddress,
+      appKeyIndex: appKeyIndex,
+      ttl: ttl,
+    );
     _applyConfigToNodes(elementAddress: elementAddress, modelId: modelId);
     return true;
   }
@@ -508,7 +560,8 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
   }
 
   @override
-  Future<List<net_models.NetworkKey>> getNetworkKeys() async => _network.networkKeys;
+  Future<List<net_models.NetworkKey>> getNetworkKeys() async =>
+      _network.networkKeys;
 
   @override
   Future<List<net_models.AppKey>> getAppKeys() async => _network.appKeys;
@@ -545,7 +598,11 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
   }
 
   @override
-  Future<bool> setNodeNetworkTransmit(int destination, int count, int intervalMs) async {
+  Future<bool> setNodeNetworkTransmit(
+    int destination,
+    int count,
+    int intervalMs,
+  ) async {
     return true;
   }
 
@@ -668,7 +725,10 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
   }
 
   @override
-  Future<bool> provideProvisioningOobAlphaNumeric(String deviceId, String value) async {
+  Future<bool> provideProvisioningOobAlphaNumeric(
+    String deviceId,
+    String value,
+  ) async {
     return false;
   }
 
@@ -702,28 +762,32 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
 
     for (var i = 0; i < _nodes.length; i++) {
       final node = _nodes[i];
-      final updatedElements = node.elements.map((e) {
-        if (e.address != elementHex) return e;
-        final updatedModels = e.models.map((m) {
-          if (m.modelId != modelIdStr) return m;
-          return Model(
-            modelId: m.modelId,
-            modelName: m.modelName,
-            isServer: m.isServer,
-            isClient: m.isClient,
-            boundAppKeyIndexes: bound.toList(growable: false),
-            subscriptions: subs.toList(growable: false),
-            publication: pub == null
-                ? null
-                : Publication(
-                    address: pub.publishAddress,
-                    appKeyIndex: pub.appKeyIndex,
-                    ttl: pub.ttl,
-                  ),
-          );
-        }).toList(growable: false);
-        return Element(address: e.address, models: updatedModels);
-      }).toList(growable: false);
+      final updatedElements = node.elements
+          .map((e) {
+            if (e.address != elementHex) return e;
+            final updatedModels = e.models
+                .map((m) {
+                  if (m.modelId != modelIdStr) return m;
+                  return Model(
+                    modelId: m.modelId,
+                    modelName: m.modelName,
+                    isServer: m.isServer,
+                    isClient: m.isClient,
+                    boundAppKeyIndexes: bound.toList(growable: false),
+                    subscriptions: subs.toList(growable: false),
+                    publication: pub == null
+                        ? null
+                        : Publication(
+                            address: pub.publishAddress,
+                            appKeyIndex: pub.appKeyIndex,
+                            ttl: pub.ttl,
+                          ),
+                  );
+                })
+                .toList(growable: false);
+            return Element(address: e.address, models: updatedModels);
+          })
+          .toList(growable: false);
 
       _nodes[i] = ProvisionedNode(
         uuid: node.uuid,
@@ -746,11 +810,14 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
     _messageController.add(message);
     _rxAccessController.add(
       RxAccessMessage(
-        opcode: int.tryParse(message.opcode.replaceFirst('0x', ''), radix: 16) ?? 0,
+        opcode:
+            int.tryParse(message.opcode.replaceFirst('0x', ''), radix: 16) ?? 0,
         parameters: message.parameters,
         source: message.address,
         destination: null,
-        metadataStatus: message.address == null ? RxMetadataStatus.unavailable : RxMetadataStatus.available,
+        metadataStatus: message.address == null
+            ? RxMetadataStatus.unavailable
+            : RxMetadataStatus.available,
       ),
     );
   }
@@ -758,6 +825,11 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
   /// Test helper: emit an error on scan stream.
   void emitScanError(Object error) {
     _scanController.addError(error);
+  }
+
+  /// Test helper: simulate native mesh DB change (parity with platform stream).
+  void emitMeshNetworkUpdated() {
+    _meshNetworkUpdatedController.add(++_meshNetworkUpdateSeq);
   }
 
   /// Reset fake in-memory state.
@@ -772,6 +844,7 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
     _subscriptionsByModel.clear();
     _publicationByModel.clear();
     _proxyConnected = false;
+    _meshNetworkUpdateSeq = 0;
   }
 
   /// Starts the scripted scenario (if any). Safe to call multiple times.
@@ -797,6 +870,6 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
     await _scanController.close();
     await _messageController.close();
     await _sentMessageController.close();
+    await _meshNetworkUpdatedController.close();
   }
 }
-

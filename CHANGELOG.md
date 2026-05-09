@@ -1,3 +1,27 @@
+## 6.9.3
+
+### Documentation
+- Raised dartdoc coverage for the public API (library doc, models, [PlatoJobsNrfMeshManager], provisioning enums).
+- Enable **`public_member_api_docs`** in `analysis_options.yaml` with pragmatic `ignore_for_file` on generated/internal bridge sources.
+
+### Example
+- Listen to **`meshNetworkUpdatedStream`** on the home demo and **Real P1** page (debounced logging / refresh).
+
+### Native (iOS) / Docs
+- CocoaPods podspec version **6.9.3**; README install snippet **6.9.3**.
+
+## 6.9.2
+
+### Features
+- **`meshNetworkUpdatedStream`**: cross-platform hint when the native mesh DB may have changed (Android: `NetworkUpdated`; iOS: post-save / load). Apps should refresh cached topology (`getNodes()`, `getGroups()`, keys) as needed.
+
+### Native (iOS)
+- Route Nordic persistence through **`saveNordicMeshDatabase()`** so saves notify Flutter; **`resetLocalMeshState()`** also notifies after clear.
+- CocoaPods podspec version **6.9.2**.
+
+### Docs
+- README: Phase 2 section for **`meshNetworkUpdatedStream`** and install snippet **6.9.2**.
+
 ## 6.9.1
 
 ### Docs (Phase 0 baseline)

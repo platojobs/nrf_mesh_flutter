@@ -30,10 +30,14 @@ void main() {
     await PlatoJobsNrfMeshManager.instance.initialize();
 
     final received = <MeshMessage>[];
-    final msgSub = PlatoJobsNrfMeshManager.instance.messageStream.listen(received.add);
+    final msgSub = PlatoJobsNrfMeshManager.instance.messageStream.listen(
+      received.add,
+    );
 
     final discovered = <UnprovisionedDevice>[];
-    final sub = PlatoJobsNrfMeshManager.instance.scanForDevices().listen(discovered.add);
+    final sub = PlatoJobsNrfMeshManager.instance.scanForDevices().listen(
+      discovered.add,
+    );
 
     await Future<void>.delayed(const Duration(milliseconds: 30));
     expect(discovered.length, 1);
@@ -54,7 +58,9 @@ void main() {
 
     fake.nextSendMessageError = Exception('boom');
     await expectLater(
-      PlatoJobsNrfMeshManager.instance.sendMessage(GenericOnOffSet(state: true)),
+      PlatoJobsNrfMeshManager.instance.sendMessage(
+        GenericOnOffSet(state: true),
+      ),
       throwsA(isA<Exception>()),
     );
 
@@ -66,7 +72,9 @@ void main() {
     PlatoJobsNrfMeshManager.setBridgeForTesting(fake);
     await PlatoJobsNrfMeshManager.instance.initialize();
 
-    await PlatoJobsNrfMeshManager.instance.sendMessage(GenericOnOffSet(state: true));
+    await PlatoJobsNrfMeshManager.instance.sendMessage(
+      GenericOnOffSet(state: true),
+    );
 
     expect(fake.sentMessages.length, 1);
     expect(fake.sentMessages.single, isA<GenericOnOffSet>());
@@ -113,8 +121,16 @@ void main() {
       ProvisioningParameters(deviceName: 'Cfg'),
     );
 
-    final ok1 = await PlatoJobsNrfMeshManager.instance.bindAppKey(0x0001, 0x1000, 0);
-    final ok2 = await PlatoJobsNrfMeshManager.instance.addSubscription(0x0001, 0x1000, 0xC000);
+    final ok1 = await PlatoJobsNrfMeshManager.instance.bindAppKey(
+      0x0001,
+      0x1000,
+      0,
+    );
+    final ok2 = await PlatoJobsNrfMeshManager.instance.addSubscription(
+      0x0001,
+      0x1000,
+      0xC000,
+    );
     final ok3 = await PlatoJobsNrfMeshManager.instance.setPublication(
       0x0001,
       0x1000,
@@ -122,8 +138,16 @@ void main() {
       0,
       ttl: 5,
     );
-    final ok4 = await PlatoJobsNrfMeshManager.instance.removeSubscription(0x0001, 0x1000, 0xC000);
-    final ok5 = await PlatoJobsNrfMeshManager.instance.unbindAppKey(0x0001, 0x1000, 0);
+    final ok4 = await PlatoJobsNrfMeshManager.instance.removeSubscription(
+      0x0001,
+      0x1000,
+      0xC000,
+    );
+    final ok5 = await PlatoJobsNrfMeshManager.instance.unbindAppKey(
+      0x0001,
+      0x1000,
+      0,
+    );
 
     expect(ok1, true);
     expect(ok2, true);
@@ -134,11 +158,12 @@ void main() {
     final nodes = await PlatoJobsNrfMeshManager.instance.getNodes();
     expect(nodes.isNotEmpty, true);
     final element = nodes.first.elements.first;
-    final model = element.models.firstWhere((m) => m.modelId == '4096'); // 0x1000
+    final model = element.models.firstWhere(
+      (m) => m.modelId == '4096',
+    ); // 0x1000
     expect(model.boundAppKeyIndexes, isEmpty);
     expect(model.subscriptions, isEmpty);
 
     await fake.dispose();
   });
 }
-

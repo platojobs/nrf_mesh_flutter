@@ -2,6 +2,7 @@
 // See also: https://pub.dev/packages/pigeon
 // ignore_for_file: unused_import, unused_shown_name
 // ignore_for_file: type=lint
+// ignore_for_file: public_member_api_docs
 
 import 'dart:async';
 import 'dart:typed_data' show Float64List, Int32List, Int64List;
@@ -10,9 +11,9 @@ import 'package:flutter/services.dart';
 import 'package:meta/meta.dart' show immutable, protected, visibleForTesting;
 
 Object? _extractReplyValueOrThrow(
-    List<Object?>? replyList,
-    String channelName, {
-    required bool isNullValid,
+  List<Object?>? replyList,
+  String channelName, {
+  required bool isNullValid,
 }) {
   if (replyList == null) {
     throw PlatformException(
@@ -34,8 +35,11 @@ Object? _extractReplyValueOrThrow(
   return replyList.firstOrNull;
 }
 
-
-List<Object?> wrapResponse({Object? result, PlatformException? error, bool empty = false}) {
+List<Object?> wrapResponse({
+  Object? result,
+  PlatformException? error,
+  bool empty = false,
+}) {
   if (empty) {
     return <Object?>[];
   }
@@ -44,6 +48,7 @@ List<Object?> wrapResponse({Object? result, PlatformException? error, bool empty
   }
   return <Object?>[error.code, error.message, error.details];
 }
+
 bool _deepEquals(Object? a, Object? b) {
   if (identical(a, b)) {
     return true;
@@ -56,8 +61,9 @@ bool _deepEquals(Object? a, Object? b) {
   }
   if (a is List && b is List) {
     return a.length == b.length &&
-        a.indexed
-            .every(((int, dynamic) item) => _deepEquals(item.$2, b[item.$1]));
+        a.indexed.every(
+          ((int, dynamic) item) => _deepEquals(item.$2, b[item.$1]),
+        );
   }
   if (a is Map && b is Map) {
     if (a.length != b.length) {
@@ -106,18 +112,26 @@ int _deepHash(Object? value) {
   return value.hashCode;
 }
 
+enum RxMetadataStatus { available, unavailable }
 
-enum RxMetadataStatus {
-  available,
-  unavailable,
-}
-
+/// Lifecycle stages reported during PB-GATT provisioning.
 enum ProvisioningEventType {
+  /// Provisioning session started for the device.
   started,
+
+  /// Device capabilities received from the provisionee.
   capabilitiesReceived,
+
+  /// App must supply input OOB data (user-entered).
   oobInputRequested,
+
+  /// Device is displaying output OOB data (user reads and confirms).
   oobOutputRequested,
+
+  /// Device successfully joined the network.
   provisioningCompleted,
+
+  /// Session ended with an error (see [ProvisioningEvent.message]).
   failed,
 }
 
@@ -159,7 +173,8 @@ class MeshNetwork {
   }
 
   Object encode() {
-    return _toList();  }
+    return _toList();
+  }
 
   static MeshNetwork decode(Object result) {
     result as List<Object?>;
@@ -183,7 +198,13 @@ class MeshNetwork {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(networkId, other.networkId) && _deepEquals(name, other.name) && _deepEquals(networkKeys, other.networkKeys) && _deepEquals(appKeys, other.appKeys) && _deepEquals(nodes, other.nodes) && _deepEquals(groups, other.groups) && _deepEquals(provisioner, other.provisioner);
+    return _deepEquals(networkId, other.networkId) &&
+        _deepEquals(name, other.name) &&
+        _deepEquals(networkKeys, other.networkKeys) &&
+        _deepEquals(appKeys, other.appKeys) &&
+        _deepEquals(nodes, other.nodes) &&
+        _deepEquals(groups, other.groups) &&
+        _deepEquals(provisioner, other.provisioner);
   }
 
   @override
@@ -192,12 +213,7 @@ class MeshNetwork {
 }
 
 class NetworkKey {
-  NetworkKey({
-    this.keyId,
-    this.key,
-    this.index,
-    this.enabled,
-  });
+  NetworkKey({this.keyId, this.key, this.index, this.enabled});
 
   String? keyId;
 
@@ -208,16 +224,12 @@ class NetworkKey {
   bool? enabled;
 
   List<Object?> _toList() {
-    return <Object?>[
-      keyId,
-      key,
-      index,
-      enabled,
-    ];
+    return <Object?>[keyId, key, index, enabled];
   }
 
   Object encode() {
-    return _toList();  }
+    return _toList();
+  }
 
   static NetworkKey decode(Object result) {
     result as List<Object?>;
@@ -238,7 +250,10 @@ class NetworkKey {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(keyId, other.keyId) && _deepEquals(key, other.key) && _deepEquals(index, other.index) && _deepEquals(enabled, other.enabled);
+    return _deepEquals(keyId, other.keyId) &&
+        _deepEquals(key, other.key) &&
+        _deepEquals(index, other.index) &&
+        _deepEquals(enabled, other.enabled);
   }
 
   @override
@@ -247,12 +262,7 @@ class NetworkKey {
 }
 
 class AppKey {
-  AppKey({
-    this.keyId,
-    this.key,
-    this.index,
-    this.enabled,
-  });
+  AppKey({this.keyId, this.key, this.index, this.enabled});
 
   String? keyId;
 
@@ -263,16 +273,12 @@ class AppKey {
   bool? enabled;
 
   List<Object?> _toList() {
-    return <Object?>[
-      keyId,
-      key,
-      index,
-      enabled,
-    ];
+    return <Object?>[keyId, key, index, enabled];
   }
 
   Object encode() {
-    return _toList();  }
+    return _toList();
+  }
 
   static AppKey decode(Object result) {
     result as List<Object?>;
@@ -293,7 +299,10 @@ class AppKey {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(keyId, other.keyId) && _deepEquals(key, other.key) && _deepEquals(index, other.index) && _deepEquals(enabled, other.enabled);
+    return _deepEquals(keyId, other.keyId) &&
+        _deepEquals(key, other.key) &&
+        _deepEquals(index, other.index) &&
+        _deepEquals(enabled, other.enabled);
   }
 
   @override
@@ -302,11 +311,7 @@ class AppKey {
 }
 
 class Provisioner {
-  Provisioner({
-    this.name,
-    this.provisionerId,
-    this.addressRange,
-  });
+  Provisioner({this.name, this.provisionerId, this.addressRange});
 
   String? name;
 
@@ -315,15 +320,12 @@ class Provisioner {
   List<int>? addressRange;
 
   List<Object?> _toList() {
-    return <Object?>[
-      name,
-      provisionerId,
-      addressRange,
-    ];
+    return <Object?>[name, provisionerId, addressRange];
   }
 
   Object encode() {
-    return _toList();  }
+    return _toList();
+  }
 
   static Provisioner decode(Object result) {
     result as List<Object?>;
@@ -343,7 +345,9 @@ class Provisioner {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(name, other.name) && _deepEquals(provisionerId, other.provisionerId) && _deepEquals(addressRange, other.addressRange);
+    return _deepEquals(name, other.name) &&
+        _deepEquals(provisionerId, other.provisionerId) &&
+        _deepEquals(addressRange, other.addressRange);
   }
 
   @override
@@ -374,17 +378,12 @@ class FlutterUnprovisionedDevice {
   String? serviceUuid;
 
   List<Object?> _toList() {
-    return <Object?>[
-      deviceId,
-      name,
-      rssi,
-      uuid,
-      serviceUuid,
-    ];
+    return <Object?>[deviceId, name, rssi, uuid, serviceUuid];
   }
 
   Object encode() {
-    return _toList();  }
+    return _toList();
+  }
 
   static FlutterUnprovisionedDevice decode(Object result) {
     result as List<Object?>;
@@ -400,13 +399,18 @@ class FlutterUnprovisionedDevice {
   @override
   // ignore: avoid_equals_and_hash_code_on_mutable_classes
   bool operator ==(Object other) {
-    if (other is! FlutterUnprovisionedDevice || other.runtimeType != runtimeType) {
+    if (other is! FlutterUnprovisionedDevice ||
+        other.runtimeType != runtimeType) {
       return false;
     }
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(deviceId, other.deviceId) && _deepEquals(name, other.name) && _deepEquals(rssi, other.rssi) && _deepEquals(uuid, other.uuid) && _deepEquals(serviceUuid, other.serviceUuid);
+    return _deepEquals(deviceId, other.deviceId) &&
+        _deepEquals(name, other.name) &&
+        _deepEquals(rssi, other.rssi) &&
+        _deepEquals(uuid, other.uuid) &&
+        _deepEquals(serviceUuid, other.serviceUuid);
   }
 
   @override
@@ -437,18 +441,12 @@ class ProvisionedNode {
   bool? provisioned;
 
   List<Object?> _toList() {
-    return <Object?>[
-      nodeId,
-      name,
-      unicastAddress,
-      uuid,
-      elements,
-      provisioned,
-    ];
+    return <Object?>[nodeId, name, unicastAddress, uuid, elements, provisioned];
   }
 
   Object encode() {
-    return _toList();  }
+    return _toList();
+  }
 
   static ProvisionedNode decode(Object result) {
     result as List<Object?>;
@@ -471,7 +469,12 @@ class ProvisionedNode {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(nodeId, other.nodeId) && _deepEquals(name, other.name) && _deepEquals(unicastAddress, other.unicastAddress) && _deepEquals(uuid, other.uuid) && _deepEquals(elements, other.elements) && _deepEquals(provisioned, other.provisioned);
+    return _deepEquals(nodeId, other.nodeId) &&
+        _deepEquals(name, other.name) &&
+        _deepEquals(unicastAddress, other.unicastAddress) &&
+        _deepEquals(uuid, other.uuid) &&
+        _deepEquals(elements, other.elements) &&
+        _deepEquals(provisioned, other.provisioned);
   }
 
   @override
@@ -480,24 +483,19 @@ class ProvisionedNode {
 }
 
 class Element {
-  Element({
-    this.address,
-    this.models,
-  });
+  Element({this.address, this.models});
 
   int? address;
 
   List<Model>? models;
 
   List<Object?> _toList() {
-    return <Object?>[
-      address,
-      models,
-    ];
+    return <Object?>[address, models];
   }
 
   Object encode() {
-    return _toList();  }
+    return _toList();
+  }
 
   static Element decode(Object result) {
     result as List<Object?>;
@@ -516,7 +514,8 @@ class Element {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(address, other.address) && _deepEquals(models, other.models);
+    return _deepEquals(address, other.address) &&
+        _deepEquals(models, other.models);
   }
 
   @override
@@ -562,7 +561,8 @@ class Model {
   }
 
   Object encode() {
-    return _toList();  }
+    return _toList();
+  }
 
   static Model decode(Object result) {
     result as List<Object?>;
@@ -586,7 +586,13 @@ class Model {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(modelId, other.modelId) && _deepEquals(modelName, other.modelName) && _deepEquals(publishable, other.publishable) && _deepEquals(subscribable, other.subscribable) && _deepEquals(boundAppKeyIndexes, other.boundAppKeyIndexes) && _deepEquals(subscriptions, other.subscriptions) && _deepEquals(publication, other.publication);
+    return _deepEquals(modelId, other.modelId) &&
+        _deepEquals(modelName, other.modelName) &&
+        _deepEquals(publishable, other.publishable) &&
+        _deepEquals(subscribable, other.subscribable) &&
+        _deepEquals(boundAppKeyIndexes, other.boundAppKeyIndexes) &&
+        _deepEquals(subscriptions, other.subscriptions) &&
+        _deepEquals(publication, other.publication);
   }
 
   @override
@@ -595,11 +601,7 @@ class Model {
 }
 
 class Publication {
-  Publication({
-    this.address,
-    this.appKeyIndex,
-    this.ttl,
-  });
+  Publication({this.address, this.appKeyIndex, this.ttl});
 
   int? address;
 
@@ -608,15 +610,12 @@ class Publication {
   int? ttl;
 
   List<Object?> _toList() {
-    return <Object?>[
-      address,
-      appKeyIndex,
-      ttl,
-    ];
+    return <Object?>[address, appKeyIndex, ttl];
   }
 
   Object encode() {
-    return _toList();  }
+    return _toList();
+  }
 
   static Publication decode(Object result) {
     result as List<Object?>;
@@ -636,7 +635,9 @@ class Publication {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(address, other.address) && _deepEquals(appKeyIndex, other.appKeyIndex) && _deepEquals(ttl, other.ttl);
+    return _deepEquals(address, other.address) &&
+        _deepEquals(appKeyIndex, other.appKeyIndex) &&
+        _deepEquals(ttl, other.ttl);
   }
 
   @override
@@ -665,17 +666,12 @@ class MeshGroup {
   List<int>? labelUuid;
 
   List<Object?> _toList() {
-    return <Object?>[
-      groupId,
-      name,
-      address,
-      nodeIds,
-      labelUuid,
-    ];
+    return <Object?>[groupId, name, address, nodeIds, labelUuid];
   }
 
   Object encode() {
-    return _toList();  }
+    return _toList();
+  }
 
   static MeshGroup decode(Object result) {
     result as List<Object?>;
@@ -697,7 +693,11 @@ class MeshGroup {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(groupId, other.groupId) && _deepEquals(name, other.name) && _deepEquals(address, other.address) && _deepEquals(nodeIds, other.nodeIds) && _deepEquals(labelUuid, other.labelUuid);
+    return _deepEquals(groupId, other.groupId) &&
+        _deepEquals(name, other.name) &&
+        _deepEquals(address, other.address) &&
+        _deepEquals(nodeIds, other.nodeIds) &&
+        _deepEquals(labelUuid, other.labelUuid);
   }
 
   @override
@@ -706,12 +706,7 @@ class MeshGroup {
 }
 
 class MeshMessage {
-  MeshMessage({
-    this.opcode,
-    this.address,
-    this.appKeyIndex,
-    this.parameters,
-  });
+  MeshMessage({this.opcode, this.address, this.appKeyIndex, this.parameters});
 
   int? opcode;
 
@@ -722,16 +717,12 @@ class MeshMessage {
   Map<String, Object?>? parameters;
 
   List<Object?> _toList() {
-    return <Object?>[
-      opcode,
-      address,
-      appKeyIndex,
-      parameters,
-    ];
+    return <Object?>[opcode, address, appKeyIndex, parameters];
   }
 
   Object encode() {
-    return _toList();  }
+    return _toList();
+  }
 
   static MeshMessage decode(Object result) {
     result as List<Object?>;
@@ -739,7 +730,8 @@ class MeshMessage {
       opcode: result[0] as int?,
       address: result[1] as int?,
       appKeyIndex: result[2] as int?,
-      parameters: (result[3] as Map<Object?, Object?>?)?.cast<String, Object?>(),
+      parameters: (result[3] as Map<Object?, Object?>?)
+          ?.cast<String, Object?>(),
     );
   }
 
@@ -752,7 +744,10 @@ class MeshMessage {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(opcode, other.opcode) && _deepEquals(address, other.address) && _deepEquals(appKeyIndex, other.appKeyIndex) && _deepEquals(parameters, other.parameters);
+    return _deepEquals(opcode, other.opcode) &&
+        _deepEquals(address, other.address) &&
+        _deepEquals(appKeyIndex, other.appKeyIndex) &&
+        _deepEquals(parameters, other.parameters);
   }
 
   @override
@@ -783,17 +778,12 @@ class RxAccessMessage {
   RxMetadataStatus? metadataStatus;
 
   List<Object?> _toList() {
-    return <Object?>[
-      opcode,
-      parameters,
-      source,
-      destination,
-      metadataStatus,
-    ];
+    return <Object?>[opcode, parameters, source, destination, metadataStatus];
   }
 
   Object encode() {
-    return _toList();  }
+    return _toList();
+  }
 
   static RxAccessMessage decode(Object result) {
     result as List<Object?>;
@@ -815,7 +805,11 @@ class RxAccessMessage {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(opcode, other.opcode) && _deepEquals(parameters, other.parameters) && _deepEquals(source, other.source) && _deepEquals(destination, other.destination) && _deepEquals(metadataStatus, other.metadataStatus);
+    return _deepEquals(opcode, other.opcode) &&
+        _deepEquals(parameters, other.parameters) &&
+        _deepEquals(source, other.source) &&
+        _deepEquals(destination, other.destination) &&
+        _deepEquals(metadataStatus, other.metadataStatus);
   }
 
   @override
@@ -840,16 +834,12 @@ class ProvisioningParameters {
   bool? enablePrivacy;
 
   List<Object?> _toList() {
-    return <Object?>[
-      deviceName,
-      oobMethod,
-      oobData,
-      enablePrivacy,
-    ];
+    return <Object?>[deviceName, oobMethod, oobData, enablePrivacy];
   }
 
   Object encode() {
-    return _toList();  }
+    return _toList();
+  }
 
   static ProvisioningParameters decode(Object result) {
     result as List<Object?>;
@@ -870,7 +860,10 @@ class ProvisioningParameters {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(deviceName, other.deviceName) && _deepEquals(oobMethod, other.oobMethod) && _deepEquals(oobData, other.oobData) && _deepEquals(enablePrivacy, other.enablePrivacy);
+    return _deepEquals(deviceName, other.deviceName) &&
+        _deepEquals(oobMethod, other.oobMethod) &&
+        _deepEquals(oobData, other.oobData) &&
+        _deepEquals(enablePrivacy, other.enablePrivacy);
   }
 
   @override
@@ -878,6 +871,9 @@ class ProvisioningParameters {
   int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
 }
 
+/// One provisioning lifecycle update for a single device.
+///
+/// Consumed from [MeshFlutterApi.onProvisioningEvent] / Dart-side provisioning streams.
 class ProvisioningEvent {
   ProvisioningEvent({
     this.deviceId,
@@ -887,28 +883,28 @@ class ProvisioningEvent {
     this.attentionTimer,
   });
 
+  /// Native device identifier (typically BLE peripheral UUID string).
   String? deviceId;
 
+  /// Which phase this event represents.
   ProvisioningEventType? type;
 
+  /// Human-readable detail or error text from native code.
   String? message;
 
+  /// Best-effort progress percent (0–100), when provided.
   int? progress;
 
+  /// Attention timer value when relevant for the provisioning UI flow.
   int? attentionTimer;
 
   List<Object?> _toList() {
-    return <Object?>[
-      deviceId,
-      type,
-      message,
-      progress,
-      attentionTimer,
-    ];
+    return <Object?>[deviceId, type, message, progress, attentionTimer];
   }
 
   Object encode() {
-    return _toList();  }
+    return _toList();
+  }
 
   static ProvisioningEvent decode(Object result) {
     result as List<Object?>;
@@ -930,7 +926,11 @@ class ProvisioningEvent {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(deviceId, other.deviceId) && _deepEquals(type, other.type) && _deepEquals(message, other.message) && _deepEquals(progress, other.progress) && _deepEquals(attentionTimer, other.attentionTimer);
+    return _deepEquals(deviceId, other.deviceId) &&
+        _deepEquals(type, other.type) &&
+        _deepEquals(message, other.message) &&
+        _deepEquals(progress, other.progress) &&
+        _deepEquals(attentionTimer, other.attentionTimer);
   }
 
   @override
@@ -939,11 +939,7 @@ class ProvisioningEvent {
 }
 
 class GenericOnOffSet {
-  GenericOnOffSet({
-    this.state,
-    this.transitionTime,
-    this.delay,
-  });
+  GenericOnOffSet({this.state, this.transitionTime, this.delay});
 
   bool? state;
 
@@ -952,15 +948,12 @@ class GenericOnOffSet {
   int? delay;
 
   List<Object?> _toList() {
-    return <Object?>[
-      state,
-      transitionTime,
-      delay,
-    ];
+    return <Object?>[state, transitionTime, delay];
   }
 
   Object encode() {
-    return _toList();  }
+    return _toList();
+  }
 
   static GenericOnOffSet decode(Object result) {
     result as List<Object?>;
@@ -980,7 +973,9 @@ class GenericOnOffSet {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(state, other.state) && _deepEquals(transitionTime, other.transitionTime) && _deepEquals(delay, other.delay);
+    return _deepEquals(state, other.state) &&
+        _deepEquals(transitionTime, other.transitionTime) &&
+        _deepEquals(delay, other.delay);
   }
 
   @override
@@ -989,11 +984,7 @@ class GenericOnOffSet {
 }
 
 class GenericLevelSet {
-  GenericLevelSet({
-    this.level,
-    this.transitionTime,
-    this.delay,
-  });
+  GenericLevelSet({this.level, this.transitionTime, this.delay});
 
   int? level;
 
@@ -1002,15 +993,12 @@ class GenericLevelSet {
   int? delay;
 
   List<Object?> _toList() {
-    return <Object?>[
-      level,
-      transitionTime,
-      delay,
-    ];
+    return <Object?>[level, transitionTime, delay];
   }
 
   Object encode() {
-    return _toList();  }
+    return _toList();
+  }
 
   static GenericLevelSet decode(Object result) {
     result as List<Object?>;
@@ -1030,14 +1018,15 @@ class GenericLevelSet {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(level, other.level) && _deepEquals(transitionTime, other.transitionTime) && _deepEquals(delay, other.delay);
+    return _deepEquals(level, other.level) &&
+        _deepEquals(transitionTime, other.transitionTime) &&
+        _deepEquals(delay, other.delay);
   }
 
   @override
   // ignore: avoid_equals_and_hash_code_on_mutable_classes
   int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
 }
-
 
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
@@ -1046,58 +1035,58 @@ class _PigeonCodec extends StandardMessageCodec {
     if (value is int) {
       buffer.putUint8(4);
       buffer.putInt64(value);
-    }    else if (value is RxMetadataStatus) {
+    } else if (value is RxMetadataStatus) {
       buffer.putUint8(129);
       writeValue(buffer, value.index);
-    }    else if (value is ProvisioningEventType) {
+    } else if (value is ProvisioningEventType) {
       buffer.putUint8(130);
       writeValue(buffer, value.index);
-    }    else if (value is MeshNetwork) {
+    } else if (value is MeshNetwork) {
       buffer.putUint8(131);
       writeValue(buffer, value.encode());
-    }    else if (value is NetworkKey) {
+    } else if (value is NetworkKey) {
       buffer.putUint8(132);
       writeValue(buffer, value.encode());
-    }    else if (value is AppKey) {
+    } else if (value is AppKey) {
       buffer.putUint8(133);
       writeValue(buffer, value.encode());
-    }    else if (value is Provisioner) {
+    } else if (value is Provisioner) {
       buffer.putUint8(134);
       writeValue(buffer, value.encode());
-    }    else if (value is FlutterUnprovisionedDevice) {
+    } else if (value is FlutterUnprovisionedDevice) {
       buffer.putUint8(135);
       writeValue(buffer, value.encode());
-    }    else if (value is ProvisionedNode) {
+    } else if (value is ProvisionedNode) {
       buffer.putUint8(136);
       writeValue(buffer, value.encode());
-    }    else if (value is Element) {
+    } else if (value is Element) {
       buffer.putUint8(137);
       writeValue(buffer, value.encode());
-    }    else if (value is Model) {
+    } else if (value is Model) {
       buffer.putUint8(138);
       writeValue(buffer, value.encode());
-    }    else if (value is Publication) {
+    } else if (value is Publication) {
       buffer.putUint8(139);
       writeValue(buffer, value.encode());
-    }    else if (value is MeshGroup) {
+    } else if (value is MeshGroup) {
       buffer.putUint8(140);
       writeValue(buffer, value.encode());
-    }    else if (value is MeshMessage) {
+    } else if (value is MeshMessage) {
       buffer.putUint8(141);
       writeValue(buffer, value.encode());
-    }    else if (value is RxAccessMessage) {
+    } else if (value is RxAccessMessage) {
       buffer.putUint8(142);
       writeValue(buffer, value.encode());
-    }    else if (value is ProvisioningParameters) {
+    } else if (value is ProvisioningParameters) {
       buffer.putUint8(143);
       writeValue(buffer, value.encode());
-    }    else if (value is ProvisioningEvent) {
+    } else if (value is ProvisioningEvent) {
       buffer.putUint8(144);
       writeValue(buffer, value.encode());
-    }    else if (value is GenericOnOffSet) {
+    } else if (value is GenericOnOffSet) {
       buffer.putUint8(145);
       writeValue(buffer, value.encode());
-    }    else if (value is GenericLevelSet) {
+    } else if (value is GenericLevelSet) {
       buffer.putUint8(146);
       writeValue(buffer, value.encode());
     } else {
@@ -1157,8 +1146,10 @@ class MeshApi {
   /// available for dependency injection.  If it is left null, the default
   /// BinaryMessenger will be used which routes to the host platform.
   MeshApi({BinaryMessenger? binaryMessenger, String messageChannelSuffix = ''})
-      : pigeonVar_binaryMessenger = binaryMessenger,
-        pigeonVar_messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
+    : pigeonVar_binaryMessenger = binaryMessenger,
+      pigeonVar_messageChannelSuffix = messageChannelSuffix.isNotEmpty
+          ? '.$messageChannelSuffix'
+          : '';
   final BinaryMessenger? pigeonVar_binaryMessenger;
 
   static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
@@ -1166,26 +1157,29 @@ class MeshApi {
   final String pigeonVar_messageChannelSuffix;
 
   Future<MeshNetwork> createNetwork(String name) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.createNetwork$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.createNetwork$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[name]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[name],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as MeshNetwork;
   }
 
   Future<MeshNetwork> loadNetwork() async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.loadNetwork$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.loadNetwork$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1195,16 +1189,16 @@ class MeshApi {
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as MeshNetwork;
   }
 
   Future<bool> saveNetwork() async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.saveNetwork$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.saveNetwork$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1214,54 +1208,58 @@ class MeshApi {
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
   Future<bool> exportNetwork(String path) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.exportNetwork$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.exportNetwork$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[path]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[path],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
   Future<bool> importNetwork(String path) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.importNetwork$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.importNetwork$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[path]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[path],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
   Future<void> startScan() async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.startScan$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.startScan$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1271,15 +1269,15 @@ class MeshApi {
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: true,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: true,
+    );
   }
 
   Future<void> stopScan() async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.stopScan$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.stopScan$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1289,29 +1287,33 @@ class MeshApi {
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: true,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: true,
+    );
   }
 
-  Future<ProvisionedNode> provisionDevice(FlutterUnprovisionedDevice device, ProvisioningParameters params) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.provisionDevice$pigeonVar_messageChannelSuffix';
+  Future<ProvisionedNode> provisionDevice(
+    FlutterUnprovisionedDevice device,
+    ProvisioningParameters params,
+  ) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.provisionDevice$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[device, params]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[device, params],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as ProvisionedNode;
   }
 
@@ -1320,64 +1322,74 @@ class MeshApi {
   /// Used when provisioning emits an OOB input request that requires the user to enter a value
   /// shown on the device.
   Future<bool> provideProvisioningOobNumeric(String deviceId, int value) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.provideProvisioningOobNumeric$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.provideProvisioningOobNumeric$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[deviceId, value]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[deviceId, value],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
   /// Provide user input required by Output OOB (alphanumeric).
-  Future<bool> provideProvisioningOobAlphaNumeric(String deviceId, String value) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.provideProvisioningOobAlphaNumeric$pigeonVar_messageChannelSuffix';
+  Future<bool> provideProvisioningOobAlphaNumeric(
+    String deviceId,
+    String value,
+  ) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.provideProvisioningOobAlphaNumeric$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[deviceId, value]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[deviceId, value],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
   Future<void> sendMessage(MeshMessage message) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.sendMessage$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.sendMessage$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[message]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[message],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: true,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: true,
+    );
   }
 
   Future<List<ProvisionedNode>> getNodes() async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.getNodes$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.getNodes$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1387,53 +1399,57 @@ class MeshApi {
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return (pigeonVar_replyValue! as List<Object?>).cast<ProvisionedNode>();
   }
 
   Future<void> removeNode(String nodeId) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeNode$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeNode$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[nodeId]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[nodeId],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: true,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: true,
+    );
   }
 
   Future<MeshGroup> createGroup(String name) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.createGroup$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.createGroup$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[name]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[name],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as MeshGroup;
   }
 
   Future<List<MeshGroup>> getGroups() async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.getGroups$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.getGroups$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1443,124 +1459,149 @@ class MeshApi {
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return (pigeonVar_replyValue! as List<Object?>).cast<MeshGroup>();
   }
 
   Future<void> addNodeToGroup(String nodeId, String groupId) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.addNodeToGroup$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.addNodeToGroup$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[nodeId, groupId]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[nodeId, groupId],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: true,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: true,
+    );
   }
 
   Future<MeshGroup> createVirtualGroup(String name, List<int> labelUuid) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.createVirtualGroup$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.createVirtualGroup$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[name, labelUuid]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[name, labelUuid],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as MeshGroup;
   }
 
   Future<bool> removeGroup(String groupId) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeGroup$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeGroup$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[groupId]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[groupId],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
-  Future<bool> addSubscriptionVirtual(int elementAddress, int modelId, List<int> labelUuid) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.addSubscriptionVirtual$pigeonVar_messageChannelSuffix';
+  Future<bool> addSubscriptionVirtual(
+    int elementAddress,
+    int modelId,
+    List<int> labelUuid,
+  ) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.addSubscriptionVirtual$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[elementAddress, modelId, labelUuid]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[elementAddress, modelId, labelUuid],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
-  Future<bool> removeSubscriptionVirtual(int elementAddress, int modelId, List<int> labelUuid) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeSubscriptionVirtual$pigeonVar_messageChannelSuffix';
+  Future<bool> removeSubscriptionVirtual(
+    int elementAddress,
+    int modelId,
+    List<int> labelUuid,
+  ) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeSubscriptionVirtual$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[elementAddress, modelId, labelUuid]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[elementAddress, modelId, labelUuid],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
-  Future<bool> setPublicationVirtual(int elementAddress, int modelId, List<int> labelUuid, int appKeyIndex, {int? ttl, }) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setPublicationVirtual$pigeonVar_messageChannelSuffix';
+  Future<bool> setPublicationVirtual(
+    int elementAddress,
+    int modelId,
+    List<int> labelUuid,
+    int appKeyIndex, {
+    int? ttl,
+  }) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setPublicationVirtual$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[elementAddress, modelId, labelUuid, appKeyIndex, ttl]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[elementAddress, modelId, labelUuid, appKeyIndex, ttl],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
@@ -1571,21 +1612,23 @@ class MeshApi {
   ///
   /// Returns `true` when the operation completed successfully.
   Future<bool> fetchCompositionData(int destination, {int page = 0}) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.fetchCompositionData$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.fetchCompositionData$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[destination, page]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[destination, page],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
@@ -1594,21 +1637,23 @@ class MeshApi {
   /// - `appKeyIndex`: 0..4095
   /// - `keyHex`: 16-byte (128-bit) key in hex (32 chars, case-insensitive).
   Future<bool> addAppKey(int appKeyIndex, String keyHex) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.addAppKey$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.addAppKey$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[appKeyIndex, keyHex]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[appKeyIndex, keyHex],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
@@ -1617,27 +1662,30 @@ class MeshApi {
   /// - `netKeyIndex`: 0..4095
   /// - `keyHex`: 16-byte (128-bit) key in hex (32 chars).
   Future<bool> addNetworkKey(int netKeyIndex, String keyHex) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.addNetworkKey$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.addNetworkKey$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[netKeyIndex, keyHex]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[netKeyIndex, keyHex],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
   /// Return the current network keys as seen by the native Mesh DB.
   Future<List<NetworkKey>> getNetworkKeys() async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.getNetworkKeys$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.getNetworkKeys$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1647,17 +1695,17 @@ class MeshApi {
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return (pigeonVar_replyValue! as List<Object?>).cast<NetworkKey>();
   }
 
   /// Return the current application keys as seen by the native Mesh DB.
   Future<List<AppKey>> getAppKeys() async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.getAppKeys$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.getAppKeys$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1667,151 +1715,173 @@ class MeshApi {
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return (pigeonVar_replyValue! as List<Object?>).cast<AppKey>();
   }
 
   /// Set the Default TTL on a node.
   Future<bool> setNodeDefaultTtl(int destination, int ttl) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setNodeDefaultTtl$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setNodeDefaultTtl$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[destination, ttl]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[destination, ttl],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
   /// Enable/disable Relay on a node.
-  Future<bool> setNodeRelay(int destination, bool enabled, int retransmitCount, int retransmitIntervalMs) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setNodeRelay$pigeonVar_messageChannelSuffix';
+  Future<bool> setNodeRelay(
+    int destination,
+    bool enabled,
+    int retransmitCount,
+    int retransmitIntervalMs,
+  ) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setNodeRelay$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[destination, enabled, retransmitCount, retransmitIntervalMs]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[destination, enabled, retransmitCount, retransmitIntervalMs],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
   /// Enable/disable GATT Proxy on a node.
   Future<bool> setNodeGattProxy(int destination, bool enabled) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setNodeGattProxy$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setNodeGattProxy$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[destination, enabled]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[destination, enabled],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
   /// Enable/disable Friend on a node.
   Future<bool> setNodeFriend(int destination, bool enabled) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setNodeFriend$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setNodeFriend$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[destination, enabled]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[destination, enabled],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
   /// Enable/disable Secure Network Beacon on a node.
   Future<bool> setNodeBeacon(int destination, bool enabled) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setNodeBeacon$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setNodeBeacon$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[destination, enabled]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[destination, enabled],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
   /// Set Network Transmit parameters on a node.
-  Future<bool> setNodeNetworkTransmit(int destination, int count, int intervalMs) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setNodeNetworkTransmit$pigeonVar_messageChannelSuffix';
+  Future<bool> setNodeNetworkTransmit(
+    int destination,
+    int count,
+    int intervalMs,
+  ) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setNodeNetworkTransmit$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[destination, count, intervalMs]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[destination, count, intervalMs],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
   /// Trigger a remote Node Reset.
   Future<bool> nodeReset(int destination) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.nodeReset$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.nodeReset$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[destination]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[destination],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
@@ -1821,41 +1891,45 @@ class MeshApi {
   /// - Standard Mesh DB export (Configuration Database Profile 1.0.1)
   /// - Plugin secure state when applicable (e.g. Android secure properties)
   Future<bool> exportConfigurationBundle(String path) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.exportConfigurationBundle$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.exportConfigurationBundle$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[path]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[path],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
   /// Import a configuration bundle from a file path.
   Future<bool> importConfigurationBundle(String path) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.importConfigurationBundle$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.importConfigurationBundle$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[path]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[path],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
@@ -1863,43 +1937,51 @@ class MeshApi {
   ///
   /// [destination] is the unicast address of the element with the Configuration Server (usually primary).
   Future<bool> removeNetworkKeyRemote(int destination, int netKeyIndex) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeNetworkKeyRemote$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeNetworkKeyRemote$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[destination, netKeyIndex]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[destination, netKeyIndex],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
   /// Remove an application key on a **remote** node (Config App Key Delete).
   ///
   /// [boundNetKeyIndex] is the NetKey that the AppKey is bound to.
-  Future<bool> removeAppKeyRemote(int destination, int appKeyIndex, int boundNetKeyIndex) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeAppKeyRemote$pigeonVar_messageChannelSuffix';
+  Future<bool> removeAppKeyRemote(
+    int destination,
+    int appKeyIndex,
+    int boundNetKeyIndex,
+  ) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeAppKeyRemote$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[destination, appKeyIndex, boundNetKeyIndex]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[destination, appKeyIndex, boundNetKeyIndex],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
@@ -1907,50 +1989,59 @@ class MeshApi {
   ///
   /// Returns `0` = normal, `1` = key distribution, `2` = using new keys, or `-1` if unavailable.
   Future<int> getKeyRefreshPhase(int destination, int netKeyIndex) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.getKeyRefreshPhase$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.getKeyRefreshPhase$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[destination, netKeyIndex]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[destination, netKeyIndex],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as int;
   }
 
   /// Set Key Refresh phase transition (Config Key Refresh Phase Set).
   ///
   /// [transition] uses Nordic / Mesh values: `2` = use new keys, `3` = revoke old keys.
-  Future<bool> setKeyRefreshPhaseTransition(int destination, int netKeyIndex, int transition) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setKeyRefreshPhaseTransition$pigeonVar_messageChannelSuffix';
+  Future<bool> setKeyRefreshPhaseTransition(
+    int destination,
+    int netKeyIndex,
+    int transition,
+  ) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setKeyRefreshPhaseTransition$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[destination, netKeyIndex, transition]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[destination, netKeyIndex, transition],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
   /// Clears the loaded mesh, persisted plugin storage, and secure state (Android) so the app can
   /// [createNetwork] or [import] a fresh database.
   Future<bool> resetLocalMeshState() async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.resetLocalMeshState$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.resetLocalMeshState$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1960,135 +2051,169 @@ class MeshApi {
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
   /// Bind an AppKey to a model on a given element address.
-  Future<bool> bindAppKey(int elementAddress, int modelId, int appKeyIndex) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.bindAppKey$pigeonVar_messageChannelSuffix';
+  Future<bool> bindAppKey(
+    int elementAddress,
+    int modelId,
+    int appKeyIndex,
+  ) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.bindAppKey$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[elementAddress, modelId, appKeyIndex]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[elementAddress, modelId, appKeyIndex],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
   /// Unbind an AppKey from a model on a given element address.
-  Future<bool> unbindAppKey(int elementAddress, int modelId, int appKeyIndex) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.unbindAppKey$pigeonVar_messageChannelSuffix';
+  Future<bool> unbindAppKey(
+    int elementAddress,
+    int modelId,
+    int appKeyIndex,
+  ) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.unbindAppKey$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[elementAddress, modelId, appKeyIndex]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[elementAddress, modelId, appKeyIndex],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
   /// Add a subscription address to a model on a given element address.
-  Future<bool> addSubscription(int elementAddress, int modelId, int address) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.addSubscription$pigeonVar_messageChannelSuffix';
+  Future<bool> addSubscription(
+    int elementAddress,
+    int modelId,
+    int address,
+  ) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.addSubscription$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[elementAddress, modelId, address]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[elementAddress, modelId, address],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
   /// Remove a subscription address from a model on a given element address.
-  Future<bool> removeSubscription(int elementAddress, int modelId, int address) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeSubscription$pigeonVar_messageChannelSuffix';
+  Future<bool> removeSubscription(
+    int elementAddress,
+    int modelId,
+    int address,
+  ) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeSubscription$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[elementAddress, modelId, address]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[elementAddress, modelId, address],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
   /// Set publication for a model on a given element address.
-  Future<bool> setPublication(int elementAddress, int modelId, int publishAddress, int appKeyIndex, {int? ttl, }) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setPublication$pigeonVar_messageChannelSuffix';
+  Future<bool> setPublication(
+    int elementAddress,
+    int modelId,
+    int publishAddress,
+    int appKeyIndex, {
+    int? ttl,
+  }) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setPublication$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[elementAddress, modelId, publishAddress, appKeyIndex, ttl]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[elementAddress, modelId, publishAddress, appKeyIndex, ttl],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
   Future<bool> connectProxy(String deviceId, int proxyUnicastAddress) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.connectProxy$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.connectProxy$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[deviceId, proxyUnicastAddress]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[deviceId, proxyUnicastAddress],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
   Future<bool> disconnectProxy() async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.disconnectProxy$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.disconnectProxy$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -2098,16 +2223,16 @@ class MeshApi {
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
   Future<bool> isProxyConnected() async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.isProxyConnected$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.isProxyConnected$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -2117,35 +2242,37 @@ class MeshApi {
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
   Future<bool> connectProvisioning(String deviceId) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.connectProvisioning$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.connectProvisioning$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[deviceId]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[deviceId],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
   Future<bool> disconnectProvisioning() async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.disconnectProvisioning$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.disconnectProvisioning$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -2155,16 +2282,16 @@ class MeshApi {
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
   Future<bool> isProvisioningConnected() async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.isProvisioningConnected$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.isProvisioningConnected$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -2174,18 +2301,18 @@ class MeshApi {
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
   /// Whether the native implementation can reliably populate `MeshMessage.address`
   /// (source address) for incoming Access messages.
   Future<bool> supportsRxSourceAddress() async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.supportsRxSourceAddress$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.supportsRxSourceAddress$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -2195,11 +2322,10 @@ class MeshApi {
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as bool;
   }
 
@@ -2207,7 +2333,8 @@ class MeshApi {
   ///
   /// Intended for debugging and recovery (e.g. when switching Mesh DBs).
   Future<void> clearSecureStorage() async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.clearSecureStorage$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.clearSecureStorage$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -2217,11 +2344,10 @@ class MeshApi {
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: true,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: true,
+    );
   }
 
   /// Enable/disable experimental RX metadata extraction on Android.
@@ -2232,21 +2358,23 @@ class MeshApi {
   ///
   /// On iOS this is a no-op.
   Future<void> setExperimentalRxMetadataEnabled(bool enabled) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setExperimentalRxMetadataEnabled$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setExperimentalRxMetadataEnabled$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[enabled]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[enabled],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: true,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: true,
+    );
   }
 }
 
@@ -2266,33 +2394,53 @@ abstract class MeshFlutterApi {
   /// Provisioning lifecycle events (progress + OOB prompts).
   void onProvisioningEvent(ProvisioningEvent event);
 
-  static void setUp(MeshFlutterApi? api, {BinaryMessenger? binaryMessenger, String messageChannelSuffix = '',}) {
-    messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
+  /// Best-effort signal that the native mesh configuration database changed.
+  ///
+  /// Android (Kotlin Mesh): typically emitted on ``NetworkEvent.NetworkUpdated``.
+  /// iOS: emitted after successful Nordic ``MeshNetworkManager.save()`` (and related loads).
+  /// Apps should treat this as a hint to refresh `getNodes()` / `getGroups()` / keys—debounce if needed.
+  void onMeshNetworkUpdated();
+
+  static void setUp(
+    MeshFlutterApi? api, {
+    BinaryMessenger? binaryMessenger,
+    String messageChannelSuffix = '',
+  }) {
+    messageChannelSuffix = messageChannelSuffix.isNotEmpty
+        ? '.$messageChannelSuffix'
+        : '';
     {
       final pigeonVar_channel = BasicMessageChannel<Object?>(
-          'dev.flutter.pigeon.nrf_mesh_flutter.MeshFlutterApi.onDeviceDiscovered$messageChannelSuffix', pigeonChannelCodec,
-          binaryMessenger: binaryMessenger);
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshFlutterApi.onDeviceDiscovered$messageChannelSuffix',
+        pigeonChannelCodec,
+        binaryMessenger: binaryMessenger,
+      );
       if (api == null) {
         pigeonVar_channel.setMessageHandler(null);
       } else {
         pigeonVar_channel.setMessageHandler((Object? message) async {
           final List<Object?> args = message! as List<Object?>;
-          final FlutterUnprovisionedDevice arg_device = args[0]! as FlutterUnprovisionedDevice;
+          final FlutterUnprovisionedDevice arg_device =
+              args[0]! as FlutterUnprovisionedDevice;
           try {
             api.onDeviceDiscovered(arg_device);
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);
-          }          catch (e) {
-            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          } catch (e) {
+            return wrapResponse(
+              error: PlatformException(code: 'error', message: e.toString()),
+            );
           }
         });
       }
     }
     {
       final pigeonVar_channel = BasicMessageChannel<Object?>(
-          'dev.flutter.pigeon.nrf_mesh_flutter.MeshFlutterApi.onMessageReceived$messageChannelSuffix', pigeonChannelCodec,
-          binaryMessenger: binaryMessenger);
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshFlutterApi.onMessageReceived$messageChannelSuffix',
+        pigeonChannelCodec,
+        binaryMessenger: binaryMessenger,
+      );
       if (api == null) {
         pigeonVar_channel.setMessageHandler(null);
       } else {
@@ -2304,16 +2452,20 @@ abstract class MeshFlutterApi {
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);
-          }          catch (e) {
-            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          } catch (e) {
+            return wrapResponse(
+              error: PlatformException(code: 'error', message: e.toString()),
+            );
           }
         });
       }
     }
     {
       final pigeonVar_channel = BasicMessageChannel<Object?>(
-          'dev.flutter.pigeon.nrf_mesh_flutter.MeshFlutterApi.onRxAccessMessage$messageChannelSuffix', pigeonChannelCodec,
-          binaryMessenger: binaryMessenger);
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshFlutterApi.onRxAccessMessage$messageChannelSuffix',
+        pigeonChannelCodec,
+        binaryMessenger: binaryMessenger,
+      );
       if (api == null) {
         pigeonVar_channel.setMessageHandler(null);
       } else {
@@ -2325,16 +2477,20 @@ abstract class MeshFlutterApi {
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);
-          }          catch (e) {
-            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          } catch (e) {
+            return wrapResponse(
+              error: PlatformException(code: 'error', message: e.toString()),
+            );
           }
         });
       }
     }
     {
       final pigeonVar_channel = BasicMessageChannel<Object?>(
-          'dev.flutter.pigeon.nrf_mesh_flutter.MeshFlutterApi.onProvisioningEvent$messageChannelSuffix', pigeonChannelCodec,
-          binaryMessenger: binaryMessenger);
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshFlutterApi.onProvisioningEvent$messageChannelSuffix',
+        pigeonChannelCodec,
+        binaryMessenger: binaryMessenger,
+      );
       if (api == null) {
         pigeonVar_channel.setMessageHandler(null);
       } else {
@@ -2346,8 +2502,33 @@ abstract class MeshFlutterApi {
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);
-          }          catch (e) {
-            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          } catch (e) {
+            return wrapResponse(
+              error: PlatformException(code: 'error', message: e.toString()),
+            );
+          }
+        });
+      }
+    }
+    {
+      final pigeonVar_channel = BasicMessageChannel<Object?>(
+        'dev.flutter.pigeon.nrf_mesh_flutter.MeshFlutterApi.onMeshNetworkUpdated$messageChannelSuffix',
+        pigeonChannelCodec,
+        binaryMessenger: binaryMessenger,
+      );
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          try {
+            api.onMeshNetworkUpdated();
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          } catch (e) {
+            return wrapResponse(
+              error: PlatformException(code: 'error', message: e.toString()),
+            );
           }
         });
       }

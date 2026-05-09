@@ -25,7 +25,7 @@ Add `nrf_mesh_flutter` to your `pubspec.yaml`:
 dependencies:
   flutter:
     sdk: flutter
-  nrf_mesh_flutter: ^6.9.1
+  nrf_mesh_flutter: ^6.9.3
 ```
 
 ## Release notes language
@@ -69,6 +69,15 @@ Cross-platform mapping (Nordic stacks):
 **iOS**: `supportsRxSourceAddress()` is `true` when the mesh delegate delivers `sentFrom`.
 
 Future RX fields (e.g. RX **AppKey index**) are not part of this baseline; they would be added explicitly with dual-platform parity in mind.
+
+### Mesh DB change hints (Phase 2)
+
+When the native mesh configuration database may have changed (nodes, groups, keys, provisioning saves, etc.), the plugin emits on **`meshNetworkUpdatedStream`**. Each event is a monotonically increasing **`int`** sequence number—apps typically debounce and then refresh `getNodes()` / `getGroups()` / key APIs as needed.
+
+| Platform | Typical trigger |
+|----------|-----------------|
+| Android (Kotlin Mesh) | `NetworkEvent.NetworkUpdated` from `networkEvents` |
+| iOS (`nRFMeshProvision`) | After successful `MeshNetworkManager.save()` and after loads / imports that affect the DB |
 
 ### iOS Configuration
 
@@ -283,6 +292,7 @@ PlatoJobsNrfMeshManager.instance
 | Property | Type | Description |
 |----------|------|-------------|
 | `messageStream` | `Stream<MeshMessage>` | Stream of received mesh messages |
+| `meshNetworkUpdatedStream` | `Stream<int>` | Hint when native mesh DB may have changed (refresh topology caches) |
 
 ### Data Models
 

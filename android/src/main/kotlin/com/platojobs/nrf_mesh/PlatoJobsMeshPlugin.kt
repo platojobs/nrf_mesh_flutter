@@ -99,6 +99,7 @@ class PlatoJobsMeshPlugin :
     private var bearer: MeshBearer? = null
     private var provisioningBearer: ProvisioningBearer? = null
     private var incomingMessagesJob: Job? = null
+    private var networkUpdatesJob: Job? = null
     private var rxSourceAddressSupported: Boolean = false
     private var experimentalRxMetadataEnabled: Boolean = false
 
@@ -134,6 +135,21 @@ class PlatoJobsMeshPlugin :
         secureStorage = secureImpl
         val secure: SecurePropertiesStorage = secureImpl
         kotlinMeshManager = MeshNetworkManager(storage = storage, secureProperties = secure, ioDispatcher = Dispatchers.IO)
+
+        // Mesh DB changed (keys, nodes, etc.) — parity with iOS post-save notifications.
+        networkUpdatesJob?.cancel()
+        networkUpdatesJob = ioScope.launch {
+            val km = kotlinMeshManager ?: return@launch
+            km.networkEvents.collect { event ->
+                if (event is no.nordicsemi.kotlin.mesh.core.NetworkEvent.NetworkUpdated) {
+                    try {
+                        flutterApi?.onMeshNetworkUpdated {}
+                    } catch (_: Throwable) {
+                        // ignore
+                    }
+                }
+            }
+        }
 
         // Forward incoming mesh messages to Flutter.
         incomingMessagesJob?.cancel()
@@ -249,6 +265,8 @@ class PlatoJobsMeshPlugin :
         legacyManager = null
         incomingMessagesJob?.cancel()
         incomingMessagesJob = null
+        networkUpdatesJob?.cancel()
+        networkUpdatesJob = null
         kotlinMeshManager = null
         appContext = null
     }

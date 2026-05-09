@@ -37,4 +37,3 @@ void main() {
     expect(msg.parameters, <int>[0xFF, 0xFF, 2, 0x01, 0xFF]);
   });
 }
-

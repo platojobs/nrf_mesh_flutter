@@ -127,6 +127,7 @@ static id GetNullableObjectAtIndex(NSArray<id> *array, NSInteger key) {
 }
 @end
 
+/// Lifecycle stages reported during PB-GATT provisioning.
 @implementation ProvisioningEventTypeBox
 - (instancetype)initWithValue:(ProvisioningEventType)value {
   self = [super init];
@@ -2427,6 +2428,25 @@ void SetUpMeshApiWithSuffix(id<FlutterBinaryMessenger> binaryMessenger, NSObject
       binaryMessenger:self.binaryMessenger
       codec:nullGetPigeonGeneratedCodec()];
   [channel sendMessage:@[arg_event ?: [NSNull null]] reply:^(NSArray<id> *reply) {
+    if (reply != nil) {
+      if (reply.count > 1) {
+        completion([FlutterError errorWithCode:reply[0] message:reply[1] details:reply[2]]);
+      } else {
+        completion(nil);
+      }
+    } else {
+      completion(createConnectionError(channelName));
+    } 
+  }];
+}
+- (void)onMeshNetworkUpdatedWithCompletion:(void (^)(FlutterError *_Nullable))completion {
+  NSString *channelName = [NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshFlutterApi.onMeshNetworkUpdated", _messageChannelSuffix];
+  FlutterBasicMessageChannel *channel =
+    [FlutterBasicMessageChannel
+      messageChannelWithName:channelName
+      binaryMessenger:self.binaryMessenger
+      codec:nullGetPigeonGeneratedCodec()];
+  [channel sendMessage:nil reply:^(NSArray<id> *reply) {
     if (reply != nil) {
       if (reply.count > 1) {
         completion([FlutterError errorWithCode:reply[0] message:reply[1] details:reply[2]]);

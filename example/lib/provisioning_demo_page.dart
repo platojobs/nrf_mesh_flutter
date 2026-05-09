@@ -74,7 +74,9 @@ class _ProvisioningDemoPageState extends State<ProvisioningDemoPage> {
     try {
       setState(() => _status = 'Connecting provisioning bearer...');
       final ok = await _mesh.connectProvisioning(d.deviceId);
-      setState(() => _status = ok ? 'Provisioning bearer connected' : 'Connect failed');
+      setState(
+        () => _status = ok ? 'Provisioning bearer connected' : 'Connect failed',
+      );
     } catch (e) {
       setState(() => _status = 'Connect error: $e');
     }
@@ -109,7 +111,9 @@ class _ProvisioningDemoPageState extends State<ProvisioningDemoPage> {
       final ok = numeric != null
           ? await _mesh.provideProvisioningOobNumeric(deviceId, numeric)
           : await _mesh.provideProvisioningOobAlphaNumeric(deviceId, v);
-      setState(() => _status = ok ? 'OOB input submitted' : 'OOB submit rejected');
+      setState(
+        () => _status = ok ? 'OOB input submitted' : 'OOB submit rejected',
+      );
     } catch (err) {
       setState(() => _status = 'OOB submit error: $err');
     }
@@ -125,7 +129,8 @@ class _ProvisioningDemoPageState extends State<ProvisioningDemoPage> {
 
   @override
   Widget build(BuildContext context) {
-    final needsOobInput = _lastProvEvent?.type == ProvisioningEventType.oobInputRequested;
+    final needsOobInput =
+        _lastProvEvent?.type == ProvisioningEventType.oobInputRequested;
     return Scaffold(
       appBar: AppBar(title: const Text('Provisioning Demo (M1)')),
       body: Padding(
@@ -168,7 +173,10 @@ class _ProvisioningDemoPageState extends State<ProvisioningDemoPage> {
               ),
               const SizedBox(height: 16),
             ],
-            const Text('Unprovisioned devices', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text(
+              'Unprovisioned devices',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             Expanded(
               child: ListView(
                 children: [
@@ -176,7 +184,9 @@ class _ProvisioningDemoPageState extends State<ProvisioningDemoPage> {
                     Card(
                       child: ListTile(
                         title: Text(d.name.isEmpty ? '(unknown)' : d.name),
-                        subtitle: Text('id=${d.deviceId} service=${d.serviceUuid} rssi=${d.rssi}'),
+                        subtitle: Text(
+                          'id=${d.deviceId} service=${d.serviceUuid} rssi=${d.rssi}',
+                        ),
                         trailing: Wrap(
                           spacing: 8,
                           children: [
@@ -203,4 +213,3 @@ class _ProvisioningDemoPageState extends State<ProvisioningDemoPage> {
     );
   }
 }
-

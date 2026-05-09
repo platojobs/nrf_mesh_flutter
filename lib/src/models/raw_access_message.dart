@@ -5,24 +5,26 @@ import 'mesh_message.dart';
 /// This is intentionally explicit to avoid relying on the implicit
 /// `parameters['bytes']` convention used by the platform bridge.
 class RawAccessMessage extends MeshMessage {
+  /// Access opcode as UInt32-friendly integer (encoded without vendor routing headers).
   final int opCode;
 
+  /// Builds an explicit Access PDU for [PlatoJobsNrfMeshManager.sendAccess].
   RawAccessMessage({
     required this.opCode,
     required List<int> parameters,
     required int address,
     required int appKeyIndex,
     super.virtualLabel,
-  })  : assert(
-          virtualLabel == null || _isLabel16(virtualLabel),
-          'virtualLabel must be 16 bytes when set',
-        ),
-        super(
-          opcode: _formatOpcode(opCode),
-          parameters: _validateBytes(parameters),
-          address: _validateAddress(address),
-          appKeyIndex: _validateAppKeyIndex(appKeyIndex),
-        );
+  }) : assert(
+         virtualLabel == null || _isLabel16(virtualLabel),
+         'virtualLabel must be 16 bytes when set',
+       ),
+       super(
+         opcode: _formatOpcode(opCode),
+         parameters: _validateBytes(parameters),
+         address: _validateAddress(address),
+         appKeyIndex: _validateAppKeyIndex(appKeyIndex),
+       );
 
   static bool _isLabel16(List<int> l) {
     if (l.length != 16) return false;
@@ -64,4 +66,3 @@ class RawAccessMessage extends MeshMessage {
     return appKeyIndex;
   }
 }
-

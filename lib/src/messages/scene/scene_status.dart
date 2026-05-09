@@ -1,15 +1,26 @@
+// ignore_for_file: public_member_api_docs
+
 import '../../models/mesh_message.dart';
 import 'scene_messages.dart';
 
 /// Scene Status codes per Bluetooth Mesh Model spec.
 enum SceneStatusCode {
+  /// Operation succeeded.
   success(0x00),
+
+  /// Scene register cannot accept additional scenes.
   sceneRegisterFull(0x01),
+
+  /// Requested scene index does not exist on node.
   sceneNotFound(0x02);
 
+  /// Wire encoding for this status enum value.
   final int value;
+
+  /// Associates constant names with spec-defined byte values.
   const SceneStatusCode(this.value);
 
+  /// Best-effort decode from single-byte status field.
   static SceneStatusCode? fromByte(int b) {
     for (final v in SceneStatusCode.values) {
       if (v.value == (b & 0xFF)) return v;
@@ -45,7 +56,8 @@ class SceneStatusMessage extends MeshMessage {
     if (opcode != SceneOpcode.sceneStatus) return null;
     if (parameters.length != 3 && parameters.length != 6) return null;
 
-    final code = SceneStatusCode.fromByte(parameters[0]) ?? SceneStatusCode.success;
+    final code =
+        SceneStatusCode.fromByte(parameters[0]) ?? SceneStatusCode.success;
     final current = _u16le(parameters, 1);
     if (parameters.length == 3) {
       return SceneStatusMessage(
@@ -98,7 +110,8 @@ class SceneRegisterStatusMessage extends MeshMessage {
     if (parameters.length < 3) return null;
     if (((parameters.length - 3) % 2) != 0) return null;
 
-    final code = SceneStatusCode.fromByte(parameters[0]) ?? SceneStatusCode.success;
+    final code =
+        SceneStatusCode.fromByte(parameters[0]) ?? SceneStatusCode.success;
     final current = _u16le(parameters, 1);
     final scenes = <int>[];
     for (var i = 3; i + 1 < parameters.length; i += 2) {
@@ -115,5 +128,5 @@ class SceneRegisterStatusMessage extends MeshMessage {
   }
 }
 
-int _u16le(List<int> b, int offset) => (b[offset] & 0xFF) | ((b[offset + 1] & 0xFF) << 8);
-
+int _u16le(List<int> b, int offset) =>
+    (b[offset] & 0xFF) | ((b[offset + 1] & 0xFF) << 8);

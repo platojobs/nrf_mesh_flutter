@@ -10,7 +10,11 @@ class SemVer implements Comparable<SemVer> {
   static SemVer parse(String s) {
     final m = RegExp(r'^(\d+)\.(\d+)\.(\d+)$').firstMatch(s.trim());
     if (m == null) throw FormatException('Invalid semver: $s');
-    return SemVer(int.parse(m.group(1)!), int.parse(m.group(2)!), int.parse(m.group(3)!));
+    return SemVer(
+      int.parse(m.group(1)!),
+      int.parse(m.group(2)!),
+      int.parse(m.group(3)!),
+    );
   }
 
   @override
@@ -38,9 +42,10 @@ void main() {
   }
 
   final pubspecText = pubspec.readAsStringSync();
-  final pubspecVersionMatch =
-      RegExp(r'^\s*version:\s*([0-9]+\.[0-9]+\.[0-9]+)\s*$', multiLine: true)
-          .firstMatch(pubspecText);
+  final pubspecVersionMatch = RegExp(
+    r'^\s*version:\s*([0-9]+\.[0-9]+\.[0-9]+)\s*$',
+    multiLine: true,
+  ).firstMatch(pubspecText);
   if (pubspecVersionMatch == null) {
     stderr.writeln('ERROR: Could not find `version:` in pubspec.yaml.');
     exit(1);
@@ -54,7 +59,9 @@ void main() {
   ).firstMatch(readmeText);
 
   if (readmeDepMatch == null) {
-    stderr.writeln('ERROR: Could not find `nrf_mesh_flutter: ^x.y.z` in README.md.');
+    stderr.writeln(
+      'ERROR: Could not find `nrf_mesh_flutter: ^x.y.z` in README.md.',
+    );
     exit(1);
   }
 
@@ -69,4 +76,3 @@ void main() {
 
   stdout.writeln('OK: README install snippet matches pubspec version.');
 }
-

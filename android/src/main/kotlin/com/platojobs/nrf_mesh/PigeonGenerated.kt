@@ -206,12 +206,19 @@ enum class RxMetadataStatus(val raw: Int) {
   }
 }
 
+/** Lifecycle stages reported during PB-GATT provisioning. */
 enum class ProvisioningEventType(val raw: Int) {
+  /** Provisioning session started for the device. */
   STARTED(0),
+  /** Device capabilities received from the provisionee. */
   CAPABILITIES_RECEIVED(1),
+  /** App must supply input OOB data (user-entered). */
   OOB_INPUT_REQUESTED(2),
+  /** Device is displaying output OOB data (user reads and confirms). */
   OOB_OUTPUT_REQUESTED(3),
+  /** Device successfully joined the network. */
   PROVISIONING_COMPLETED(4),
+  /** Session ended with an error (see [ProvisioningEvent.message]). */
   FAILED(5);
 
   companion object {
@@ -857,12 +864,23 @@ data class ProvisioningParameters (
   }
 }
 
-/** Generated class from Pigeon that represents data sent in messages. */
+/**
+ * One provisioning lifecycle update for a single device.
+ *
+ * Consumed from [MeshFlutterApi.onProvisioningEvent] / Dart-side provisioning streams.
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
 data class ProvisioningEvent (
+  /** Native device identifier (typically BLE peripheral UUID string). */
   val deviceId: String? = null,
+  /** Which phase this event represents. */
   val type: ProvisioningEventType? = null,
+  /** Human-readable detail or error text from native code. */
   val message: String? = null,
+  /** Best-effort progress percent (0–100), when provided. */
   val progress: Long? = null,
+  /** Attention timer value when relevant for the provisioning UI flow. */
   val attentionTimer: Long? = null
 )
  {
@@ -2336,6 +2354,30 @@ class MeshFlutterApi(private val binaryMessenger: BinaryMessenger, private val m
     val channelName = "dev.flutter.pigeon.nrf_mesh_flutter.MeshFlutterApi.onProvisioningEvent$separatedMessageChannelSuffix"
     val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
     channel.send(listOf(eventArg)) {
+      if (it is List<*>) {
+        if (it.size > 1) {
+          callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
+        } else {
+          callback(Result.success(Unit))
+        }
+      } else {
+        callback(Result.failure(PigeonGeneratedPigeonUtils.createConnectionError(channelName)))
+      } 
+    }
+  }
+  /**
+   * Best-effort signal that the native mesh configuration database changed.
+   *
+   * Android (Kotlin Mesh): typically emitted on ``NetworkEvent.NetworkUpdated``.
+   * iOS: emitted after successful Nordic ``MeshNetworkManager.save()`` (and related loads).
+   * Apps should treat this as a hint to refresh `getNodes()` / `getGroups()` / keys—debounce if needed.
+   */
+  fun onMeshNetworkUpdated(callback: (Result<Unit>) -> Unit)
+{
+    val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+    val channelName = "dev.flutter.pigeon.nrf_mesh_flutter.MeshFlutterApi.onMeshNetworkUpdated$separatedMessageChannelSuffix"
+    val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
+    channel.send(null) {
       if (it is List<*>) {
         if (it.size > 1) {
           callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))

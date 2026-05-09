@@ -1,6 +1,11 @@
+// ignore_for_file: public_member_api_docs
+
 import 'raw_access_message.dart';
 import '../messages/scene/scene_status.dart';
 
+/// Base type for mesh Access-layer messages exchanged through [PlatoJobsNrfMeshManager].
+///
+/// Concrete messages include Generic OnOff/Level wrappers, scene clients, and [UnknownMessage].
 abstract class MeshMessage {
   /// Opcode as hex string (e.g. `0x8201`).
   final String opcode;
@@ -22,6 +27,7 @@ abstract class MeshMessage {
   /// Upper Transport MIC. Prefer setting this for group traffic to a virtual address.
   final List<int>? virtualLabel;
 
+  /// Creates shared opcode/parameters envelope used by codecs and native bridges.
   MeshMessage({
     required this.opcode,
     required this.parameters,
@@ -30,6 +36,7 @@ abstract class MeshMessage {
     this.virtualLabel,
   });
 
+  /// Serializes opcode/parameters routing hints into JSON-style maps.
   Map<String, dynamic> toMap() {
     return {
       'opcode': opcode,
@@ -105,8 +112,7 @@ abstract class MeshMessage {
           return GenericOnOffStatus(
             presentOnOff: parameters[0] != 0,
             targetOnOff: parameters.length >= 2 ? (parameters[1] != 0) : null,
-            remainingTime:
-                parameters.length >= 3 ? parameters[2] : null,
+            remainingTime: parameters.length >= 3 ? parameters[2] : null,
             address: address,
             appKeyIndex: appKeyIndex,
           );
@@ -116,7 +122,8 @@ abstract class MeshMessage {
       // Generic Level Status (0x8208)
       case 0x8208:
         if (parameters.length >= 2) {
-          final present = (parameters[0] & 0xFF) | ((parameters[1] & 0xFF) << 8);
+          final present =
+              (parameters[0] & 0xFF) | ((parameters[1] & 0xFF) << 8);
           int toSigned16(int v) => v >= 0x8000 ? v - 0x10000 : v;
           final presentLevel = toSigned16(present);
 
@@ -149,7 +156,9 @@ abstract class MeshMessage {
   }
 }
 
+/// Generic OnOff Set (acknowledged) client message (`0x8202`).
 class GenericOnOffSet extends MeshMessage {
+  /// Target on/off state.
   final bool state;
   final int tid;
   final int? transitionTime;
@@ -163,17 +172,17 @@ class GenericOnOffSet extends MeshMessage {
     super.address,
     super.appKeyIndex,
     super.virtualLabel,
-  })  : tid = (tid ?? DateTime.now().millisecondsSinceEpoch & 0xFF),
-        super(
-          // Generic OnOff Set (acknowledged): 0x8202
-          opcode: '0x8202',
-          parameters: _buildParameters(
-            state,
-            tid ?? DateTime.now().millisecondsSinceEpoch & 0xFF,
-            transitionTime,
-            delay,
-          ),
-        );
+  }) : tid = (tid ?? DateTime.now().millisecondsSinceEpoch & 0xFF),
+       super(
+         // Generic OnOff Set (acknowledged): 0x8202
+         opcode: '0x8202',
+         parameters: _buildParameters(
+           state,
+           tid ?? DateTime.now().millisecondsSinceEpoch & 0xFF,
+           transitionTime,
+           delay,
+         ),
+       );
 
   factory GenericOnOffSet.fromMap(Map<String, dynamic> map) {
     return GenericOnOffSet(
@@ -215,7 +224,9 @@ class GenericOnOffSet extends MeshMessage {
   }
 }
 
+/// Generic Level Set (acknowledged) client message (`0x8206`).
 class GenericLevelSet extends MeshMessage {
+  /// Signed 16-bit level payload encoded little-endian on the wire.
   final int level;
   final int tid;
   final int? transitionTime;
@@ -229,17 +240,17 @@ class GenericLevelSet extends MeshMessage {
     super.address,
     super.appKeyIndex,
     super.virtualLabel,
-  })  : tid = (tid ?? DateTime.now().millisecondsSinceEpoch & 0xFF),
-        super(
-          // Generic Level Set (acknowledged): 0x8206
-          opcode: '0x8206',
-          parameters: _buildParameters(
-            level,
-            tid ?? DateTime.now().millisecondsSinceEpoch & 0xFF,
-            transitionTime,
-            delay,
-          ),
-        );
+  }) : tid = (tid ?? DateTime.now().millisecondsSinceEpoch & 0xFF),
+       super(
+         // Generic Level Set (acknowledged): 0x8206
+         opcode: '0x8206',
+         parameters: _buildParameters(
+           level,
+           tid ?? DateTime.now().millisecondsSinceEpoch & 0xFF,
+           transitionTime,
+           delay,
+         ),
+       );
 
   factory GenericLevelSet.fromMap(Map<String, dynamic> map) {
     return GenericLevelSet(
@@ -282,7 +293,9 @@ class GenericLevelSet extends MeshMessage {
   }
 }
 
+/// Generic OnOff Status (incoming, opcode `0x8204`).
 class GenericOnOffStatus extends MeshMessage {
+  /// Reported present OnOff state.
   final bool presentOnOff;
   final bool? targetOnOff;
   final int? remainingTime;
@@ -294,10 +307,7 @@ class GenericOnOffStatus extends MeshMessage {
     super.address,
     super.appKeyIndex,
     super.virtualLabel,
-  }) : super(
-          opcode: '0x8204',
-          parameters: const <int>[],
-        );
+  }) : super(opcode: '0x8204', parameters: const <int>[]);
 
   factory GenericOnOffStatus.fromMap(Map<String, dynamic> map) {
     return GenericOnOffStatus(
@@ -319,7 +329,9 @@ class GenericOnOffStatus extends MeshMessage {
   }
 }
 
+/// Generic Level Status (incoming, opcode `0x8208`).
 class GenericLevelStatus extends MeshMessage {
+  /// Present signed level (decoded from LE uint16).
   final int presentLevel;
   final int? targetLevel;
   final int? remainingTime;
@@ -331,10 +343,7 @@ class GenericLevelStatus extends MeshMessage {
     super.address,
     super.appKeyIndex,
     super.virtualLabel,
-  }) : super(
-          opcode: '0x8208',
-          parameters: const <int>[],
-        );
+  }) : super(opcode: '0x8208', parameters: const <int>[]);
 
   factory GenericLevelStatus.fromMap(Map<String, dynamic> map) {
     return GenericLevelStatus(
@@ -356,7 +365,9 @@ class GenericLevelStatus extends MeshMessage {
   }
 }
 
+/// Fallback wrapper when [MeshMessage.fromIncoming] cannot map opcode to a typed model.
 class UnknownMessage extends MeshMessage {
+  /// Wraps arbitrary opcode/parameters pairs from native callbacks.
   UnknownMessage({
     required super.opcode,
     required super.parameters,

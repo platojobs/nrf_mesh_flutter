@@ -13,7 +13,8 @@ import 'src/messages/scene/scene_status.dart' as scene_status;
 import 'src/platform_interface/platojobs_mesh_platform.dart' as platform;
 import 'src/platform_interface/pigeon_generated.dart' as pigeon;
 
-export 'src/models/mesh_network.dart' show MeshNetwork, NetworkKey, AppKey, Provisioner;
+export 'src/models/mesh_network.dart'
+    show MeshNetwork, NetworkKey, AppKey, Provisioner;
 export 'src/models/unprovisioned_device.dart' show UnprovisionedDevice;
 export 'src/models/provisioned_node.dart'
     show ProvisionedNode, NodeFeatures, Element, Model, Publication;
@@ -28,9 +29,16 @@ export 'src/models/mesh_message.dart'
         GenericLevelStatus;
 export 'src/models/raw_access_message.dart' show RawAccessMessage;
 export 'src/utils/mesh_virtual_address.dart' show meshVirtualAddressFromLabel;
-export 'src/models/rx_access_message.dart' show RxAccessMessage, RxMetadataStatus;
+export 'src/models/rx_access_message.dart'
+    show RxAccessMessage, RxMetadataStatus;
 export 'src/messages/scene/scene_messages.dart'
-    show SceneOpcode, SceneStore, SceneRecall, SceneDelete, SceneGet, SceneRegisterGet;
+    show
+        SceneOpcode,
+        SceneStore,
+        SceneRecall,
+        SceneDelete,
+        SceneGet,
+        SceneRegisterGet;
 export 'src/messages/scene/scene_status.dart'
     show SceneStatusCode, SceneStatusMessage, SceneRegisterStatusMessage;
 export 'src/platform_interface/pigeon_generated.dart'
@@ -44,18 +52,22 @@ export 'src/core/mesh_exceptions.dart'
         PlatoJobsMeshConnectionException,
         PlatoJobsMeshInvalidStateException;
 export 'src/testing/fake_mesh_bridge.dart'
-    show
-        FakePlatoJobsMeshBridge,
-        FakeMeshScenario,
-        FakeMeshScenarioStep;
+    show FakePlatoJobsMeshBridge, FakeMeshScenario, FakeMeshScenarioStep;
 
+/// Application façade over Nordic **MeshNetworkManager** / Kotlin Mesh on native platforms.
+///
+/// Obtained via [instance]; call [initialize] during app startup.
 class PlatoJobsNrfMeshManager {
+  /// Shared singleton used by mesh-aware screens and services.
   static final PlatoJobsNrfMeshManager instance =
       PlatoJobsNrfMeshManager._internal();
+
+  /// Equivalent to reading [instance] (provided for symmetry with typical Flutter singletons).
   factory PlatoJobsNrfMeshManager() => instance;
   PlatoJobsNrfMeshManager._internal() {
     if (!platform.PlatoJobsMeshBridge.isInitialized) {
-      platform.PlatoJobsMeshBridge.instance = platform.PlatoJobsMeshBridgeImpl();
+      platform.PlatoJobsMeshBridge.instance =
+          platform.PlatoJobsMeshBridgeImpl();
     }
   }
 
@@ -66,38 +78,47 @@ class PlatoJobsNrfMeshManager {
     platform.PlatoJobsMeshBridge.instance = bridge;
   }
 
+  /// Registers platform channels and mesh callbacks; call once after `WidgetsFlutterBinding`.
   Future<void> initialize() async {
     await _meshManagerApi.initialize();
   }
 
+  /// Creates a new empty mesh network with display name [name].
   Future<net_models.MeshNetwork> createNetwork(String name) async {
     return await _meshManagerApi.createNetwork(name);
   }
 
+  /// Loads the persisted mesh network from native storage, if any.
   Future<net_models.MeshNetwork> loadNetwork() async {
     return await _meshManagerApi.loadNetwork();
   }
 
+  /// Persists the current mesh DB (provisioned nodes, keys, etc.) natively.
   Future<bool> saveNetwork() async {
     return await _meshManagerApi.saveNetwork();
   }
 
+  /// Exports node/group/key snapshot for backup or migration (platform-defined JSON).
   Future<bool> exportNetwork(String path) async {
     return await _meshManagerApi.exportNetwork(path);
   }
 
+  /// Imports a previously exported JSON snapshot from [path].
   Future<bool> importNetwork(String path) async {
     return await _meshManagerApi.importNetwork(path);
   }
 
+  /// Starts BLE scan for Mesh Provisioning Service advertisers.
   Stream<dev_models.UnprovisionedDevice> scanForDevices() {
     return _meshManagerApi.scanForDevices();
   }
 
+  /// Stops unprovisioned-device scanning.
   Future<void> stopScan() async {
     return await _meshManagerApi.stopScan();
   }
 
+  /// Runs full provisioning for [device] using [params] (OOB, privacy flags).
   Future<node_models.ProvisionedNode> provisionDevice(
     dev_models.UnprovisionedDevice device,
     ProvisioningParameters params,
@@ -105,6 +126,7 @@ class PlatoJobsNrfMeshManager {
     return await _meshManagerApi.provisionDevice(device, params);
   }
 
+  /// Sends a typed client [MeshMessage] (Generic OnOff/Level, scenes, etc.).
   Future<void> sendMessage(msg_models.MeshMessage message) async {
     return await _meshManagerApi.sendMessage(message);
   }
@@ -130,10 +152,12 @@ class PlatoJobsNrfMeshManager {
     );
   }
 
+  /// Incoming Access PDUs mapped to [MeshMessage] (opcode + parameters map).
   Stream<msg_models.MeshMessage> get messageStream {
     return _meshManagerApi.messageStream;
   }
 
+  /// Same traffic as [messageStream] with structured metadata ([RxAccessMessage]).
   Stream<rx_models.RxAccessMessage> get rxAccessMessageStream {
     return _meshManagerApi.rxAccessMessageStream;
   }
@@ -154,7 +178,8 @@ class PlatoJobsNrfMeshManager {
   }
 
   /// Convenience stream: decoded Scene Register Status (opcode 0x8245).
-  Stream<scene_status.SceneRegisterStatusMessage> get sceneRegisterStatusStream {
+  Stream<scene_status.SceneRegisterStatusMessage>
+  get sceneRegisterStatusStream {
     return rxAccessMessageStream
         .map(
           (e) => msg_models.MeshMessage.fromIncoming(
@@ -169,6 +194,8 @@ class PlatoJobsNrfMeshManager {
   }
 
   // M4: Scenes (client-side helpers).
+
+  /// Sends Scene Store (SIG model) to [destination].
   Future<void> sceneStore({
     required int destination,
     required int appKeyIndex,
@@ -185,6 +212,7 @@ class PlatoJobsNrfMeshManager {
     );
   }
 
+  /// Sends Scene Recall (acknowledged).
   Future<void> sceneRecall({
     required int destination,
     required int appKeyIndex,
@@ -207,6 +235,7 @@ class PlatoJobsNrfMeshManager {
     );
   }
 
+  /// Sends Scene Delete (acknowledged).
   Future<void> sceneDelete({
     required int destination,
     required int appKeyIndex,
@@ -223,6 +252,7 @@ class PlatoJobsNrfMeshManager {
     );
   }
 
+  /// Queries current scene on [destination].
   Future<void> sceneGet({
     required int destination,
     required int appKeyIndex,
@@ -237,6 +267,7 @@ class PlatoJobsNrfMeshManager {
     );
   }
 
+  /// Reads the scene register list from [destination].
   Future<void> sceneRegisterGet({
     required int destination,
     required int appKeyIndex,
@@ -251,8 +282,14 @@ class PlatoJobsNrfMeshManager {
     );
   }
 
+  /// Provisioning progress, OOB prompts, and completion/failure hooks per device.
   Stream<pigeon.ProvisioningEvent> get provisioningEventStream {
     return _meshManagerApi.provisioningEventStream;
+  }
+
+  /// Best-effort signal that native mesh configuration changed (reload caches as needed).
+  Stream<int> get meshNetworkUpdatedStream {
+    return _meshManagerApi.meshNetworkUpdatedStream;
   }
 
   /// Provide user input required by Output OOB (numeric).
@@ -261,8 +298,14 @@ class PlatoJobsNrfMeshManager {
   }
 
   /// Provide user input required by Output OOB (alphanumeric).
-  Future<bool> provideProvisioningOobAlphaNumeric(String deviceId, String value) async {
-    return await _meshManagerApi.provideProvisioningOobAlphaNumeric(deviceId, value);
+  Future<bool> provideProvisioningOobAlphaNumeric(
+    String deviceId,
+    String value,
+  ) async {
+    return await _meshManagerApi.provideProvisioningOobAlphaNumeric(
+      deviceId,
+      value,
+    );
   }
 
   /// Whether the native side can reliably populate source address for incoming Access messages.
@@ -283,43 +326,73 @@ class PlatoJobsNrfMeshManager {
     return await _meshManagerApi.setExperimentalRxMetadataEnabled(enabled);
   }
 
+  /// Returns provisioned nodes with best-effort composition data from native DB.
   Future<List<node_models.ProvisionedNode>> getNodes() async {
     return await _meshManagerApi.getNodes();
   }
 
+  /// Removes node identity [nodeId] from local mesh representation when supported.
   Future<void> removeNode(String nodeId) async {
     return await _meshManagerApi.removeNode(nodeId);
   }
 
+  /// Creates a SIG group address entry with display [name].
   Future<group_models.MeshGroup> createGroup(String name) async {
     return await _meshManagerApi.createGroup(name);
   }
 
+  /// Lists known mesh groups (fixed groups + virtual label groups).
   Future<List<group_models.MeshGroup>> getGroups() async {
     return await _meshManagerApi.getGroups();
   }
 
+  /// Associates [nodeId] membership with SIG group [groupId].
   Future<void> addNodeToGroup(String nodeId, String groupId) async {
     return await _meshManagerApi.addNodeToGroup(nodeId, groupId);
   }
 
   // M3: virtual label groups
-  Future<group_models.MeshGroup> createVirtualGroup(String name, List<int> labelUuid) async {
+
+  /// Creates a virtual-label group from a 16-byte [labelUuid].
+  Future<group_models.MeshGroup> createVirtualGroup(
+    String name,
+    List<int> labelUuid,
+  ) async {
     return await _meshManagerApi.createVirtualGroup(name, labelUuid);
   }
 
+  /// Deletes a group definition locally/natively when supported.
   Future<bool> removeGroup(String groupId) async {
     return await _meshManagerApi.removeGroup(groupId);
   }
 
-  Future<bool> addSubscriptionVirtual(int elementAddress, int modelId, List<int> labelUuid) async {
-    return await _meshManagerApi.addSubscriptionVirtual(elementAddress, modelId, labelUuid);
+  /// Adds virtual-address subscription derived from [labelUuid].
+  Future<bool> addSubscriptionVirtual(
+    int elementAddress,
+    int modelId,
+    List<int> labelUuid,
+  ) async {
+    return await _meshManagerApi.addSubscriptionVirtual(
+      elementAddress,
+      modelId,
+      labelUuid,
+    );
   }
 
-  Future<bool> removeSubscriptionVirtual(int elementAddress, int modelId, List<int> labelUuid) async {
-    return await _meshManagerApi.removeSubscriptionVirtual(elementAddress, modelId, labelUuid);
+  /// Removes virtual-address subscription for [labelUuid].
+  Future<bool> removeSubscriptionVirtual(
+    int elementAddress,
+    int modelId,
+    List<int> labelUuid,
+  ) async {
+    return await _meshManagerApi.removeSubscriptionVirtual(
+      elementAddress,
+      modelId,
+      labelUuid,
+    );
   }
 
+  /// Sets publication toward a virtual destination computed from [labelUuid].
   Future<bool> setPublicationVirtual(
     int elementAddress,
     int modelId,
@@ -337,22 +410,60 @@ class PlatoJobsNrfMeshManager {
   }
 
   // Configuration (P1 - minimal)
-  Future<bool> bindAppKey(int elementAddress, int modelId, int appKeyIndex) async {
-    return await _meshManagerApi.bindAppKey(elementAddress, modelId, appKeyIndex);
+
+  /// Config Model App Bind — binds AppKey index on element/model.
+  Future<bool> bindAppKey(
+    int elementAddress,
+    int modelId,
+    int appKeyIndex,
+  ) async {
+    return await _meshManagerApi.bindAppKey(
+      elementAddress,
+      modelId,
+      appKeyIndex,
+    );
   }
 
-  Future<bool> unbindAppKey(int elementAddress, int modelId, int appKeyIndex) async {
-    return await _meshManagerApi.unbindAppKey(elementAddress, modelId, appKeyIndex);
+  /// Config Model App Unbind.
+  Future<bool> unbindAppKey(
+    int elementAddress,
+    int modelId,
+    int appKeyIndex,
+  ) async {
+    return await _meshManagerApi.unbindAppKey(
+      elementAddress,
+      modelId,
+      appKeyIndex,
+    );
   }
 
-  Future<bool> addSubscription(int elementAddress, int modelId, int address) async {
-    return await _meshManagerApi.addSubscription(elementAddress, modelId, address);
+  /// Adds group/virtual unicast subscription address [address].
+  Future<bool> addSubscription(
+    int elementAddress,
+    int modelId,
+    int address,
+  ) async {
+    return await _meshManagerApi.addSubscription(
+      elementAddress,
+      modelId,
+      address,
+    );
   }
 
-  Future<bool> removeSubscription(int elementAddress, int modelId, int address) async {
-    return await _meshManagerApi.removeSubscription(elementAddress, modelId, address);
+  /// Removes subscription to [address].
+  Future<bool> removeSubscription(
+    int elementAddress,
+    int modelId,
+    int address,
+  ) async {
+    return await _meshManagerApi.removeSubscription(
+      elementAddress,
+      modelId,
+      address,
+    );
   }
 
+  /// Sets model publication state toward [publishAddress].
   Future<bool> setPublication(
     int elementAddress,
     int modelId,
@@ -370,31 +481,40 @@ class PlatoJobsNrfMeshManager {
   }
 
   // M2: Configuration foundation
+
+  /// Reads Composition Data page from remote node [destination].
   Future<bool> fetchCompositionData(int destination, {int page = 0}) async {
     return await _meshManagerApi.fetchCompositionData(destination, page: page);
   }
 
+  /// Adds NetKey material at local provisioner DB ([keyHex] = 32 hex chars typical).
   Future<bool> addNetworkKey(int netKeyIndex, String keyHex) async {
     return await _meshManagerApi.addNetworkKey(netKeyIndex, keyHex);
   }
 
+  /// Adds AppKey bound to current NetKey ([keyHex] material format per native).
   Future<bool> addAppKey(int appKeyIndex, String keyHex) async {
     return await _meshManagerApi.addAppKey(appKeyIndex, keyHex);
   }
 
+  /// Lists NetKeys stored locally / reported by stack.
   Future<List<net_models.NetworkKey>> getNetworkKeys() async {
     return await _meshManagerApi.getNetworkKeys();
   }
 
+  /// Lists AppKeys stored locally / reported by stack.
   Future<List<net_models.AppKey>> getAppKeys() async {
     return await _meshManagerApi.getAppKeys();
   }
 
   // M2 acceptance: node config + reset + bundle export/import
+
+  /// Sets Default TTL on remote node.
   Future<bool> setNodeDefaultTtl(int destination, int ttl) async {
     return await _meshManagerApi.setNodeDefaultTtl(destination, ttl);
   }
 
+  /// Enables/disables Relay + retransmit parameters on remote node.
   Future<bool> setNodeRelay(
     int destination,
     bool enabled,
@@ -409,37 +529,55 @@ class PlatoJobsNrfMeshManager {
     );
   }
 
+  /// Sets GATT Proxy feature on remote node.
   Future<bool> setNodeGattProxy(int destination, bool enabled) async {
     return await _meshManagerApi.setNodeGattProxy(destination, enabled);
   }
 
+  /// Sets Friend feature on remote node.
   Future<bool> setNodeFriend(int destination, bool enabled) async {
     return await _meshManagerApi.setNodeFriend(destination, enabled);
   }
 
+  /// Sets Secure Network Beacon on remote node.
   Future<bool> setNodeBeacon(int destination, bool enabled) async {
     return await _meshManagerApi.setNodeBeacon(destination, enabled);
   }
 
-  Future<bool> setNodeNetworkTransmit(int destination, int count, int intervalMs) async {
-    return await _meshManagerApi.setNodeNetworkTransmit(destination, count, intervalMs);
+  /// Sets Network Transmit Count / Interval on remote node.
+  Future<bool> setNodeNetworkTransmit(
+    int destination,
+    int count,
+    int intervalMs,
+  ) async {
+    return await _meshManagerApi.setNodeNetworkTransmit(
+      destination,
+      count,
+      intervalMs,
+    );
   }
 
+  /// Sends Config Node Reset to factory-reset remote node from mesh.
   Future<bool> nodeReset(int destination) async {
     return await _meshManagerApi.nodeReset(destination);
   }
 
+  /// Exports mesh DB + secure bundle JSON suitable for backup.
   Future<bool> exportConfigurationBundle(String path) async {
     return await _meshManagerApi.exportConfigurationBundle(path);
   }
 
+  /// Imports bundle previously written by [exportConfigurationBundle].
   Future<bool> importConfigurationBundle(String path) async {
     return await _meshManagerApi.importConfigurationBundle(path);
   }
 
   /// M2: Config Net Key Delete (remote node).
   Future<bool> removeNetworkKeyRemote(int destination, int netKeyIndex) async {
-    return await _meshManagerApi.removeNetworkKeyRemote(destination, netKeyIndex);
+    return await _meshManagerApi.removeNetworkKeyRemote(
+      destination,
+      netKeyIndex,
+    );
   }
 
   /// M2: Config App Key Delete (remote node).
@@ -479,33 +617,43 @@ class PlatoJobsNrfMeshManager {
   }
 
   // Proxy (P1 real-transport prerequisite)
+
+  /// Opens GATT proxy session toward BLE device [deviceId] using mesh address [proxyUnicastAddress].
   Future<bool> connectProxy(String deviceId, int proxyUnicastAddress) async {
     return await _meshManagerApi.connectProxy(deviceId, proxyUnicastAddress);
   }
 
+  /// Closes active proxy GATT connection if any.
   Future<bool> disconnectProxy() async {
     return await _meshManagerApi.disconnectProxy();
   }
 
+  /// Whether proxy bearer reports connected.
   Future<bool> isProxyConnected() async {
     return await _meshManagerApi.isProxyConnected();
   }
 
+  /// Opens PB-GATT bearer toward advertiser [deviceId] prior to [provisionDevice].
   Future<bool> connectProvisioning(String deviceId) async {
     return await _meshManagerApi.connectProvisioning(deviceId);
   }
 
+  /// Disconnects provisioning bearer for device [deviceId] / global session per native rules.
   Future<bool> disconnectProvisioning() async {
     return await _meshManagerApi.disconnectProvisioning();
   }
 
+  /// Whether provisioning GATT link is active.
   Future<bool> isProvisioningConnected() async {
     return await _meshManagerApi.isProvisioningConnected();
   }
 }
 
+/// Parameters controlling provisioning authentication / privacy flags for PB-GATT.
 class ProvisioningParameters {
+  /// Friendly label displayed to operators (must be non-empty).
   final String deviceName;
+
   /// OOB method code used by native implementations.
   ///
   /// Convention:
@@ -520,6 +668,8 @@ class ProvisioningParameters {
   /// - static OOB: hex string (no `0x` prefix), even-length, 1..32 bytes.
   /// - output/input OOB: digits or ASCII string depending on UI flow.
   final String? oobData;
+
+  /// Enables provisioning privacy mode when stack supports it.
   final bool enablePrivacy;
 
   ProvisioningParameters._({
@@ -548,6 +698,7 @@ class ProvisioningParameters {
     );
   }
 
+  /// Provisioning without out-of-band authentication material.
   factory ProvisioningParameters.noOob({
     required String deviceName,
     bool enablePrivacy = false,
@@ -560,6 +711,7 @@ class ProvisioningParameters {
     );
   }
 
+  /// Static OOB using raw secret bytes encoded as even-length [hex] string.
   factory ProvisioningParameters.staticOob({
     required String deviceName,
     required String hex,
@@ -610,7 +762,11 @@ class ProvisioningParameters {
     }
     if (oobMethod == 0) {
       if (oobData != null && oobData!.isNotEmpty) {
-        throw ArgumentError.value(oobData, 'oobData', 'Must be null/empty when no OOB is used.');
+        throw ArgumentError.value(
+          oobData,
+          'oobData',
+          'Must be null/empty when no OOB is used.',
+        );
       }
       return;
     }
@@ -622,11 +778,19 @@ class ProvisioningParameters {
       final hex = v.startsWith('0x') ? v.substring(2) : v;
       final isHex = RegExp(r'^[0-9a-fA-F]+$').hasMatch(hex);
       if (!isHex || (hex.length % 2 != 0)) {
-        throw ArgumentError.value(v, 'oobData', 'Static OOB must be even-length hex (no separators).');
+        throw ArgumentError.value(
+          v,
+          'oobData',
+          'Static OOB must be even-length hex (no separators).',
+        );
       }
       final bytesLen = hex.length ~/ 2;
       if (bytesLen < 1 || bytesLen > 32) {
-        throw ArgumentError.value(v, 'oobData', 'Static OOB must be 1..32 bytes.');
+        throw ArgumentError.value(
+          v,
+          'oobData',
+          'Static OOB must be 1..32 bytes.',
+        );
       }
       return;
     }

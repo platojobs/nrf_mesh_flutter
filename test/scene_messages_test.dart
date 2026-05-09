@@ -10,7 +10,12 @@ void main() {
     });
 
     test('SceneRecall minimal encodes scene number + tid', () {
-      final m = SceneRecall(sceneNumber: 0x0001, tid: 0xAA, address: 1, appKeyIndex: 0);
+      final m = SceneRecall(
+        sceneNumber: 0x0001,
+        tid: 0xAA,
+        address: 1,
+        appKeyIndex: 0,
+      );
       expect(m.opcode, '0x8242');
       expect(m.parameters, [0x01, 0x00, 0xAA]);
     });
@@ -30,7 +35,10 @@ void main() {
 
   group('Scenes status decoding', () {
     test('SceneStatus minimal decodes', () {
-      final m = MeshMessage.fromIncoming(opcode: 0x5E, parameters: [0x00, 0x34, 0x12]);
+      final m = MeshMessage.fromIncoming(
+        opcode: 0x5E,
+        parameters: [0x00, 0x34, 0x12],
+      );
       expect(m, isA<SceneStatusMessage>());
       final s = m as SceneStatusMessage;
       expect(s.currentScene, 0x1234);
@@ -61,4 +69,3 @@ void main() {
     });
   });
 }
-

@@ -17,6 +17,8 @@ class _RealP1PageState extends State<RealP1Page> {
 
   StreamSubscription<UnprovisionedDevice>? _scanSub;
   StreamSubscription<MeshMessage>? _msgSub;
+  StreamSubscription<int>? _meshDbSub;
+  Timer? _meshDbDebounce;
   final List<UnprovisionedDevice> _proxies = [];
   bool _scanning = false;
   bool _connecting = false;
@@ -34,8 +36,12 @@ class _RealP1PageState extends State<RealP1Page> {
 
   // M2 foundation: keys + composition.
   final _netKeyIndexCtrl = TextEditingController(text: '0');
-  final _netKeyHexCtrl = TextEditingController(text: '00112233445566778899AABBCCDDEEFF');
-  final _appKeyHexCtrl = TextEditingController(text: '0102030405060708090A0B0C0D0E0F10');
+  final _netKeyHexCtrl = TextEditingController(
+    text: '00112233445566778899AABBCCDDEEFF',
+  );
+  final _appKeyHexCtrl = TextEditingController(
+    text: '0102030405060708090A0B0C0D0E0F10',
+  );
   final _compDstCtrl = TextEditingController(text: '0x0001');
   final _compPageCtrl = TextEditingController(text: '0');
 
@@ -65,12 +71,23 @@ class _RealP1PageState extends State<RealP1Page> {
       ),
       onError: (e) => _log('messageStream error: $e'),
     );
+    _meshDbSub = _mesh.meshNetworkUpdatedStream.listen((seq) {
+      _meshDbDebounce?.cancel();
+      _meshDbDebounce = Timer(const Duration(milliseconds: 400), () {
+        if (!mounted) return;
+        _log(
+          'meshNetworkUpdatedStream seq=$seq (debounced) — refresh topology caches if needed',
+        );
+      });
+    });
   }
 
   @override
   void dispose() {
     _scanSub?.cancel();
     _msgSub?.cancel();
+    _meshDbSub?.cancel();
+    _meshDbDebounce?.cancel();
     _importPathCtrl.dispose();
     _proxyUnicastCtrl.dispose();
     _elementAddressCtrl.dispose();
@@ -124,13 +141,10 @@ class _RealP1PageState extends State<RealP1Page> {
     _proxies.clear();
     setState(() => _scanning = true);
 
-    _scanSub = _mesh.scanForDevices().listen(
-      (d) {
-        if (_proxies.any((e) => e.deviceId == d.deviceId)) return;
-        setState(() => _proxies.add(d));
-      },
-      onError: (e) => _log('Scan stream error: $e'),
-    );
+    _scanSub = _mesh.scanForDevices().listen((d) {
+      if (_proxies.any((e) => e.deviceId == d.deviceId)) return;
+      setState(() => _proxies.add(d));
+    }, onError: (e) => _log('Scan stream error: $e'));
   }
 
   Future<void> _stopScan() async {
@@ -161,7 +175,9 @@ class _RealP1PageState extends State<RealP1Page> {
     setState(() => _connecting = true);
     try {
       final unicast = _parseInt(_proxyUnicastCtrl.text);
-      _log('Connect proxy deviceId=${d.deviceId} proxyUnicast=0x${unicast.toRadixString(16)}');
+      _log(
+        'Connect proxy deviceId=${d.deviceId} proxyUnicast=0x${unicast.toRadixString(16)}',
+      );
       final ok = await _mesh.connectProxy(d.deviceId, unicast);
       final connected = await _mesh.isProxyConnected();
       _log('connectProxy result=$ok isProxyConnected=$connected');
@@ -188,7 +204,9 @@ class _RealP1PageState extends State<RealP1Page> {
       final el = _parseInt(_elementAddressCtrl.text);
       final mid = _parseInt(_modelIdCtrl.text);
       final app = _parseInt(_appKeyIndexCtrl.text);
-      _log('Bind AppKey: element=0x${el.toRadixString(16)} model=0x${mid.toRadixString(16)} appKeyIndex=$app');
+      _log(
+        'Bind AppKey: element=0x${el.toRadixString(16)} model=0x${mid.toRadixString(16)} appKeyIndex=$app',
+      );
       final ok = await _mesh.bindAppKey(el, mid, app);
       _log('bindAppKey result=$ok');
     } catch (e) {
@@ -201,7 +219,9 @@ class _RealP1PageState extends State<RealP1Page> {
       final el = _parseInt(_elementAddressCtrl.text);
       final mid = _parseInt(_modelIdCtrl.text);
       final addr = _parseInt(_subAddressCtrl.text);
-      _log('Add subscription: element=0x${el.toRadixString(16)} model=0x${mid.toRadixString(16)} addr=0x${addr.toRadixString(16)}');
+      _log(
+        'Add subscription: element=0x${el.toRadixString(16)} model=0x${mid.toRadixString(16)} addr=0x${addr.toRadixString(16)}',
+      );
       final ok = await _mesh.addSubscription(el, mid, addr);
       _log('addSubscription result=$ok');
     } catch (e) {
@@ -216,7 +236,9 @@ class _RealP1PageState extends State<RealP1Page> {
       final addr = _parseInt(_pubAddressCtrl.text);
       final app = _parseInt(_appKeyIndexCtrl.text);
       final ttl = int.tryParse(_ttlCtrl.text.trim());
-      _log('Set publication: element=0x${el.toRadixString(16)} model=0x${mid.toRadixString(16)} pub=0x${addr.toRadixString(16)} appKeyIndex=$app ttl=$ttl');
+      _log(
+        'Set publication: element=0x${el.toRadixString(16)} model=0x${mid.toRadixString(16)} pub=0x${addr.toRadixString(16)} appKeyIndex=$app ttl=$ttl',
+      );
       final ok = await _mesh.setPublication(el, mid, addr, app, ttl: ttl);
       _log('setPublication result=$ok');
     } catch (e) {
@@ -258,7 +280,8 @@ class _RealP1PageState extends State<RealP1Page> {
       final nodes = await _mesh.getNodes();
       final n = nodes.firstWhere(
         (e) => _parseInt(e.unicastAddress) == dst || e.uuid == dst.toString(),
-        orElse: () => nodes.isNotEmpty ? nodes.first : throw StateError('No nodes'),
+        orElse: () =>
+            nodes.isNotEmpty ? nodes.first : throw StateError('No nodes'),
       );
       _log(
         'Node after composition: uuid=${n.uuid} unicast=${n.unicastAddress} elements=${n.elements.length}',
@@ -277,11 +300,24 @@ class _RealP1PageState extends State<RealP1Page> {
       final netTxCount = _parseInt(_netTxCountCtrl.text);
       final netTxIntervalMs = _parseInt(_netTxIntervalMsCtrl.text);
 
-      _log('Node config dst=0x${dst.toRadixString(16)} ttl=$ttl relay=($relayCount,$relayIntervalMs ms) netTx=($netTxCount,$netTxIntervalMs ms)');
+      _log(
+        'Node config dst=0x${dst.toRadixString(16)} ttl=$ttl relay=($relayCount,$relayIntervalMs ms) netTx=($netTxCount,$netTxIntervalMs ms)',
+      );
       final ok1 = await _mesh.setNodeDefaultTtl(dst, ttl);
-      final ok2 = await _mesh.setNodeRelay(dst, true, relayCount, relayIntervalMs);
-      final ok3 = await _mesh.setNodeNetworkTransmit(dst, netTxCount, netTxIntervalMs);
-      _log('setNodeDefaultTtl=$ok1 setNodeRelay=$ok2 setNodeNetworkTransmit=$ok3');
+      final ok2 = await _mesh.setNodeRelay(
+        dst,
+        true,
+        relayCount,
+        relayIntervalMs,
+      );
+      final ok3 = await _mesh.setNodeNetworkTransmit(
+        dst,
+        netTxCount,
+        netTxIntervalMs,
+      );
+      _log(
+        'setNodeDefaultTtl=$ok1 setNodeRelay=$ok2 setNodeNetworkTransmit=$ok3',
+      );
     } catch (e) {
       _log('Node config error: $e');
     }
@@ -313,8 +349,12 @@ class _RealP1PageState extends State<RealP1Page> {
     try {
       final dst = _parseInt(_accessDstCtrl.text);
       final app = _parseInt(_accessAppKeyIndexCtrl.text);
-      _log('Send GenericOnOffSet state=$state dst=0x${dst.toRadixString(16)} appKeyIndex=$app');
-      await _mesh.sendMessage(GenericOnOffSet(state: state, address: dst, appKeyIndex: app));
+      _log(
+        'Send GenericOnOffSet state=$state dst=0x${dst.toRadixString(16)} appKeyIndex=$app',
+      );
+      await _mesh.sendMessage(
+        GenericOnOffSet(state: state, address: dst, appKeyIndex: app),
+      );
       _log('sendMessage(GenericOnOffSet) OK');
     } catch (e) {
       _log('sendMessage(GenericOnOffSet) error: $e');
@@ -326,8 +366,12 @@ class _RealP1PageState extends State<RealP1Page> {
       final dst = _parseInt(_accessDstCtrl.text);
       final app = _parseInt(_accessAppKeyIndexCtrl.text);
       final level = int.parse(_levelCtrl.text.trim());
-      _log('Send GenericLevelSet level=$level dst=0x${dst.toRadixString(16)} appKeyIndex=$app');
-      await _mesh.sendMessage(GenericLevelSet(level: level, address: dst, appKeyIndex: app));
+      _log(
+        'Send GenericLevelSet level=$level dst=0x${dst.toRadixString(16)} appKeyIndex=$app',
+      );
+      await _mesh.sendMessage(
+        GenericLevelSet(level: level, address: dst, appKeyIndex: app),
+      );
       _log('sendMessage(GenericLevelSet) OK');
     } catch (e) {
       _log('sendMessage(GenericLevelSet) error: $e');
@@ -378,7 +422,10 @@ class _RealP1PageState extends State<RealP1Page> {
                 ),
               ),
               const SizedBox(width: 12),
-              ElevatedButton(onPressed: _addNetKey, child: const Text('Add NetKey')),
+              ElevatedButton(
+                onPressed: _addNetKey,
+                child: const Text('Add NetKey'),
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -405,7 +452,10 @@ class _RealP1PageState extends State<RealP1Page> {
                 ),
               ),
               const SizedBox(width: 12),
-              ElevatedButton(onPressed: _addAppKey, child: const Text('Add AppKey')),
+              ElevatedButton(
+                onPressed: _addAppKey,
+                child: const Text('Add AppKey'),
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -431,7 +481,10 @@ class _RealP1PageState extends State<RealP1Page> {
                 ),
               ),
               const SizedBox(width: 12),
-              ElevatedButton(onPressed: _fetchComposition, child: const Text('Fetch Composition')),
+              ElevatedButton(
+                onPressed: _fetchComposition,
+                child: const Text('Fetch Composition'),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -517,8 +570,14 @@ class _RealP1PageState extends State<RealP1Page> {
             spacing: 12,
             runSpacing: 12,
             children: [
-              ElevatedButton(onPressed: _exportBundle, child: const Text('Export Bundle')),
-              ElevatedButton(onPressed: _importBundle, child: const Text('Import Bundle')),
+              ElevatedButton(
+                onPressed: _exportBundle,
+                child: const Text('Export Bundle'),
+              ),
+              ElevatedButton(
+                onPressed: _importBundle,
+                child: const Text('Import Bundle'),
+              ),
               OutlinedButton(
                 onPressed: () async {
                   final p = await _ensureBundlePath();
@@ -538,7 +597,8 @@ class _RealP1PageState extends State<RealP1Page> {
           TextField(
             controller: _importPathCtrl,
             decoration: const InputDecoration(
-              labelText: 'Mesh DB path (Mesh Configuration DB Profile 1.0.1 JSON)',
+              labelText:
+                  'Mesh DB path (Mesh Configuration DB Profile 1.0.1 JSON)',
               hintText: '/path/to/mesh.json',
               border: OutlineInputBorder(),
             ),
@@ -574,7 +634,8 @@ class _RealP1PageState extends State<RealP1Page> {
           TextField(
             controller: _proxyUnicastCtrl,
             decoration: const InputDecoration(
-              labelText: 'Proxy node primary unicast (hint for Android; iOS may ignore)',
+              labelText:
+                  'Proxy node primary unicast (hint for Android; iOS may ignore)',
               hintText: '0x0001',
               border: OutlineInputBorder(),
             ),
@@ -694,7 +755,10 @@ class _RealP1PageState extends State<RealP1Page> {
             spacing: 12,
             runSpacing: 12,
             children: [
-              ElevatedButton(onPressed: _bind, child: const Text('Bind AppKey')),
+              ElevatedButton(
+                onPressed: _bind,
+                child: const Text('Bind AppKey'),
+              ),
               ElevatedButton(onPressed: _subAdd, child: const Text('Add Sub')),
               ElevatedButton(onPressed: _pubSet, child: const Text('Set Pub')),
               OutlinedButton(
@@ -777,10 +841,7 @@ class _RealP1PageState extends State<RealP1Page> {
             ],
           ),
           const Divider(height: 32),
-          const Text(
-            'Logs',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
+          const Text('Logs', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           SizedBox(
             height: 320,
@@ -792,8 +853,14 @@ class _RealP1PageState extends State<RealP1Page> {
               child: ListView.builder(
                 itemCount: _logs.length,
                 itemBuilder: (context, i) => Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  child: Text(_logs[i], style: const TextStyle(fontFamily: 'monospace')),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  child: Text(
+                    _logs[i],
+                    style: const TextStyle(fontFamily: 'monospace'),
+                  ),
                 ),
               ),
             ),
@@ -803,4 +870,3 @@ class _RealP1PageState extends State<RealP1Page> {
     );
   }
 }
-

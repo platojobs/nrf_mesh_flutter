@@ -1,4 +1,5 @@
 // lib/src/platform_interface/platojobs_mesh_platform.dart
+// ignore_for_file: public_member_api_docs
 
 import 'dart:async';
 
@@ -61,6 +62,11 @@ abstract class PlatoJobsMeshBridge {
   /// Provisioning lifecycle events (progress + OOB prompts).
   Stream<pigeon.ProvisioningEvent> get provisioningEventStream;
 
+  /// Best-effort hint that the native mesh configuration database changed.
+  ///
+  /// Sequence increments once per native event (debouncing is left to the app).
+  Stream<int> get meshNetworkUpdatedStream;
+
   Future<List<node_models.ProvisionedNode>> getNodes();
 
   Future<void> removeNode(String nodeId);
@@ -72,10 +78,21 @@ abstract class PlatoJobsMeshBridge {
   Future<void> addNodeToGroup(String nodeId, String groupId);
 
   // M3: virtual label groups
-  Future<group_models.MeshGroup> createVirtualGroup(String name, List<int> labelUuid);
+  Future<group_models.MeshGroup> createVirtualGroup(
+    String name,
+    List<int> labelUuid,
+  );
   Future<bool> removeGroup(String groupId);
-  Future<bool> addSubscriptionVirtual(int elementAddress, int modelId, List<int> labelUuid);
-  Future<bool> removeSubscriptionVirtual(int elementAddress, int modelId, List<int> labelUuid);
+  Future<bool> addSubscriptionVirtual(
+    int elementAddress,
+    int modelId,
+    List<int> labelUuid,
+  );
+  Future<bool> removeSubscriptionVirtual(
+    int elementAddress,
+    int modelId,
+    List<int> labelUuid,
+  );
   Future<bool> setPublicationVirtual(
     int elementAddress,
     int modelId,
@@ -115,16 +132,28 @@ abstract class PlatoJobsMeshBridge {
   Future<bool> setNodeGattProxy(int destination, bool enabled);
   Future<bool> setNodeFriend(int destination, bool enabled);
   Future<bool> setNodeBeacon(int destination, bool enabled);
-  Future<bool> setNodeNetworkTransmit(int destination, int count, int intervalMs);
+  Future<bool> setNodeNetworkTransmit(
+    int destination,
+    int count,
+    int intervalMs,
+  );
   Future<bool> nodeReset(int destination);
   Future<bool> exportConfigurationBundle(String path);
   Future<bool> importConfigurationBundle(String path);
 
   // M2 closeout: remote key delete + key refresh + local reset
   Future<bool> removeNetworkKeyRemote(int destination, int netKeyIndex);
-  Future<bool> removeAppKeyRemote(int destination, int appKeyIndex, int boundNetKeyIndex);
+  Future<bool> removeAppKeyRemote(
+    int destination,
+    int appKeyIndex,
+    int boundNetKeyIndex,
+  );
   Future<int> getKeyRefreshPhase(int destination, int netKeyIndex);
-  Future<bool> setKeyRefreshPhaseTransition(int destination, int netKeyIndex, int transition);
+  Future<bool> setKeyRefreshPhaseTransition(
+    int destination,
+    int netKeyIndex,
+    int transition,
+  );
   Future<bool> resetLocalMeshState();
 
   // Proxy (P1 real-transport prerequisite)
@@ -141,7 +170,10 @@ abstract class PlatoJobsMeshBridge {
   Future<bool> provideProvisioningOobNumeric(String deviceId, int value);
 
   /// Provide user input required by Output OOB (alphanumeric).
-  Future<bool> provideProvisioningOobAlphaNumeric(String deviceId, String value);
+  Future<bool> provideProvisioningOobAlphaNumeric(
+    String deviceId,
+    String value,
+  );
 
   /// Whether the native side can reliably populate the source address for
   /// incoming Access messages (`messageStream`).
@@ -164,6 +196,9 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
       StreamController<rx_models.RxAccessMessage>.broadcast();
   final StreamController<pigeon.ProvisioningEvent> _provStreamController =
       StreamController<pigeon.ProvisioningEvent>.broadcast();
+  final StreamController<int> _meshNetworkUpdatedController =
+      StreamController<int>.broadcast();
+  int _meshNetworkUpdateSeq = 0;
 
   @override
   Future<void> initialize() async {
@@ -197,10 +232,13 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
           _rxAccessStreamController.add(
             rx_models.RxAccessMessage(
               opcode: event.opcode ?? 0,
-              parameters: (event.parameters ?? const <int>[]).toList(growable: false),
+              parameters: (event.parameters ?? const <int>[]).toList(
+                growable: false,
+              ),
               source: event.source,
               destination: event.destination,
-              metadataStatus: event.metadataStatus == pigeon.RxMetadataStatus.available
+              metadataStatus:
+                  event.metadataStatus == pigeon.RxMetadataStatus.available
                   ? rx_models.RxMetadataStatus.available
                   : rx_models.RxMetadataStatus.unavailable,
             ),
@@ -208,6 +246,9 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
         },
         onProvisioningEvent: (event) {
           _provStreamController.add(event);
+        },
+        onMeshNetworkUpdated: () {
+          _meshNetworkUpdatedController.add(++_meshNetworkUpdateSeq);
         },
       ),
     );
@@ -308,6 +349,11 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
   }
 
   @override
+  Stream<int> get meshNetworkUpdatedStream {
+    return _meshNetworkUpdatedController.stream;
+  }
+
+  @override
   Future<List<node_models.ProvisionedNode>> getNodes() async {
     final result = await _meshApi.getNodes();
     return result.map((node) => _convertToProvisionedNode(node)).toList();
@@ -336,7 +382,10 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
   }
 
   @override
-  Future<group_models.MeshGroup> createVirtualGroup(String name, List<int> labelUuid) async {
+  Future<group_models.MeshGroup> createVirtualGroup(
+    String name,
+    List<int> labelUuid,
+  ) async {
     final result = await _meshApi.createVirtualGroup(name, labelUuid);
     return _convertToMeshGroup(result);
   }
@@ -347,8 +396,16 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
   }
 
   @override
-  Future<bool> addSubscriptionVirtual(int elementAddress, int modelId, List<int> labelUuid) async {
-    return await _meshApi.addSubscriptionVirtual(elementAddress, modelId, labelUuid);
+  Future<bool> addSubscriptionVirtual(
+    int elementAddress,
+    int modelId,
+    List<int> labelUuid,
+  ) async {
+    return await _meshApi.addSubscriptionVirtual(
+      elementAddress,
+      modelId,
+      labelUuid,
+    );
   }
 
   @override
@@ -357,7 +414,11 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
     int modelId,
     List<int> labelUuid,
   ) async {
-    return await _meshApi.removeSubscriptionVirtual(elementAddress, modelId, labelUuid);
+    return await _meshApi.removeSubscriptionVirtual(
+      elementAddress,
+      modelId,
+      labelUuid,
+    );
   }
 
   @override
@@ -378,22 +439,38 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
   }
 
   @override
-  Future<bool> bindAppKey(int elementAddress, int modelId, int appKeyIndex) async {
+  Future<bool> bindAppKey(
+    int elementAddress,
+    int modelId,
+    int appKeyIndex,
+  ) async {
     return await _meshApi.bindAppKey(elementAddress, modelId, appKeyIndex);
   }
 
   @override
-  Future<bool> unbindAppKey(int elementAddress, int modelId, int appKeyIndex) async {
+  Future<bool> unbindAppKey(
+    int elementAddress,
+    int modelId,
+    int appKeyIndex,
+  ) async {
     return await _meshApi.unbindAppKey(elementAddress, modelId, appKeyIndex);
   }
 
   @override
-  Future<bool> addSubscription(int elementAddress, int modelId, int address) async {
+  Future<bool> addSubscription(
+    int elementAddress,
+    int modelId,
+    int address,
+  ) async {
     return await _meshApi.addSubscription(elementAddress, modelId, address);
   }
 
   @override
-  Future<bool> removeSubscription(int elementAddress, int modelId, int address) async {
+  Future<bool> removeSubscription(
+    int elementAddress,
+    int modelId,
+    int address,
+  ) async {
     return await _meshApi.removeSubscription(elementAddress, modelId, address);
   }
 
@@ -495,8 +572,16 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
   }
 
   @override
-  Future<bool> setNodeNetworkTransmit(int destination, int count, int intervalMs) async {
-    return await _meshApi.setNodeNetworkTransmit(destination, count, intervalMs);
+  Future<bool> setNodeNetworkTransmit(
+    int destination,
+    int count,
+    int intervalMs,
+  ) async {
+    return await _meshApi.setNodeNetworkTransmit(
+      destination,
+      count,
+      intervalMs,
+    );
   }
 
   @override
@@ -591,7 +676,10 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
   }
 
   @override
-  Future<bool> provideProvisioningOobAlphaNumeric(String deviceId, String value) async {
+  Future<bool> provideProvisioningOobAlphaNumeric(
+    String deviceId,
+    String value,
+  ) async {
     return await _meshApi.provideProvisioningOobAlphaNumeric(deviceId, value);
   }
 
@@ -610,7 +698,9 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
     await _meshApi.setExperimentalRxMetadataEnabled(enabled);
   }
 
-  net_models.MeshNetwork _convertToMeshNetwork(pigeon.MeshNetwork pigeonNetwork) {
+  net_models.MeshNetwork _convertToMeshNetwork(
+    pigeon.MeshNetwork pigeonNetwork,
+  ) {
     return net_models.MeshNetwork(
       networkId: pigeonNetwork.networkId ?? '',
       name: pigeonNetwork.name ?? '',
@@ -677,7 +767,8 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
                           ? null
                           : node_models.Publication(
                               address: (m.publication!.address ?? 0).toInt(),
-                              appKeyIndex: (m.publication!.appKeyIndex ?? 0).toInt(),
+                              appKeyIndex: (m.publication!.appKeyIndex ?? 0)
+                                  .toInt(),
                               ttl: m.publication!.ttl?.toInt(),
                             ),
                     ),
@@ -713,16 +804,19 @@ class _PlatoJobsMeshFlutterApiHandler extends pigeon.MeshFlutterApi {
   final Function(pigeon.MeshMessage) _onMessageReceived;
   final Function(pigeon.RxAccessMessage) _onRxAccessMessage;
   final Function(pigeon.ProvisioningEvent) _onProvisioningEvent;
+  final void Function() _onMeshNetworkUpdated;
 
   _PlatoJobsMeshFlutterApiHandler({
     required Function(pigeon.FlutterUnprovisionedDevice) onDeviceDiscovered,
     required Function(pigeon.MeshMessage) onMessageReceived,
     required Function(pigeon.RxAccessMessage) onRxAccessMessage,
     required Function(pigeon.ProvisioningEvent) onProvisioningEvent,
+    required void Function() onMeshNetworkUpdated,
   }) : _onDeviceDiscovered = onDeviceDiscovered,
        _onMessageReceived = onMessageReceived,
        _onRxAccessMessage = onRxAccessMessage,
-       _onProvisioningEvent = onProvisioningEvent;
+       _onProvisioningEvent = onProvisioningEvent,
+       _onMeshNetworkUpdated = onMeshNetworkUpdated;
 
   @override
   void onDeviceDiscovered(pigeon.FlutterUnprovisionedDevice device) {
@@ -742,5 +836,10 @@ class _PlatoJobsMeshFlutterApiHandler extends pigeon.MeshFlutterApi {
   @override
   void onProvisioningEvent(pigeon.ProvisioningEvent event) {
     _onProvisioningEvent(event);
+  }
+
+  @override
+  void onMeshNetworkUpdated() {
+    _onMeshNetworkUpdated();
   }
 }

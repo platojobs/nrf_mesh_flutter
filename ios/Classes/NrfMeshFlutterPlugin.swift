@@ -52,6 +52,21 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
             .appendingPathComponent("nrf_mesh_flutter_network.json")
     }
 
+    /// Persist Nordic Mesh DB and notify Flutter (parity with Android `NetworkUpdated`).
+    @discardableResult
+    func saveNordicMeshDatabase() -> Bool {
+        guard meshManager.isNetworkCreated else { return false }
+        let ok = meshManager.save()
+        if ok {
+            flutterApi?.onMeshNetworkUpdated { _ in }
+        }
+        return ok
+    }
+
+    private func notifyMeshDatabaseChanged() {
+        flutterApi?.onMeshNetworkUpdated { _ in }
+    }
+
     private func exportToURL(_ url: URL) throws -> Bool {
         var root: [String: Any] = [:]
         root["name"] = networkName
@@ -179,7 +194,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         // Required for correct parsing of incoming Status messages.
         meshManager.localElements = []
         nordicNetwork = network
-        _ = meshManager.save()
+        _ = saveNordicMeshDatabase()
         networkName = name
         nodes.removeAll()
         groups.removeAll()
@@ -206,6 +221,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
             // Required for correct parsing of incoming Status messages.
             meshManager.localElements = []
             networkName = loaded.meshName
+            notifyMeshDatabaseChanged()
         } else if let url = defaultFileURL(),
                   (try? importFromURL(url)) == true {
             // Legacy fallback loaded into memory.
@@ -229,10 +245,12 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
     func saveNetwork() throws -> Bool {
         // Save Nordic Mesh DB if available; otherwise keep legacy json.
         if meshManager.isNetworkCreated {
-            return meshManager.save()
+            return saveNordicMeshDatabase()
         }
         guard let url = defaultFileURL() else { return false }
-        return try exportToURL(url)
+        let ok = try exportToURL(url)
+        if ok { notifyMeshDatabaseChanged() }
+        return ok
     }
 
     func exportNetwork(path: String) throws -> Bool {
@@ -254,7 +272,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
             // Required for correct parsing of incoming Status messages.
             meshManager.localElements = []
             networkName = nordicNetwork?.meshName ?? networkName
-            _ = meshManager.save()
+            _ = saveNordicMeshDatabase()
             return true
         }
         return try importFromURL(url)
@@ -461,14 +479,14 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         if meshManager.isNetworkCreated, let net = meshManager.meshNetwork {
             if let uuid = UUID(uuidString: nodeId), let node = net.node(withUuid: uuid) {
                 try net.remove(node: node)
-                _ = meshManager.save()
+                _ = saveNordicMeshDatabase()
                 return
             }
             if let addrInt = Int(nodeId, radix: 16) {
                 let addr = Address(UInt16(truncatingIfNeeded: addrInt))
                 if let node = net.node(withAddress: addr) {
                     try net.remove(node: node)
-                    _ = meshManager.save()
+                    _ = saveNordicMeshDatabase()
                     return
                 }
             }
@@ -482,7 +500,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
             let addr = nextAvailableGroupAddress(in: net)
             let group = try Group(name: name, address: addr)
             try net.add(group: group)
-            _ = meshManager.save()
+            _ = saveNordicMeshDatabase()
             return meshGroupToPigeon(group)
         }
 
@@ -515,7 +533,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         }
         let g = try Group(name: name, address: ma)
         try net.add(group: g)
-        _ = meshManager.save()
+        _ = saveNordicMeshDatabase()
         return meshGroupToPigeon(g)
     }
 
@@ -530,7 +548,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         }
         guard let g else { return false }
         try net.remove(group: g)
-        _ = meshManager.save()
+        _ = saveNordicMeshDatabase()
         return true
     }
 
@@ -571,7 +589,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
 
         let msg = ConfigCompositionDataGet(page: UInt8(truncatingIfNeeded: page))
         _ = try sendConfig(msg, destination: dst)
-        _ = meshManager.save()
+        _ = saveNordicMeshDatabase()
         return true
     }
 
@@ -588,7 +606,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
             ])
         }
         try reimportMeshJsonPatchingAppKey(index: Int(appKeyIndex), keyHex: hex, boundNetKey: 0)
-        _ = meshManager.save()
+        _ = saveNordicMeshDatabase()
         return true
     }
 
@@ -605,7 +623,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
             ])
         }
         try reimportMeshJsonPatchingNetKey(index: Int(netKeyIndex), keyHex: hex)
-        _ = meshManager.save()
+        _ = saveNordicMeshDatabase()
         return true
     }
 
@@ -640,7 +658,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         let dst = Address(UInt16(truncatingIfNeeded: destination))
         let msg = ConfigDefaultTtlSet(ttl: UInt8(truncatingIfNeeded: ttl))
         _ = try sendConfig(msg, destination: dst)
-        _ = meshManager.save()
+        _ = saveNordicMeshDatabase()
         return true
     }
 
@@ -656,7 +674,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
             msg = ConfigRelaySet()
         }
         _ = try sendConfig(msg, destination: dst)
-        _ = meshManager.save()
+        _ = saveNordicMeshDatabase()
         return true
     }
 
@@ -665,7 +683,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         let dst = Address(UInt16(truncatingIfNeeded: destination))
         let msg = ConfigGATTProxySet(enable: enabled)
         _ = try sendConfig(msg, destination: dst)
-        _ = meshManager.save()
+        _ = saveNordicMeshDatabase()
         return true
     }
 
@@ -674,7 +692,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         let dst = Address(UInt16(truncatingIfNeeded: destination))
         let msg = ConfigFriendSet(enable: enabled)
         _ = try sendConfig(msg, destination: dst)
-        _ = meshManager.save()
+        _ = saveNordicMeshDatabase()
         return true
     }
 
@@ -683,7 +701,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         let dst = Address(UInt16(truncatingIfNeeded: destination))
         let msg = ConfigBeaconSet(enable: enabled)
         _ = try sendConfig(msg, destination: dst)
-        _ = meshManager.save()
+        _ = saveNordicMeshDatabase()
         return true
     }
 
@@ -696,7 +714,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
             steps: steps
         )
         _ = try sendConfig(msg, destination: dst)
-        _ = meshManager.save()
+        _ = saveNordicMeshDatabase()
         return true
     }
 
@@ -705,7 +723,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         let dst = Address(UInt16(truncatingIfNeeded: destination))
         let msg = ConfigNodeReset()
         _ = try sendConfig(msg, destination: dst)
-        _ = meshManager.save()
+        _ = saveNordicMeshDatabase()
         return true
     }
 
@@ -730,14 +748,14 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
            let b64 = obj["meshDbBase64"] as? String,
            let meshData = Data(base64Encoded: b64) {
             _ = try meshManager.import(from: meshData)
-            _ = meshManager.save()
+            _ = saveNordicMeshDatabase()
             nordicNetwork = meshManager.meshNetwork
             meshManager.localElements = []
             networkName = nordicNetwork?.meshName ?? networkName
             return true
         }
         if let _ = try? meshManager.import(from: raw) {
-            _ = meshManager.save()
+            _ = saveNordicMeshDatabase()
             nordicNetwork = meshManager.meshNetwork
             meshManager.localElements = []
             networkName = nordicNetwork?.meshName ?? networkName
@@ -753,7 +771,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         let dst = Address(UInt16(truncatingIfNeeded: destination))
         let msg = ConfigNetKeyDelete(networkKey: nk)
         _ = try sendConfig(msg, destination: dst)
-        _ = meshManager.save()
+        _ = saveNordicMeshDatabase()
         return true
     }
 
@@ -770,7 +788,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         let dst = Address(UInt16(truncatingIfNeeded: destination))
         let msg = ConfigAppKeyDelete(applicationKey: appKey)
         _ = try sendConfig(msg, destination: dst)
-        _ = meshManager.save()
+        _ = saveNordicMeshDatabase()
         return true
     }
 
@@ -803,7 +821,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         let dst = Address(UInt16(truncatingIfNeeded: destination))
         let msg = ConfigKeyRefreshPhaseSet(networkKey: nk, transition: tr)
         _ = try sendConfig(msg, destination: dst)
-        _ = meshManager.save()
+        _ = saveNordicMeshDatabase()
         return true
     }
 
@@ -815,6 +833,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         proxyBearer?.close()
         proxyBearer = nil
         proxyConnected = false
+        notifyMeshDatabaseChanged()
         return true
     }
 
@@ -857,7 +876,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
             ) else { return false }
             guard let msg = ConfigModelAppBind(applicationKey: appKey, to: model) else { return false }
             _ = try sendConfig(msg, destination: model.parentElement!.unicastAddress)
-            _ = meshManager.save()
+            _ = saveNordicMeshDatabase()
             return true
         }
         return updateModel(elementAddress: elementAddress, modelId: modelId) { m in
@@ -876,7 +895,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
             ) else { return false }
             guard let msg = ConfigModelAppUnbind(applicationKey: appKey, to: model) else { return false }
             _ = try sendConfig(msg, destination: model.parentElement!.unicastAddress)
-            _ = meshManager.save()
+            _ = saveNordicMeshDatabase()
             return true
         }
         return updateModel(elementAddress: elementAddress, modelId: modelId) { m in
@@ -892,7 +911,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
             guard let group = resolveOrCreateGroup(address: address) else { return false }
             guard let msg = ConfigModelSubscriptionAdd(group: group, to: model) else { return false }
             _ = try sendConfig(msg, destination: model.parentElement!.unicastAddress)
-            _ = meshManager.save()
+            _ = saveNordicMeshDatabase()
             return true
         }
         return updateModel(elementAddress: elementAddress, modelId: modelId) { m in
@@ -908,7 +927,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
             guard let group = resolveOrCreateGroup(address: address) else { return false }
             guard let msg = ConfigModelSubscriptionDelete(group: group, from: model) else { return false }
             _ = try sendConfig(msg, destination: model.parentElement!.unicastAddress)
-            _ = meshManager.save()
+            _ = saveNordicMeshDatabase()
             return true
         }
         return updateModel(elementAddress: elementAddress, modelId: modelId) { m in
@@ -936,7 +955,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
             )
             guard let msg = ConfigModelPublicationSet(publish, to: model) else { return false }
             _ = try sendConfig(msg, destination: model.parentElement!.unicastAddress)
-            _ = meshManager.save()
+            _ = saveNordicMeshDatabase()
             return true
         }
         return updateModel(elementAddress: elementAddress, modelId: modelId) { m in
@@ -954,7 +973,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
             let g = try resolveOrCreateVirtualGroup(label: labelUuid, defaultName: "Virtual (auto)")
             guard let msg = ConfigModelSubscriptionVirtualAddressAdd(group: g, to: model) else { return false }
             _ = try sendConfig(msg, destination: model.parentElement!.unicastAddress)
-            _ = meshManager.save()
+            _ = saveNordicMeshDatabase()
             return true
         }
         return updateModel(elementAddress: elementAddress, modelId: modelId) { m in
@@ -972,7 +991,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
             let g = try resolveOrCreateVirtualGroup(label: labelUuid, defaultName: "Virtual (auto)")
             guard let msg = ConfigModelSubscriptionVirtualAddressDelete(group: g, from: model) else { return false }
             _ = try sendConfig(msg, destination: model.parentElement!.unicastAddress)
-            _ = meshManager.save()
+            _ = saveNordicMeshDatabase()
             return true
         }
         return updateModel(elementAddress: elementAddress, modelId: modelId) { m in
@@ -1009,7 +1028,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
             )
             guard let msg = ConfigModelPublicationVirtualAddressSet(publish, to: model) else { return false }
             _ = try sendConfig(msg, destination: model.parentElement!.unicastAddress)
-            _ = meshManager.save()
+            _ = saveNordicMeshDatabase()
             return true
         }
         return updateModel(elementAddress: elementAddress, modelId: modelId) { m in
@@ -1284,7 +1303,7 @@ private final class ProvisioningDelegateAdapter: ProvisioningDelegate {
             )) { _ in }
 
         case .complete:
-            _ = plugin.meshManager.save()
+            _ = plugin.saveNordicMeshDatabase()
             // Prefer returning the node as read from Mesh DB (elements/models filled).
             let out: ProvisionedNode
             if let net = plugin.meshManager.meshNetwork,
