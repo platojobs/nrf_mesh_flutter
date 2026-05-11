@@ -1,3 +1,8 @@
+## 6.9.5
+
+### Native (iOS)
+- Add **Swift Package Manager (SPM)** support for the iOS plugin (`ios/nrf_mesh_flutter/Package.swift`) to improve pub.dev platform scoring.
+
 ## 6.9.4
 
 ### Documentation (Phase 0.x + planning)
