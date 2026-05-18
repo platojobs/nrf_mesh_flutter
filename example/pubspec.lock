@@ -248,7 +248,7 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "6.9.4"
+    version: "6.9.6"
   objective_c:
     dependency: transitive
     description:

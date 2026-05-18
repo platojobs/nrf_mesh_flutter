@@ -47,14 +47,15 @@ class _MyAppState extends State<MyApp> {
 
   /// Debounced refresh when native mesh DB changes (Phase 2 parity demo).
   void _listenMeshDbHints() {
-    _meshDbHintSub = debounceMeshNetworkUpdates(
-      _meshManager.meshNetworkUpdatedStream,
-      const Duration(milliseconds: 400),
-    ).listen((_) async {
-      if (!mounted) return;
-      await _loadNodesAndGroups();
-      setState(() => _status = 'Mesh DB updated — refreshed nodes/groups');
-    });
+    _meshDbHintSub =
+        debounceMeshNetworkUpdates(
+          _meshManager.meshNetworkUpdatedStream,
+          const Duration(milliseconds: 400),
+        ).listen((_) async {
+          if (!mounted) return;
+          await _loadNodesAndGroups();
+          setState(() => _status = 'Mesh DB updated — refreshed nodes/groups');
+        });
   }
 
   Future<void> _loadNetwork() async {
@@ -230,28 +231,26 @@ class _MyAppState extends State<MyApp> {
                   ),
                 ),
               const SizedBox(height: 16),
-              Row(
+              Wrap(
+                spacing: 16,
+                runSpacing: 12,
                 children: [
                   ElevatedButton(
                     onPressed: _isScanning ? _stopScan : _startScan,
                     child: Text(_isScanning ? 'Stop Scan' : 'Start Scan'),
                   ),
-                  const SizedBox(width: 16),
                   ElevatedButton(
                     onPressed: _sendTestMessage,
                     child: const Text('Send Test Message'),
                   ),
-                  const SizedBox(width: 16),
                   ElevatedButton(
                     onPressed: _createGroup,
                     child: const Text('Create Group'),
                   ),
-                  const SizedBox(width: 16),
                   ElevatedButton(
                     onPressed: _configDemo,
                     child: const Text('Config Demo'),
                   ),
-                  const SizedBox(width: 16),
                   ElevatedButton(
                     onPressed: () {
                       Navigator.of(context).push(
@@ -262,7 +261,6 @@ class _MyAppState extends State<MyApp> {
                     },
                     child: const Text('P1 Real Flow'),
                   ),
-                  const SizedBox(width: 16),
                   ElevatedButton(
                     onPressed: () {
                       Navigator.of(context).push(
@@ -273,7 +271,6 @@ class _MyAppState extends State<MyApp> {
                     },
                     child: const Text('M1 Provisioning'),
                   ),
-                  const SizedBox(width: 16),
                   ElevatedButton(
                     onPressed: () {
                       Navigator.of(context).push(
@@ -284,7 +281,6 @@ class _MyAppState extends State<MyApp> {
                     },
                     child: const Text('M3 Groupcast'),
                   ),
-                  const SizedBox(width: 16),
                   ElevatedButton(
                     onPressed: () {
                       Navigator.of(context).push(

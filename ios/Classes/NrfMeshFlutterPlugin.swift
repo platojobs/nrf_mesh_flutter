@@ -187,6 +187,28 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         )
     }
 
+    @discardableResult
+    private func ensureNordicMeshDatabase() -> NordicMesh.MeshNetwork {
+        if meshManager.isNetworkCreated, let existing = meshManager.meshNetwork {
+            nordicNetwork = existing
+            meshManager.localElements = []
+            networkName = existing.meshName
+            return existing
+        }
+        if (try? meshManager.load()) == true, let loaded = meshManager.meshNetwork {
+            nordicNetwork = loaded
+            meshManager.localElements = []
+            networkName = loaded.meshName
+            return loaded
+        }
+        _ = meshManager.clear()
+        let created = meshManager.createNewMeshNetwork(withName: networkName, by: "Provisioner")
+        meshManager.localElements = []
+        nordicNetwork = created
+        _ = saveNordicMeshDatabase()
+        return created
+    }
+
     func createNetwork(name: String) throws -> MeshNetwork {
         // Create a new Mesh Network in the Nordic manager and persist it.
         _ = meshManager.clear()
@@ -225,6 +247,11 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         } else if let url = defaultFileURL(),
                   (try? importFromURL(url)) == true {
             // Legacy fallback loaded into memory.
+            _ = ensureNordicMeshDatabase()
+        } else {
+            // Keep parity with Android: callers expect loadNetwork() to leave a
+            // usable native Mesh DB, not only a Dart-side placeholder snapshot.
+            _ = ensureNordicMeshDatabase()
         }
         let name = nordicNetwork?.meshName ?? networkName
         return MeshNetwork(
@@ -275,7 +302,11 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
             _ = saveNordicMeshDatabase()
             return true
         }
-        return try importFromURL(url)
+        let ok = try importFromURL(url)
+        if ok {
+            _ = ensureNordicMeshDatabase()
+        }
+        return ok
     }
 
     func startScan() throws {
@@ -293,11 +324,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
     }
 
     func provisionDevice(device: FlutterUnprovisionedDevice, params: ProvisioningParameters) throws -> ProvisionedNode {
-        guard meshManager.isNetworkCreated, let meshNetwork = meshManager.meshNetwork else {
-            throw NSError(domain: "nrf_mesh_flutter", code: 400, userInfo: [
-                NSLocalizedDescriptionKey: "Mesh DB is not loaded (createNetwork/importNetwork first)"
-            ])
-        }
+        let meshNetwork = ensureNordicMeshDatabase()
         guard let deviceId = device.deviceId, !deviceId.isEmpty else {
             throw NSError(domain: "nrf_mesh_flutter", code: 400, userInfo: [
                 NSLocalizedDescriptionKey: "Missing deviceId"

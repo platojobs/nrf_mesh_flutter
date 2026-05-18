@@ -1,3 +1,11 @@
+## 6.9.6
+
+### Documentation
+- README: align install snippet with **6.9.6** and correct dependency documentation to list the actual Dart runtime packages and Nordic Kotlin Mesh Android artifacts.
+
+### Native (iOS)
+- Ensure iOS has a real Nordic Mesh DB after `loadNetwork()` / legacy fallback imports and before `provisionDevice()`, preventing provisioning from failing with "Mesh DB is not loaded" after startup.
+
 ## 6.9.5
 
 ### Native (iOS)

@@ -1,6 +1,6 @@
 # nRF Mesh Flutter Plugin
 
-A Flutter plugin for Bluetooth Mesh networking, based on Nordic Semiconductor's nRF Mesh libraries ([iOS](https://github.com/NordicSemiconductor/IOS-nRF-Mesh-Library) / [Android](https://github.com/NordicSemiconductor/Android-nRF-Mesh-Library)).
+A Flutter plugin for Bluetooth Mesh networking, based on Nordic Semiconductor's nRF Mesh libraries ([iOS](https://github.com/NordicSemiconductor/IOS-nRF-Mesh-Library) / Android Kotlin Mesh).
 
 ## Features
 
@@ -25,7 +25,7 @@ Add `nrf_mesh_flutter` to your `pubspec.yaml`:
 dependencies:
   flutter:
     sdk: flutter
-  nrf_mesh_flutter: ^6.9.5
+  nrf_mesh_flutter: ^6.9.6
 ```
 
 ## Release notes language
@@ -498,15 +498,16 @@ The plugin follows a layered architecture:
 
 ### Flutter Dependencies
 
-- `plugin_platform_interface: ^2.0.2` - Platform interface support
-- `convert: ^3.1.1` - JSON conversion
-- `crypto: ^3.0.3` - Cryptographic functions
-- `meta: ^1.10.0` - Annotations
+- `plugin_platform_interface: ^2.1.8` - Platform interface support
+- `convert: ^3.1.2` - JSON/codecs helpers
+- `crypto: ^3.0.7` - Cryptographic hashing helpers
+- `meta: ^1.17.0` - Annotations
+- `pointycastle: ^4.0.0` - AES-CMAC support for Bluetooth Mesh virtual addresses
 
 ### Native Dependencies
 
 - **iOS**: `nRFMeshProvision ~> 4.8.0`
-- **Android**: Nordic Android nRF Mesh Library
+- **Android**: Nordic Kotlin Mesh Library `1.0.0` (`core`, `bearer`, `bearer-gatt`, `bearer-pbgatt`, `bearer-provisioning`, `provisioning`) plus `no.nordicsemi.kotlin.ble:client-android:2.0.0-alpha19`
 
 ## Error Handling
 
