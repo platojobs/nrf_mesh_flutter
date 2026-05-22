@@ -1,3 +1,14 @@
+## 6.9.7
+
+### Fixes
+- **iOS**: Parse 16-byte Mesh Device UUID from provisioning service data and unprovisioned beacons during scan; cache UUID for `provisionDevice` when Flutter round-trips an empty list.
+- **iOS**: Scan without CoreBluetooth service-UUID filter so devices that only advertise Mesh data in Service Data / manufacturer payloads are discovered.
+- **Android**: Implement real BLE scanning (was a no-op); emit discovered devices with Mesh UUID parsing and provisioning UUID cache (parity with iOS).
+- **Example**: Fix home screen bottom overflow with a scrollable layout; cancel scan subscriptions on stop/dispose; show UUID hint and disable Provision when no mesh UUID is present.
+
+### Documentation
+- README install snippet and CocoaPods podspec aligned with **6.9.7**.
+
 ## 6.9.6
 
 ### Documentation

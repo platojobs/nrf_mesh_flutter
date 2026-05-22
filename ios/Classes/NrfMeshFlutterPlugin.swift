@@ -16,6 +16,8 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
     private lazy var centralManager: CBCentralManager = CBCentralManager(delegate: self, queue: nil)
     private var scanning: Bool = false
     private var peripheralsById: [String: CBPeripheral] = [:]
+    /// Mesh Device UUID (16 bytes) parsed from scan advertisements, keyed by CBPeripheral id.
+    private var meshUuidByDeviceId: [String: [Int64]] = [:]
     private var proxyBearer: GattBearer?
     private var proxyConnected: Bool = false
     private var provisioningPeripheral: CBPeripheral?
@@ -312,7 +314,9 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
     func startScan() throws {
         scanning = true
         if centralManager.state == .poweredOn {
-            centralManager.scanForPeripherals(withServices: [meshProxyService, meshProvisioningService], options: [
+            // Scan without service filter: many mesh devices only expose 0x1827/0x1828 in
+            // Service Data / manufacturer beacon, not in the advertised Service UUID list.
+            centralManager.scanForPeripherals(withServices: nil, options: [
                 CBCentralManagerScanOptionAllowDuplicatesKey: true
             ])
         }
@@ -330,9 +334,13 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
                 NSLocalizedDescriptionKey: "Missing deviceId"
             ])
         }
-        guard let uuidBytes = device.uuid, uuidBytes.count == 16 else {
+        var uuidBytes = device.uuid ?? []
+        if uuidBytes.count != 16, let cached = meshUuidByDeviceId[deviceId] {
+            uuidBytes = cached
+        }
+        guard uuidBytes.count == 16 else {
             throw NSError(domain: "nrf_mesh_flutter", code: 400, userInfo: [
-                NSLocalizedDescriptionKey: "Device UUID must be 16 bytes"
+                NSLocalizedDescriptionKey: "Device UUID must be 16 bytes (scan again; device must advertise Mesh Provisioning Service data)"
             ])
         }
         guard let peripheral = peripheralsById[deviceId] else {
@@ -369,7 +377,7 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
         provisioningDelegatesByDeviceId[deviceId] = delegate
         provisioningResultByDeviceId.removeValue(forKey: deviceId)
         provisioningRequestedParamsByDeviceId[deviceId] = params
-        provisioningUuidBytesByDeviceId[deviceId] = device.uuid
+        provisioningUuidBytesByDeviceId[deviceId] = uuidBytes
         let sem = DispatchSemaphore(value: 0)
         provisioningSemaphoresByDeviceId[deviceId] = sem
 
@@ -1464,7 +1472,7 @@ extension PlatoJobsMeshPlugin: MeshNetworkDelegate {
 extension PlatoJobsMeshPlugin: CBCentralManagerDelegate {
     public func centralManagerDidUpdateState(_ central: CBCentralManager) {
         if scanning, central.state == .poweredOn {
-            central.scanForPeripherals(withServices: [meshProxyService, meshProvisioningService], options: [
+            central.scanForPeripherals(withServices: nil, options: [
                 CBCentralManagerScanOptionAllowDuplicatesKey: true
             ])
         }
@@ -1474,24 +1482,32 @@ extension PlatoJobsMeshPlugin: CBCentralManagerDelegate {
                                didDiscover peripheral: CBPeripheral,
                                advertisementData: [String: Any],
                                rssi RSSI: NSNumber) {
+        guard Self.isMeshAdvertisement(advertisementData) else { return }
+
         let deviceId = peripheral.identifier.uuidString
         peripheralsById[deviceId] = peripheral
 
         let advUuids = (advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID]) ?? []
+        let serviceDataMap = advertisementData[CBAdvertisementDataServiceDataKey] as? [CBUUID: Data]
         let svc: String
-        if advUuids.contains(meshProvisioningService) {
+        if advUuids.contains(meshProvisioningService) || serviceDataMap?[meshProvisioningService] != nil {
             svc = "1827"
-        } else if advUuids.contains(meshProxyService) {
+        } else if advUuids.contains(meshProxyService) || serviceDataMap?[meshProxyService] != nil {
             svc = "1828"
         } else {
             svc = ""
         }
 
+        let uuidBytes = Self.extractMeshDeviceUuidBytes(from: advertisementData) ?? []
+        if uuidBytes.count == 16 {
+            meshUuidByDeviceId[deviceId] = uuidBytes
+        }
+
         let dev = FlutterUnprovisionedDevice(
             deviceId: deviceId,
-            name: peripheral.name ?? "Proxy",
+            name: peripheral.name ?? (svc == "1827" ? "Unprovisioned" : "Proxy"),
             rssi: Int64(RSSI.intValue),
-            uuid: [], // Not a mesh UUID; keep empty for now.
+            uuid: uuidBytes,
             serviceUuid: svc
         )
         flutterApi?.onDeviceDiscovered(device: dev) { _ in }
@@ -1810,6 +1826,50 @@ private extension PlatoJobsMeshPlugin {
     private func jsonKeyIndex(_ dict: [String: Any]) -> Int? {
         if let n = dict["index"] as? Int { return n }
         if let n = dict["index"] as? NSNumber { return n.intValue }
+        return nil
+    }
+}
+
+// MARK: - Mesh device UUID from BLE advertisements
+
+private extension PlatoJobsMeshPlugin {
+    /// True when advertisement looks like Mesh Provisioning (1827), Proxy (1828), or unprovisioned beacon.
+    static func isMeshAdvertisement(_ advertisementData: [String: Any]) -> Bool {
+        let advUuids = (advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID]) ?? []
+        if advUuids.contains(CBUUID(string: "1827")) || advUuids.contains(CBUUID(string: "1828")) {
+            return true
+        }
+        if let serviceDataMap = advertisementData[CBAdvertisementDataServiceDataKey] as? [CBUUID: Data] {
+            let prov = CBUUID(string: "1827")
+            let proxy = CBUUID(string: "1828")
+            if serviceDataMap[prov] != nil || serviceDataMap[proxy] != nil {
+                return true
+            }
+        }
+        return extractMeshDeviceUuidBytes(from: advertisementData) != nil
+    }
+
+    /// PB-GATT: Mesh Provisioning Service (0x1827) Service Data starts with 16-byte Device UUID.
+    /// PB-ADV: Unprovisioned beacon (type 0x00) embeds UUID after the beacon-type octet.
+    static func extractMeshDeviceUuidBytes(from advertisementData: [String: Any]) -> [Int64]? {
+        if let serviceDataMap = advertisementData[CBAdvertisementDataServiceDataKey] as? [CBUUID: Data] {
+            let provUuid = CBUUID(string: "1827")
+            if let data = serviceDataMap[provUuid], data.count >= 16 {
+                return data.prefix(16).map { Int64($0) }
+            }
+        }
+
+        if let mfg = advertisementData[CBAdvertisementDataManufacturerDataKey] as? Data {
+            // Nordic-style: company ID (2) + beacon type 0x00 + UUID (16) + OOB (2)
+            if mfg.count >= 19, mfg[2] == 0x00 {
+                return mfg.subdata(in: 3..<19).map { Int64($0) }
+            }
+            // Generic unprovisioned beacon: type 0x00 + UUID (16) at start
+            if mfg.count >= 17, mfg[0] == 0x00 {
+                return mfg.subdata(in: 1..<17).map { Int64($0) }
+            }
+        }
+
         return nil
     }
 }

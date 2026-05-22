@@ -42,6 +42,7 @@ class _MyAppState extends State<MyApp> {
   @override
   void dispose() {
     _meshDbHintSub?.cancel();
+    _scanSub?.cancel();
     super.dispose();
   }
 
@@ -88,14 +89,17 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
+  StreamSubscription<UnprovisionedDevice>? _scanSub;
+
   Future<void> _startScan() async {
+    await _scanSub?.cancel();
     setState(() {
       _isScanning = true;
       _devices = [];
       _status = 'Scanning for devices...';
     });
 
-    _meshManager.scanForDevices().listen((device) {
+    _scanSub = _meshManager.scanForDevices().listen((device) {
       setState(() {
         final id = device.deviceId;
         if (!_devices.any((d) => d.deviceId == id)) {
@@ -106,6 +110,8 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> _stopScan() async {
+    await _scanSub?.cancel();
+    _scanSub = null;
     await _meshManager.stopScan();
     setState(() {
       _isScanning = false;
@@ -205,148 +211,186 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(title: const Text('PlatoJobs nRF Mesh Example')),
-        body: Padding(
-          padding: const EdgeInsets.all(16.0),
+        body: SafeArea(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Status: $_status', style: const TextStyle(fontSize: 16)),
-              const SizedBox(height: 16),
-              if (_network != null)
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Network',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        Text('Name: ${_network?.name}'),
-                        Text('Nodes: ${_nodes.length}'),
-                        Text('Groups: ${_groups.length}'),
-                      ],
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 16,
-                runSpacing: 12,
-                children: [
-                  ElevatedButton(
-                    onPressed: _isScanning ? _stopScan : _startScan,
-                    child: Text(_isScanning ? 'Stop Scan' : 'Start Scan'),
-                  ),
-                  ElevatedButton(
-                    onPressed: _sendTestMessage,
-                    child: const Text('Send Test Message'),
-                  ),
-                  ElevatedButton(
-                    onPressed: _createGroup,
-                    child: const Text('Create Group'),
-                  ),
-                  ElevatedButton(
-                    onPressed: _configDemo,
-                    child: const Text('Config Demo'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const RealP1Page(),
-                        ),
-                      );
-                    },
-                    child: const Text('P1 Real Flow'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const ProvisioningDemoPage(),
-                        ),
-                      );
-                    },
-                    child: const Text('M1 Provisioning'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const GroupMessagingPage(),
-                        ),
-                      );
-                    },
-                    child: const Text('M3 Groupcast'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const ScenesPage(),
-                        ),
-                      );
-                    },
-                    child: const Text('M4 Scenes'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Provisioned Nodes',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              SizedBox(
-                height: 160,
-                child: ListView.builder(
-                  itemCount: _nodes.length,
-                  itemBuilder: (context, index) {
-                    final node = _nodes[index];
-                    final element = node.elements.isNotEmpty
-                        ? node.elements.first
-                        : null;
-                    final model = (element != null && element.models.isNotEmpty)
-                        ? element.models.first
-                        : null;
-                    return ListTile(
-                      dense: true,
-                      title: Text('Node ${node.uuid} @ ${node.unicastAddress}'),
-                      subtitle: model == null
-                          ? const Text('No model info')
-                          : Text(
-                              'Element: ${element!.address}\n'
-                              'Model: ${model.modelName} (${model.modelId})\n'
-                              'Bound AppKeys: ${model.boundAppKeyIndexes}\n'
-                              'Subs: ${model.subscriptions}\n'
-                              'Pub: ${model.publication == null ? 'null' : 'addr=${model.publication!.address} appKey=${model.publication!.appKeyIndex} ttl=${model.publication!.ttl}'}',
-                            ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Discovered Devices',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
               Expanded(
-                child: ListView.builder(
-                  itemCount: _devices.length,
-                  itemBuilder: (context, index) {
-                    final device = _devices[index];
-                    return ListTile(
-                      title: Text(device.name),
-                      subtitle: Text(
-                        'ID: ${device.deviceId}\nRSSI: ${device.rssi}',
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Status: $_status',
+                        style: const TextStyle(fontSize: 16),
                       ),
-                      trailing: ElevatedButton(
-                        onPressed: () => _provisionDevice(device),
-                        child: const Text('Provision'),
+                      const SizedBox(height: 16),
+                      if (_network != null)
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Network',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text('Name: ${_network?.name}'),
+                                Text('Nodes: ${_nodes.length}'),
+                                Text('Groups: ${_groups.length}'),
+                              ],
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 16,
+                        runSpacing: 12,
+                        children: [
+                          ElevatedButton(
+                            onPressed: _isScanning ? _stopScan : _startScan,
+                            child: Text(
+                              _isScanning ? 'Stop Scan' : 'Start Scan',
+                            ),
+                          ),
+                          ElevatedButton(
+                            onPressed: _sendTestMessage,
+                            child: const Text('Send Test Message'),
+                          ),
+                          ElevatedButton(
+                            onPressed: _createGroup,
+                            child: const Text('Create Group'),
+                          ),
+                          ElevatedButton(
+                            onPressed: _configDemo,
+                            child: const Text('Config Demo'),
+                          ),
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) => const RealP1Page(),
+                                ),
+                              );
+                            },
+                            child: const Text('P1 Real Flow'),
+                          ),
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) =>
+                                      const ProvisioningDemoPage(),
+                                ),
+                              );
+                            },
+                            child: const Text('M1 Provisioning'),
+                          ),
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) => const GroupMessagingPage(),
+                                ),
+                              );
+                            },
+                            child: const Text('M3 Groupcast'),
+                          ),
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) => const ScenesPage(),
+                                ),
+                              );
+                            },
+                            child: const Text('M4 Scenes'),
+                          ),
+                        ],
                       ),
-                    );
-                  },
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Provisioned Nodes',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _nodes.length,
+                        itemBuilder: (context, index) {
+                          final node = _nodes[index];
+                          final element = node.elements.isNotEmpty
+                              ? node.elements.first
+                              : null;
+                          final model =
+                              (element != null && element.models.isNotEmpty)
+                              ? element.models.first
+                              : null;
+                          return ListTile(
+                            dense: true,
+                            title: Text(
+                              'Node ${node.uuid} @ ${node.unicastAddress}',
+                            ),
+                            subtitle: model == null
+                                ? const Text('No model info')
+                                : Text(
+                                    'Element: ${element!.address}\n'
+                                    'Model: ${model.modelName} (${model.modelId})\n'
+                                    'Bound AppKeys: ${model.boundAppKeyIndexes}\n'
+                                    'Subs: ${model.subscriptions}\n'
+                                    'Pub: ${model.publication == null ? 'null' : 'addr=${model.publication!.address} appKey=${model.publication!.appKeyIndex} ttl=${model.publication!.ttl}'}',
+                                  ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Discovered Devices',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    SizedBox(
+                      height: 160,
+                      child: ListView.builder(
+                        itemCount: _devices.length,
+                        itemBuilder: (context, index) {
+                          final device = _devices[index];
+                          final uuidHint = device.serviceData.length == 16
+                              ? device.serviceData
+                                    .map(
+                                      (b) => b.toRadixString(16).padLeft(2, '0'),
+                                    )
+                                    .join()
+                              : 'no mesh UUID in adv';
+                          return ListTile(
+                            title: Text(device.name),
+                            subtitle: Text(
+                              'ID: ${device.deviceId}\n'
+                              'RSSI: ${device.rssi}\n'
+                              'UUID: $uuidHint',
+                            ),
+                            trailing: ElevatedButton(
+                              onPressed: device.serviceData.length == 16
+                                  ? () => _provisionDevice(device)
+                                  : null,
+                              child: const Text('Provision'),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

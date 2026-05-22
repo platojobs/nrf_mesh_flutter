@@ -2,8 +2,13 @@
 
 package com.platojobs.nrf_mesh
 
+import android.bluetooth.BluetoothManager
+import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanResult
+import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.ParcelUuid
 import android.util.Log
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import org.json.JSONArray
@@ -106,7 +111,14 @@ class PlatoJobsMeshPlugin :
 
     companion object {
         private const val TAG = "PlatoJobsMeshPlugin"
+        private val MESH_PROVISIONING_SERVICE: ParcelUuid =
+            ParcelUuid.fromString("00001827-0000-1000-8000-00805f9b34fb")
+        private val MESH_PROXY_SERVICE: ParcelUuid =
+            ParcelUuid.fromString("00001828-0000-1000-8000-00805f9b34fb")
     }
+
+    private var bleScanCallback: ScanCallback? = null
+    private val meshUuidByDeviceId: MutableMap<String, List<Long>> = ConcurrentHashMap()
 
     private data class PendingOob(
         val numeric: AuthAction.ProvideNumeric? = null,
@@ -351,11 +363,123 @@ class PlatoJobsMeshPlugin :
     }
 
     override fun startScan() {
-        // Transport layer is currently abstracted away; no-op for now.
+        val ctx = appContext ?: return
+        val btManager = ctx.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager ?: return
+        val adapter = btManager.adapter
+        if (adapter == null || !adapter.isEnabled) {
+            Log.w(TAG, "Bluetooth adapter unavailable or disabled")
+            return
+        }
+        val scanner = adapter.bluetoothLeScanner ?: return
+        stopScan()
+
+        bleScanCallback = object : ScanCallback() {
+            override fun onScanResult(callbackType: Int, result: ScanResult) {
+                emitDiscoveredDevice(result)
+            }
+
+            override fun onBatchScanResults(results: MutableList<ScanResult>) {
+                results.forEach { emitDiscoveredDevice(it) }
+            }
+
+            override fun onScanFailed(errorCode: Int) {
+                Log.w(TAG, "BLE scan failed error=$errorCode")
+            }
+        }
+
+        val settings = ScanSettings.Builder()
+            .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+            .build()
+        try {
+            scanner.startScan(null, settings, bleScanCallback)
+        } catch (se: SecurityException) {
+            Log.w(TAG, "BLE scan permission denied", se)
+        }
     }
 
     override fun stopScan() {
-        // no-op
+        val ctx = appContext ?: return
+        val btManager = ctx.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager ?: return
+        val adapter = btManager.adapter ?: return
+        val scanner = adapter.bluetoothLeScanner ?: return
+        val callback = bleScanCallback ?: return
+        try {
+            scanner.stopScan(callback)
+        } catch (se: SecurityException) {
+            Log.w(TAG, "BLE stopScan permission denied", se)
+        }
+        bleScanCallback = null
+    }
+
+    private fun emitDiscoveredDevice(result: ScanResult) {
+        val record = result.scanRecord ?: return
+        if (!isMeshAdvertisement(record)) return
+
+        val deviceId = result.device.address ?: return
+        val uuidBytes = extractMeshDeviceUuidBytes(record)
+        if (uuidBytes != null) {
+            meshUuidByDeviceId[deviceId] = uuidBytes
+        }
+
+        val serviceUuids = record.serviceUuids ?: emptyList()
+        val svc = when {
+            serviceUuids.contains(MESH_PROVISIONING_SERVICE) ||
+                record.getServiceData(MESH_PROVISIONING_SERVICE) != null -> "1827"
+            serviceUuids.contains(MESH_PROXY_SERVICE) ||
+                record.getServiceData(MESH_PROXY_SERVICE) != null -> "1828"
+            else -> ""
+        }
+
+        val name = result.device.name?.takeIf { it.isNotEmpty() }
+            ?: when (svc) {
+                "1827" -> "Unprovisioned"
+                "1828" -> "Proxy"
+                else -> "Mesh"
+            }
+
+        flutterApi?.onDeviceDiscovered(
+            FlutterUnprovisionedDevice(
+                deviceId = deviceId,
+                name = name,
+                rssi = result.rssi.toLong(),
+                uuid = uuidBytes ?: meshUuidByDeviceId[deviceId],
+                serviceUuid = svc,
+            )
+        ) {}
+    }
+
+    private fun isMeshAdvertisement(record: android.bluetooth.le.ScanRecord): Boolean {
+        val serviceUuids = record.serviceUuids ?: emptyList()
+        if (serviceUuids.contains(MESH_PROVISIONING_SERVICE) ||
+            serviceUuids.contains(MESH_PROXY_SERVICE)
+        ) {
+            return true
+        }
+        if (record.getServiceData(MESH_PROVISIONING_SERVICE) != null ||
+            record.getServiceData(MESH_PROXY_SERVICE) != null
+        ) {
+            return true
+        }
+        return extractMeshDeviceUuidBytes(record) != null
+    }
+
+    private fun extractMeshDeviceUuidBytes(record: android.bluetooth.le.ScanRecord): List<Long>? {
+        record.getServiceData(MESH_PROVISIONING_SERVICE)?.let { data ->
+            if (data.size >= 16) {
+                return data.copyOfRange(0, 16).map { (it.toInt() and 0xFF).toLong() }
+            }
+        }
+        val mfg = record.manufacturerSpecificData
+        for (i in 0 until mfg.size()) {
+            val payload = mfg.valueAt(i) ?: continue
+            if (payload.size >= 19 && payload[2].toInt() == 0x00) {
+                return payload.copyOfRange(3, 19).map { (it.toInt() and 0xFF).toLong() }
+            }
+            if (payload.size >= 17 && payload[0].toInt() == 0x00) {
+                return payload.copyOfRange(1, 17).map { (it.toInt() and 0xFF).toLong() }
+            }
+        }
+        return null
     }
 
     override fun provisionDevice(
@@ -407,8 +531,14 @@ class PlatoJobsMeshPlugin :
         }
 
         @OptIn(ExperimentalUuidApi::class)
-        val uuid = toKotlinUuid(device.uuid)
-            ?: throw IllegalArgumentException("Device UUID must be 16 bytes")
+        val uuidBytes = when {
+            device.uuid != null && device.uuid!!.size == 16 -> device.uuid
+            else -> meshUuidByDeviceId[deviceId]
+        }
+        val uuid = toKotlinUuid(uuidBytes)
+            ?: throw IllegalArgumentException(
+                "Device UUID must be 16 bytes (scan again; device must advertise Mesh Provisioning Service data)"
+            )
         val kmDevice = KmUnprovisionedDevice(
             name = device.name ?: (params.deviceName ?: ""),
             uuid = uuid
