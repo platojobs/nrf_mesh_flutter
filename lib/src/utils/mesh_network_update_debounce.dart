@@ -17,6 +17,19 @@ Stream<int> debounceMeshNetworkUpdates(
   StreamSubscription<int>? subscription;
   Timer? timer;
   int? pending;
+  bool sourceDone = false;
+
+  void emitPendingAndCloseIfDone() {
+    final value = pending;
+    pending = null;
+    timer = null;
+    if (value != null && !controller.isClosed) {
+      controller.add(value);
+    }
+    if (sourceDone && !controller.isClosed) {
+      unawaited(controller.close());
+    }
+  }
 
   controller = StreamController<int>(
     sync: true,
@@ -25,17 +38,16 @@ Stream<int> debounceMeshNetworkUpdates(
         (seq) {
           pending = seq;
           timer?.cancel();
-          timer = Timer(quietPeriod, () {
-            final value = pending;
-            pending = null;
-            if (value != null && !controller.isClosed) {
-              controller.add(value);
-            }
-          });
+          timer = Timer(quietPeriod, emitPendingAndCloseIfDone);
         },
         onError: controller.addError,
         onDone: () async {
-          timer?.cancel();
+          sourceDone = true;
+          if (timer != null) {
+            timer?.cancel();
+            emitPendingAndCloseIfDone();
+            return;
+          }
           await controller.close();
         },
         cancelOnError: false,

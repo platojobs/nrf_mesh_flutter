@@ -37,4 +37,20 @@ void main() {
     await sub.cancel();
     await source.close();
   });
+
+  test('debounceMeshNetworkUpdates flushes the latest value before close', () async {
+    final source = StreamController<int>.broadcast();
+    final out = <int>[];
+    final done = Completer<void>();
+    debounceMeshNetworkUpdates(source.stream, quiet).listen(
+      out.add,
+      onDone: done.complete,
+    );
+
+    source.add(7);
+    await source.close();
+    await done.future;
+
+    expect(out, [7]);
+  });
 }

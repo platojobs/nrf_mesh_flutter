@@ -124,12 +124,14 @@ class _RealP1PageState extends State<RealP1Page> {
       _log(
         'MeshBearerSnapshot phase=${s.phase} proxyNative=${s.proxyConnected} provisioningNative=${s.provisioningConnected}',
       );
-      final pf = await _mesh.supportsProxyFilter();
+      final caps = await _mesh.getCapabilities();
       if (!mounted) return;
-      _log('supportsProxyFilter=$pf (Phase 3.2)');
+      _log(
+        'MeshCapabilities rxSource=${caps.rxSourceAddress} rxAppKeyIndex=${caps.rxAppKeyIndex} proxyFilter=${caps.proxyFilter} (Phase 3.2)',
+      );
     } catch (e) {
       if (!mounted) return;
-      _log('getMeshBearerSnapshot / supportsProxyFilter error: $e');
+      _log('getMeshBearerSnapshot / getCapabilities error: $e');
     }
   }
 

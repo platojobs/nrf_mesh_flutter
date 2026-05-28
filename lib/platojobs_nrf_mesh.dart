@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'src/core/mesh_manager_api.dart';
 import 'src/models/mesh_bearer_snapshot.dart';
+import 'src/models/mesh_capabilities.dart';
+import 'src/models/mesh_proxy_filter.dart';
 import 'src/models/mesh_network.dart' as net_models;
 import 'src/models/provisioned_node.dart' as node_models;
 import 'src/models/unprovisioned_device.dart' as dev_models;
@@ -22,6 +24,9 @@ export 'src/models/provisioned_node.dart'
 export 'src/models/mesh_group.dart' show MeshGroup;
 export 'src/models/mesh_bearer_snapshot.dart'
     show MeshBearerSnapshot, MeshBearerPhase;
+export 'src/models/mesh_capabilities.dart'
+    show MeshCapabilities, MeshProxyFilterCapability;
+export 'src/models/mesh_proxy_filter.dart' show MeshProxyFilterType;
 export 'src/models/mesh_message.dart'
     show
         MeshMessage,
@@ -328,6 +333,32 @@ class PlatoJobsNrfMeshManager {
   /// Phase **3.2**: whether **Proxy Filter** can be configured from Dart (**false** today).
   Future<bool> supportsProxyFilter() async {
     return await _meshManagerApi.supportsProxyFilter();
+  }
+
+  /// Whether the native SDK manages Proxy Filter automatically even without
+  /// explicit Flutter-side controls.
+  Future<bool> supportsAutomaticProxyFilter() async {
+    return await _meshManagerApi.supportsAutomaticProxyFilter();
+  }
+
+  /// Aggregated capability snapshot for receive metadata and Proxy Filter support.
+  Future<MeshCapabilities> getCapabilities() async {
+    return await _meshManagerApi.getCapabilities();
+  }
+
+  /// Sets explicit Proxy Filter type on the connected Proxy Node.
+  Future<bool> setProxyFilterType(MeshProxyFilterType type) async {
+    return await _meshManagerApi.setProxyFilterType(type);
+  }
+
+  /// Adds addresses to the explicit Proxy Filter list on the connected Proxy Node.
+  Future<bool> addProxyFilterAddresses(List<int> addresses) async {
+    return await _meshManagerApi.addProxyFilterAddresses(addresses);
+  }
+
+  /// Removes addresses from the explicit Proxy Filter list on the connected Proxy Node.
+  Future<bool> removeProxyFilterAddresses(List<int> addresses) async {
+    return await _meshManagerApi.removeProxyFilterAddresses(addresses);
   }
 
   /// Clear persisted secure mesh state used for stable Access sending.
@@ -667,10 +698,12 @@ class PlatoJobsNrfMeshManager {
   }
 
   /// Phase **3.1**: unified bearer view from **`isProxyConnected`** /
-  /// **`isProvisioningConnected`** (provisioning phase wins if both report true).
+  /// **`isProvisioningConnected`** plus local in-flight connect state tracked by
+  /// this Dart facade.
   ///
-  /// See [MeshBearerSnapshot] — **`connecting`** is not represented; await native
-  /// connect calls locally if you need in-flight UI.
+  /// Native Nordic SDK probes report connected / disconnected; while a connect
+  /// call is pending, this snapshot may surface [MeshBearerPhase.proxyConnecting]
+  /// or [MeshBearerPhase.provisioningConnecting].
   Future<MeshBearerSnapshot> getMeshBearerSnapshot() async {
     return await _meshManagerApi.getMeshBearerSnapshot();
   }

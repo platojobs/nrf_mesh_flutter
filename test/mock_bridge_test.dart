@@ -113,6 +113,145 @@ void main() {
     expect(await PlatoJobsNrfMeshManager.instance.supportsRxSourceAddress(), true);
     expect(await PlatoJobsNrfMeshManager.instance.supportsRxAppKeyIndex(), false);
     expect(await PlatoJobsNrfMeshManager.instance.supportsProxyFilter(), false);
+    expect(
+      await PlatoJobsNrfMeshManager.instance.supportsAutomaticProxyFilter(),
+      false,
+    );
+
+    await fake.dispose();
+  });
+
+  test('Fake bridge exposes aggregated capability snapshot', () async {
+    final fake = FakePlatoJobsMeshBridge();
+    PlatoJobsNrfMeshManager.setBridgeForTesting(fake);
+    await PlatoJobsNrfMeshManager.instance.initialize();
+
+    final caps = await PlatoJobsNrfMeshManager.instance.getCapabilities();
+    expect(caps.rxSourceAddress, true);
+    expect(caps.rxAppKeyIndex, false);
+    expect(caps.proxyFilter, MeshProxyFilterCapability.unsupported);
+
+    await fake.dispose();
+  });
+
+  test('Fake bridge can simulate explicit Proxy Filter capability', () async {
+    final fake = FakePlatoJobsMeshBridge(
+      rxSourceAddressSupported: false,
+      rxAppKeyIndexSupported: true,
+      proxyFilterSupported: true,
+    );
+    PlatoJobsNrfMeshManager.setBridgeForTesting(fake);
+    await PlatoJobsNrfMeshManager.instance.initialize();
+
+    final caps = await PlatoJobsNrfMeshManager.instance.getCapabilities();
+    expect(caps.rxSourceAddress, false);
+    expect(caps.rxAppKeyIndex, true);
+    expect(caps.proxyFilter, MeshProxyFilterCapability.explicitControl);
+
+    await fake.dispose();
+  });
+
+  test('Fake bridge supports explicit Proxy Filter operations', () async {
+    final fake = FakePlatoJobsMeshBridge(proxyFilterSupported: true);
+    PlatoJobsNrfMeshManager.setBridgeForTesting(fake);
+    await PlatoJobsNrfMeshManager.instance.initialize();
+
+    expect(
+      await PlatoJobsNrfMeshManager.instance.setProxyFilterType(
+        MeshProxyFilterType.blacklist,
+      ),
+      true,
+    );
+    expect(
+      await PlatoJobsNrfMeshManager.instance.addProxyFilterAddresses(
+        const <int>[0x0003, 0xC000],
+      ),
+      true,
+    );
+    expect(
+      await PlatoJobsNrfMeshManager.instance.removeProxyFilterAddresses(
+        const <int>[0x0003],
+      ),
+      true,
+    );
+
+    expect(fake.proxyFilterType, MeshProxyFilterType.blacklist);
+    expect(fake.proxyFilterAddresses, <int>{0xC000});
+
+    await fake.dispose();
+  });
+
+
+  test('Proxy Filter operations are serialized through the command queue', () async {
+    final fake = FakePlatoJobsMeshBridge(proxyFilterSupported: true);
+    fake.nextProxyFilterDelay = const Duration(milliseconds: 40);
+    PlatoJobsNrfMeshManager.setBridgeForTesting(fake);
+    await PlatoJobsNrfMeshManager.instance.initialize();
+
+    await Future.wait<void>(<Future<void>>[
+      PlatoJobsNrfMeshManager.instance.setProxyFilterType(
+        MeshProxyFilterType.blacklist,
+      ),
+      PlatoJobsNrfMeshManager.instance.addProxyFilterAddresses(
+        const <int>[0x0003],
+      ),
+      PlatoJobsNrfMeshManager.instance.removeProxyFilterAddresses(
+        const <int>[0x0003],
+      ),
+    ]);
+
+    expect(fake.proxyFilterOperationLog, <String>[
+      'set:blacklist',
+      'add:3',
+      'remove:3',
+    ]);
+    expect(fake.proxyFilterType, MeshProxyFilterType.blacklist);
+    expect(fake.proxyFilterAddresses, isEmpty);
+
+    await fake.dispose();
+  });
+
+  test('Proxy Filter address validation rejects empty and out-of-range values', () async {
+    final fake = FakePlatoJobsMeshBridge(proxyFilterSupported: true);
+    PlatoJobsNrfMeshManager.setBridgeForTesting(fake);
+    await PlatoJobsNrfMeshManager.instance.initialize();
+
+    await expectLater(
+      () => PlatoJobsNrfMeshManager.instance.addProxyFilterAddresses(
+        const <int>[],
+      ),
+      throwsA(isA<ArgumentError>()),
+    );
+    await expectLater(
+      () => PlatoJobsNrfMeshManager.instance.addProxyFilterAddresses(
+        const <int>[0x0000],
+      ),
+      throwsA(isA<ArgumentError>()),
+    );
+    await expectLater(
+      () => PlatoJobsNrfMeshManager.instance.removeProxyFilterAddresses(
+        const <int>[0x1_0000],
+      ),
+      throwsA(isA<ArgumentError>()),
+    );
+
+    await fake.dispose();
+  });
+
+  test('Fake bridge can simulate automatic Proxy Filter capability', () async {
+    final fake = FakePlatoJobsMeshBridge(
+      automaticProxyFilterSupported: true,
+    );
+    PlatoJobsNrfMeshManager.setBridgeForTesting(fake);
+    await PlatoJobsNrfMeshManager.instance.initialize();
+
+    expect(
+      await PlatoJobsNrfMeshManager.instance.supportsAutomaticProxyFilter(),
+      true,
+    );
+
+    final caps = await PlatoJobsNrfMeshManager.instance.getCapabilities();
+    expect(caps.proxyFilter, MeshProxyFilterCapability.automaticOnly);
 
     await fake.dispose();
   });
@@ -203,4 +342,197 @@ void main() {
 
     await fake.dispose();
   });
+
+  test('Mesh bearer snapshot reflects proxyConnecting while connect is in flight', () async {
+    final fake = _DelayedProxyBridge();
+    PlatoJobsNrfMeshManager.setBridgeForTesting(fake);
+    await PlatoJobsNrfMeshManager.instance.initialize();
+
+    final connectFuture = PlatoJobsNrfMeshManager.instance.connectProxy(
+      'dev-proxy',
+      0x0003,
+    );
+
+    expect(
+      (await PlatoJobsNrfMeshManager.instance.getMeshBearerSnapshot()).phase,
+      MeshBearerPhase.proxyConnecting,
+    );
+
+    await connectFuture;
+    expect(
+      (await PlatoJobsNrfMeshManager.instance.getMeshBearerSnapshot()).phase,
+      MeshBearerPhase.proxyReady,
+    );
+
+    await fake.dispose();
+  });
+
+  test(
+    'Mesh bearer snapshot returns to disconnected after failed proxy connect',
+    () async {
+      final fake = _DelayedFailingProxyBridge();
+      PlatoJobsNrfMeshManager.setBridgeForTesting(fake);
+      await PlatoJobsNrfMeshManager.instance.initialize();
+
+      final connectFuture = PlatoJobsNrfMeshManager.instance.connectProxy(
+        'dev-proxy',
+        0x0003,
+      );
+
+      expect(
+        (await PlatoJobsNrfMeshManager.instance.getMeshBearerSnapshot()).phase,
+        MeshBearerPhase.proxyConnecting,
+      );
+
+      expect(await connectFuture, false);
+      expect(
+        (await PlatoJobsNrfMeshManager.instance.getMeshBearerSnapshot()).phase,
+        MeshBearerPhase.disconnected,
+      );
+
+      await fake.dispose();
+    },
+  );
+
+  test(
+    'Mesh bearer snapshot reflects provisioningConnecting while connect is in flight',
+    () async {
+      final fake = _DelayedProvisioningBridge();
+      PlatoJobsNrfMeshManager.setBridgeForTesting(fake);
+      await PlatoJobsNrfMeshManager.instance.initialize();
+
+      final connectFuture = PlatoJobsNrfMeshManager.instance.connectProvisioning(
+        'dev-prov',
+      );
+
+      expect(
+        (await PlatoJobsNrfMeshManager.instance.getMeshBearerSnapshot()).phase,
+        MeshBearerPhase.provisioningConnecting,
+      );
+
+      await connectFuture;
+      expect(
+        (await PlatoJobsNrfMeshManager.instance.getMeshBearerSnapshot()).phase,
+        MeshBearerPhase.provisioning,
+      );
+
+      await fake.dispose();
+    },
+  );
+
+  test(
+    'Mesh bearer snapshot returns to disconnected after failed provisioning connect',
+    () async {
+      final fake = _DelayedFailingProvisioningBridge();
+      PlatoJobsNrfMeshManager.setBridgeForTesting(fake);
+      await PlatoJobsNrfMeshManager.instance.initialize();
+
+      final connectFuture = PlatoJobsNrfMeshManager.instance.connectProvisioning(
+        'dev-prov',
+      );
+
+      expect(
+        (await PlatoJobsNrfMeshManager.instance.getMeshBearerSnapshot()).phase,
+        MeshBearerPhase.provisioningConnecting,
+      );
+
+      expect(await connectFuture, false);
+      expect(
+        (await PlatoJobsNrfMeshManager.instance.getMeshBearerSnapshot()).phase,
+        MeshBearerPhase.disconnected,
+      );
+
+      await fake.dispose();
+    },
+  );
+
+  test(
+    'Concurrent proxy connect then disconnect resolves in disconnect order',
+    () async {
+      final fake = _DelayedProxyBridge();
+      PlatoJobsNrfMeshManager.setBridgeForTesting(fake);
+      await PlatoJobsNrfMeshManager.instance.initialize();
+
+      final connectFuture = PlatoJobsNrfMeshManager.instance.connectProxy(
+        'dev-proxy',
+        0x0003,
+      );
+      final disconnectFuture =
+          PlatoJobsNrfMeshManager.instance.disconnectProxy();
+
+      expect(
+        (await PlatoJobsNrfMeshManager.instance.getMeshBearerSnapshot()).phase,
+        MeshBearerPhase.proxyConnecting,
+      );
+
+      expect(await connectFuture, true);
+      expect(await disconnectFuture, true);
+      expect(
+        (await PlatoJobsNrfMeshManager.instance.getMeshBearerSnapshot()).phase,
+        MeshBearerPhase.disconnected,
+      );
+
+      await fake.dispose();
+    },
+  );
+
+  test(
+    'Concurrent provisioning connect then disconnect resolves in disconnect order',
+    () async {
+      final fake = _DelayedProvisioningBridge();
+      PlatoJobsNrfMeshManager.setBridgeForTesting(fake);
+      await PlatoJobsNrfMeshManager.instance.initialize();
+
+      final connectFuture = PlatoJobsNrfMeshManager.instance
+          .connectProvisioning('dev-prov');
+      final disconnectFuture =
+          PlatoJobsNrfMeshManager.instance.disconnectProvisioning();
+
+      expect(
+        (await PlatoJobsNrfMeshManager.instance.getMeshBearerSnapshot()).phase,
+        MeshBearerPhase.provisioningConnecting,
+      );
+
+      expect(await connectFuture, true);
+      expect(await disconnectFuture, true);
+      expect(
+        (await PlatoJobsNrfMeshManager.instance.getMeshBearerSnapshot()).phase,
+        MeshBearerPhase.disconnected,
+      );
+
+      await fake.dispose();
+    },
+  );
+}
+
+class _DelayedProxyBridge extends FakePlatoJobsMeshBridge {
+  @override
+  Future<bool> connectProxy(String deviceId, int proxyUnicastAddress) async {
+    await Future<void>.delayed(const Duration(milliseconds: 25));
+    return super.connectProxy(deviceId, proxyUnicastAddress);
+  }
+}
+
+class _DelayedProvisioningBridge extends FakePlatoJobsMeshBridge {
+  @override
+  Future<bool> connectProvisioning(String deviceId) async {
+    await Future<void>.delayed(const Duration(milliseconds: 25));
+    return super.connectProvisioning(deviceId);
+  }
+}
+
+class _DelayedFailingProxyBridge extends FakePlatoJobsMeshBridge {
+  @override
+  Future<bool> connectProxy(String deviceId, int proxyUnicastAddress) async {
+    await Future<void>.delayed(const Duration(milliseconds: 25));
+    return false;
+  }
+}
+
+class _DelayedFailingProvisioningBridge extends FakePlatoJobsMeshBridge {
+  @override
+  Future<bool> connectProvisioning(String deviceId) async {
+    await Future<void>.delayed(const Duration(milliseconds: 25));
+    return false;
+  }
 }

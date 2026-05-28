@@ -1328,6 +1328,24 @@ interface MeshApi {
    */
   fun supportsProxyFilter(): Boolean
   /**
+   * Whether the native SDK already manages Proxy Filter automatically even
+   * though Flutter cannot configure it directly.
+   *
+   * This maps to stacks such as iOS nRF Mesh where automatic proxy filter
+   * management exists before explicit Proxy Configuration APIs are bridged.
+   */
+  fun supportsAutomaticProxyFilter(): Boolean
+  /**
+   * Sets the explicit Proxy Filter type on the connected Proxy Node.
+   *
+   * [type] uses `0 = whitelist`, `1 = blacklist`.
+   */
+  fun setProxyFilterType(type: Long): Boolean
+  /** Adds addresses to the explicit Proxy Filter list on the connected Proxy Node. */
+  fun addProxyFilterAddresses(addresses: List<Long>): Boolean
+  /** Removes addresses from the explicit Proxy Filter list on the connected Proxy Node. */
+  fun removeProxyFilterAddresses(addresses: List<Long>): Boolean
+  /**
    * Clear persisted secure mesh state used for stable Access message sending.
    *
    * Intended for debugging and recovery (e.g. when switching Mesh DBs).
@@ -2279,6 +2297,72 @@ interface MeshApi {
           channel.setMessageHandler { _, reply ->
             val wrapped: List<Any?> = try {
               listOf(api.supportsProxyFilter())
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.supportsAutomaticProxyFilter$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            val wrapped: List<Any?> = try {
+              listOf(api.supportsAutomaticProxyFilter())
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setProxyFilterType$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val typeArg = args[0] as Long
+            val wrapped: List<Any?> = try {
+              listOf(api.setProxyFilterType(typeArg))
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.addProxyFilterAddresses$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val addressesArg = args[0] as List<Long>
+            val wrapped: List<Any?> = try {
+              listOf(api.addProxyFilterAddresses(addressesArg))
+            } catch (exception: Throwable) {
+              PigeonGeneratedPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeProxyFilterAddresses$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val addressesArg = args[0] as List<Long>
+            val wrapped: List<Any?> = try {
+              listOf(api.removeProxyFilterAddresses(addressesArg))
             } catch (exception: Throwable) {
               PigeonGeneratedPigeonUtils.wrapError(exception)
             }

@@ -461,6 +461,28 @@ NSObject<FlutterMessageCodec> *nullGetPigeonGeneratedCodec(void);
 ///
 /// @return `nil` only when `error != nil`.
 - (nullable NSNumber *)supportsProxyFilterWithError:(FlutterError *_Nullable *_Nonnull)error;
+/// Whether the native SDK already manages Proxy Filter automatically even
+/// though Flutter cannot configure it directly.
+///
+/// This maps to stacks such as iOS nRF Mesh where automatic proxy filter
+/// management exists before explicit Proxy Configuration APIs are bridged.
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)supportsAutomaticProxyFilterWithError:(FlutterError *_Nullable *_Nonnull)error;
+/// Sets the explicit Proxy Filter type on the connected Proxy Node.
+///
+/// [type] uses `0 = whitelist`, `1 = blacklist`.
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)setProxyFilterTypeType:(NSInteger)type error:(FlutterError *_Nullable *_Nonnull)error;
+/// Adds addresses to the explicit Proxy Filter list on the connected Proxy Node.
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)addProxyFilterAddressesAddresses:(NSArray<NSNumber *> *)addresses error:(FlutterError *_Nullable *_Nonnull)error;
+/// Removes addresses from the explicit Proxy Filter list on the connected Proxy Node.
+///
+/// @return `nil` only when `error != nil`.
+- (nullable NSNumber *)removeProxyFilterAddressesAddresses:(NSArray<NSNumber *> *)addresses error:(FlutterError *_Nullable *_Nonnull)error;
 /// Clear persisted secure mesh state used for stable Access message sending.
 ///
 /// Intended for debugging and recovery (e.g. when switching Mesh DBs).

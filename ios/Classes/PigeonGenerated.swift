@@ -1229,6 +1229,20 @@ protocol MeshApi {
   ///
   /// Currently **false** — Nordic bearer defaults apply; explicit Proxy Filter APIs are not wired yet.
   func supportsProxyFilter() throws -> Bool
+  /// Whether the native SDK already manages Proxy Filter automatically even
+  /// though Flutter cannot configure it directly.
+  ///
+  /// This maps to stacks such as iOS nRF Mesh where automatic proxy filter
+  /// management exists before explicit Proxy Configuration APIs are bridged.
+  func supportsAutomaticProxyFilter() throws -> Bool
+  /// Sets the explicit Proxy Filter type on the connected Proxy Node.
+  ///
+  /// [type] uses `0 = whitelist`, `1 = blacklist`.
+  func setProxyFilterType(type: Int64) throws -> Bool
+  /// Adds addresses to the explicit Proxy Filter list on the connected Proxy Node.
+  func addProxyFilterAddresses(addresses: [Int64]) throws -> Bool
+  /// Removes addresses from the explicit Proxy Filter list on the connected Proxy Node.
+  func removeProxyFilterAddresses(addresses: [Int64]) throws -> Bool
   /// Clear persisted secure mesh state used for stable Access message sending.
   ///
   /// Intended for debugging and recovery (e.g. when switching Mesh DBs).
@@ -2132,6 +2146,74 @@ class MeshApiSetup {
       }
     } else {
       supportsProxyFilterChannel.setMessageHandler(nil)
+    }
+    /// Whether the native SDK already manages Proxy Filter automatically even
+    /// though Flutter cannot configure it directly.
+    ///
+    /// This maps to stacks such as iOS nRF Mesh where automatic proxy filter
+    /// management exists before explicit Proxy Configuration APIs are bridged.
+    let supportsAutomaticProxyFilterChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.supportsAutomaticProxyFilter\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      supportsAutomaticProxyFilterChannel.setMessageHandler { _, reply in
+        do {
+          let result = try api.supportsAutomaticProxyFilter()
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      supportsAutomaticProxyFilterChannel.setMessageHandler(nil)
+    }
+    /// Sets the explicit Proxy Filter type on the connected Proxy Node.
+    ///
+    /// [type] uses `0 = whitelist`, `1 = blacklist`.
+    let setProxyFilterTypeChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setProxyFilterType\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      setProxyFilterTypeChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let typeArg = args[0] as! Int64
+        do {
+          let result = try api.setProxyFilterType(type: typeArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      setProxyFilterTypeChannel.setMessageHandler(nil)
+    }
+    /// Adds addresses to the explicit Proxy Filter list on the connected Proxy Node.
+    let addProxyFilterAddressesChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.addProxyFilterAddresses\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      addProxyFilterAddressesChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let addressesArg = args[0] as! [Int64]
+        do {
+          let result = try api.addProxyFilterAddresses(addresses: addressesArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      addProxyFilterAddressesChannel.setMessageHandler(nil)
+    }
+    /// Removes addresses from the explicit Proxy Filter list on the connected Proxy Node.
+    let removeProxyFilterAddressesChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeProxyFilterAddresses\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      removeProxyFilterAddressesChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let addressesArg = args[0] as! [Int64]
+        do {
+          let result = try api.removeProxyFilterAddresses(addresses: addressesArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      removeProxyFilterAddressesChannel.setMessageHandler(nil)
     }
     /// Clear persisted secure mesh state used for stable Access message sending.
     ///

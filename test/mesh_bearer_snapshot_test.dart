@@ -23,6 +23,17 @@ void main() {
       );
     });
 
+    test('proxyConnecting when proxy connect is pending', () {
+      expect(
+        MeshBearerPhase.fromNativeFlags(
+          proxyConnected: false,
+          provisioningConnected: false,
+          proxyConnecting: true,
+        ),
+        MeshBearerPhase.proxyConnecting,
+      );
+    });
+
     test('provisioning when only provisioning true', () {
       expect(
         MeshBearerPhase.fromNativeFlags(
@@ -33,6 +44,17 @@ void main() {
       );
     });
 
+    test('provisioningConnecting when provisioning connect is pending', () {
+      expect(
+        MeshBearerPhase.fromNativeFlags(
+          proxyConnected: false,
+          provisioningConnected: false,
+          provisioningConnecting: true,
+        ),
+        MeshBearerPhase.provisioningConnecting,
+      );
+    });
+
     test('provisioning wins when both true', () {
       expect(
         MeshBearerPhase.fromNativeFlags(
@@ -40,6 +62,18 @@ void main() {
           provisioningConnected: true,
         ),
         MeshBearerPhase.provisioning,
+      );
+    });
+
+    test('provisioningConnecting wins when both connects are pending', () {
+      expect(
+        MeshBearerPhase.fromNativeFlags(
+          proxyConnected: false,
+          provisioningConnected: false,
+          proxyConnecting: true,
+          provisioningConnecting: true,
+        ),
+        MeshBearerPhase.provisioningConnecting,
       );
     });
   });

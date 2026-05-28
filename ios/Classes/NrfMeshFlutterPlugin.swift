@@ -1095,12 +1095,23 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
 
         // Open and wait (briefly) for bearerDidOpen.
         bearer.open()
-        return waitUntil(timeoutSeconds: 10.0) { self.proxyConnected }
+        let connected = waitUntil(timeoutSeconds: 10.0) { self.proxyConnected }
+        if !connected {
+            bearer.close()
+            if proxyBearer === bearer {
+                proxyBearer = nil
+            }
+            meshManager.transmitter = nil
+            proxyConnected = false
+        }
+        return connected
     }
 
     func disconnectProxy() throws -> Bool {
         proxyBearer?.close()
+        meshManager.transmitter = nil
         proxyBearer = nil
+        proxyConnected = false
         return true
     }
 
@@ -1127,7 +1138,15 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
             attentionTimer: nil
         )) { _ in }
 
-        return waitUntil(timeoutSeconds: 10.0) { self.provisioningConnected }
+        let connected = waitUntil(timeoutSeconds: 10.0) { self.provisioningConnected }
+        if !connected {
+            centralManager.cancelPeripheralConnection(p)
+            if provisioningPeripheral == p {
+                provisioningPeripheral = nil
+            }
+            provisioningConnected = false
+        }
+        return connected
     }
 
     func disconnectProvisioning() throws -> Bool {
@@ -1179,7 +1198,35 @@ public class PlatoJobsMeshPlugin: NSObject, FlutterPlugin, MeshApi {
     }
 
     func supportsProxyFilter() throws -> Bool {
-        // Phase 3.2 — Proxy Filter controls not surfaced through this bridge yet.
+        // Official iOS nRF Mesh 4.8.0 includes ProxyFilter / SetFilterType /
+        // AddAddressesToFilter / RemoveAddressesFromFilter internally, but the
+        // relevant MeshNetworkManager.send(...) and ProxyFilter mutation APIs are
+        // not public across the NordicMesh module boundary. This bridge therefore
+        // cannot expose explicit control without forking or wrapping the SDK.
+        return false
+    }
+
+    func supportsAutomaticProxyFilter() throws -> Bool {
+        // The official iOS nRF Mesh library still manages Proxy Filter automatically
+        // for nearby proxy nodes even though explicit mutation APIs are not public.
+        return true
+    }
+
+    func setProxyFilterType(type: Int64) throws -> Bool {
+        // See supportsProxyFilter(): explicit iOS Proxy Filter mutation is blocked
+        // by the current public SDK surface, so this bridge stays automatic-only.
+        return false
+    }
+
+    func addProxyFilterAddresses(addresses: [Int64]) throws -> Bool {
+        // See supportsProxyFilter(): explicit iOS Proxy Filter mutation is blocked
+        // by the current public SDK surface, so this bridge stays automatic-only.
+        return false
+    }
+
+    func removeProxyFilterAddresses(addresses: [Int64]) throws -> Bool {
+        // See supportsProxyFilter(): explicit iOS Proxy Filter mutation is blocked
+        // by the current public SDK surface, so this bridge stays automatic-only.
         return false
     }
 

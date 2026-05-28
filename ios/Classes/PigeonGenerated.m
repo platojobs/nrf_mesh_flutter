@@ -2339,6 +2339,90 @@ void SetUpMeshApiWithSuffix(id<FlutterBinaryMessenger> binaryMessenger, NSObject
       [channel setMessageHandler:nil];
     }
   }
+  /// Whether the native SDK already manages Proxy Filter automatically even
+  /// though Flutter cannot configure it directly.
+  ///
+  /// This maps to stacks such as iOS nRF Mesh where automatic proxy filter
+  /// management exists before explicit Proxy Configuration APIs are bridged.
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.supportsAutomaticProxyFilter", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(supportsAutomaticProxyFilterWithError:)], @"MeshApi api (%@) doesn't respond to @selector(supportsAutomaticProxyFilterWithError:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        FlutterError *error;
+        NSNumber *output = [api supportsAutomaticProxyFilterWithError:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  /// Sets the explicit Proxy Filter type on the connected Proxy Node.
+  ///
+  /// [type] uses `0 = whitelist`, `1 = blacklist`.
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.setProxyFilterType", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(setProxyFilterTypeType:error:)], @"MeshApi api (%@) doesn't respond to @selector(setProxyFilterTypeType:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSInteger arg_type = [GetNullableObjectAtIndex(args, 0) integerValue];
+        FlutterError *error;
+        NSNumber *output = [api setProxyFilterTypeType:arg_type error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  /// Adds addresses to the explicit Proxy Filter list on the connected Proxy Node.
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.addProxyFilterAddresses", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(addProxyFilterAddressesAddresses:error:)], @"MeshApi api (%@) doesn't respond to @selector(addProxyFilterAddressesAddresses:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSArray<NSNumber *> *arg_addresses = GetNullableObjectAtIndex(args, 0);
+        FlutterError *error;
+        NSNumber *output = [api addProxyFilterAddressesAddresses:arg_addresses error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  /// Removes addresses from the explicit Proxy Filter list on the connected Proxy Node.
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.nrf_mesh_flutter.MeshApi.removeProxyFilterAddresses", messageChannelSuffix]
+        binaryMessenger:binaryMessenger
+        codec:nullGetPigeonGeneratedCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(removeProxyFilterAddressesAddresses:error:)], @"MeshApi api (%@) doesn't respond to @selector(removeProxyFilterAddressesAddresses:error:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        NSArray<id> *args = message;
+        NSArray<NSNumber *> *arg_addresses = GetNullableObjectAtIndex(args, 0);
+        FlutterError *error;
+        NSNumber *output = [api removeProxyFilterAddressesAddresses:arg_addresses error:&error];
+        callback(wrapResult(output, error));
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
   /// Clear persisted secure mesh state used for stable Access message sending.
   ///
   /// Intended for debugging and recovery (e.g. when switching Mesh DBs).

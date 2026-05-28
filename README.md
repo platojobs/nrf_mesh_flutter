@@ -25,7 +25,7 @@ Add `nrf_mesh_flutter` to your `pubspec.yaml`:
 dependencies:
   flutter:
     sdk: flutter
-  nrf_mesh_flutter: ^6.9.7
+  nrf_mesh_flutter: ^6.10.0
 ```
 
 ## Release notes language
@@ -76,7 +76,7 @@ Incoming Access PDUs are surfaced on:
 - **Inbound Application Key index** on receive: **not** forwarded on Android or iOS today → tracked as **Phase 1.4** (nullable + docs / capability when stacks align). Query **`supportsRxAppKeyIndex()`** — it returns **`false`** until native metadata is wired.
 - **Network / relay TTL** on inbound PDUs: **not** exposed on either bridge path.
 - **Android reflection RX path**: **`setExperimentalRxMetadataEnabled(true)`** is **deprecated** (Phase **1.3**); default Kotlin Mesh **`MeshMessageReceived`** path should be used.
-- **Bluetooth Mesh Proxy Filter** driven from Flutter: **not** implemented (**Phase 3.2**). Query **`supportsProxyFilter()`** — **`false`** until Nordic bearer/filter hooks are bridged.
+- **Bluetooth Mesh Proxy Filter** driven from Flutter: **Android** now bridges the Nordic Kotlin Mesh explicit Proxy Filter controls. Query **`supportsProxyFilter()`** or **`getCapabilities()`** to detect explicit support, and query **`supportsAutomaticProxyFilter()`** to detect stacks like **iOS** where the native SDK already manages Proxy Filter automatically.
 
 #### Phase 0.3: Guaranteed vs best-effort
 
@@ -154,12 +154,14 @@ Product parity work is tracked **by phase 0–5** below (not by release tags). T
 | ID | Item | Notes |
 |----|------|------|
 | **3.1** | Abstract **proxy / bearer state machine** | Align Kotlin Mesh bearer vs iOS GATT proxy states → unified Dart model (`disconnected` / `connecting` / `proxyReady` / `provisioning`, …) |
-| **3.2** | **Proxy Filter** (advanced subset) | **`supportsProxyFilter()`** (**false** today = explicit unsupported probe); expose Nordic Proxy Filter subset on Android + parity/doc on iOS when implemented |
+| **3.2** | **Proxy Filter** (advanced subset) | **Android** exposes Nordic Kotlin Mesh explicit Proxy Filter controls; **iOS** currently reports automatic-only management |
 | **3.3** | **Auto-reconnect** (optional) | Configurable policy aligned with Nordic guidance; example toggle + compliance/power warnings |
 
-**Current plugin note:** **3.1** (partial) — **`MeshBearerSnapshot`** / **`getMeshBearerSnapshot()`** fold **`isProxyConnected`** + **`isProvisioningConnected`** into **`MeshBearerPhase`** (`disconnected` / **`proxyReady`** / **`provisioning`**) with **provisioning precedence** when both natives report connected. A distinct **`connecting`** phase is **not** observable from these booleans alone — track in-flight connects via local **`Future`** state.
+**Current plugin note:** **3.1** (partial) — **`MeshBearerSnapshot`** / **`getMeshBearerSnapshot()`** combine native **`isProxyConnected`** + **`isProvisioningConnected`** with Dart-side in-flight connect tracking into **`MeshBearerPhase`** (`disconnected` / **`proxyConnecting`** / **`proxyReady`** / **`provisioningConnecting`** / **`provisioning`**). Native Nordic probes still expose only connected / disconnected; the **connecting** phases are derived locally while connect calls are pending.
 
-**3.2** (probe) — **`supportsProxyFilter()`** returns **`false`** on Android and iOS today (explicit «unsupported» capability); mesh traffic uses Nordic stack defaults until filter configuration is wired.
+**3.2** — **Android** now reports explicit Proxy Filter support through **`supportsProxyFilter()`** / **`getCapabilities()`** (`MeshProxyFilterCapability.explicitControl`), while **iOS** continues to report **automatic** Proxy Filter management through **`supportsAutomaticProxyFilter()`** / **`getCapabilities()`** (`MeshProxyFilterCapability.automaticOnly`).
+
+On **iOS 4.8.0**, the official library source includes `ProxyFilter`, `SetFilterType`, `AddAddressesToFilter`, and `RemoveAddressesFromFilter`, but the mutation entry points are not public across the `NordicMesh` module boundary. In practice this plugin can reliably expose **automatic-only** Proxy Filter behavior on iOS unless the upstream SDK surface changes.
 
 #### Phase 4 — Provisioning parity (Mesh 1.1 / enhanced) (~2–4 weeks, business-driven)
 
@@ -402,7 +404,12 @@ PlatoJobsNrfMeshManager.instance
 | `supportsRxSourceAddress()` | Whether inbound messages can include a reliable source address |
 | `supportsRxAppKeyIndex()` | Whether inbound metadata can include Application Key index (**Phase 1.4**; **`false`** until native wiring) |
 | `getMeshBearerSnapshot()` | Phase **3.1**: **`MeshBearerPhase`** from native proxy vs provisioning connection flags |
-| `supportsProxyFilter()` | Phase **3.2**: whether Proxy Filter can be configured (**`false`** until bridged) |
+| `supportsProxyFilter()` | Phase **3.2**: whether explicit Proxy Filter controls are available (**Android**: yes, **iOS**: no) |
+| `supportsAutomaticProxyFilter()` | Whether the native SDK already manages Proxy Filter automatically |
+| `setProxyFilterType(type)` | Phase **3.2**: set explicit Proxy Filter type (`whitelist` / `blacklist`) |
+| `addProxyFilterAddresses(addresses)` | Phase **3.2**: add addresses to the explicit Proxy Filter list |
+| `removeProxyFilterAddresses(addresses)` | Phase **3.2**: remove addresses from the explicit Proxy Filter list |
+| `getCapabilities()` | Aggregated feature snapshot: RX source, RX AppKey index, and Proxy Filter support level (`unsupported` / `automaticOnly` / `explicitControl`) |
 
 **Properties:**
 
@@ -415,7 +422,7 @@ PlatoJobsNrfMeshManager.instance
 
 #### `MeshBearerSnapshot` / `MeshBearerPhase` (Phase 3.1)
 
-Portable snapshot of **mesh-proxy vs PB-GATT provisioning** bearer activity. Built by querying native **`isProxyConnected`** and **`isProvisioningConnected`** together — see the **Phase 3** roadmap table (above) for precedence rules and **`connecting`** limitations.
+Portable snapshot of **mesh-proxy vs PB-GATT provisioning** bearer activity. Built by querying native **`isProxyConnected`** and **`isProvisioningConnected`** together, then overlaying local pending connect state so apps can render **connecting** UX without forking Android vs iOS logic.
 
 #### `MeshNetwork`
 

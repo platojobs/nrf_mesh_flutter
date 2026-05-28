@@ -5,6 +5,7 @@ import 'dart:async';
 import '../models/mesh_group.dart';
 import '../models/mesh_message.dart';
 import '../models/mesh_network.dart' as net_models;
+import '../models/mesh_proxy_filter.dart';
 import '../models/provisioned_node.dart';
 import '../models/rx_access_message.dart';
 import '../models/unprovisioned_device.dart';
@@ -68,10 +69,28 @@ class FakeMeshScenario {
 /// and unit tests without real Mesh hardware.
 class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
   /// Optionally supplies scripted discovery/message events after [scanForDevices].
-  FakePlatoJobsMeshBridge({this.scenario});
+  FakePlatoJobsMeshBridge({
+    this.scenario,
+    this.rxSourceAddressSupported = true,
+    this.rxAppKeyIndexSupported = false,
+    this.proxyFilterSupported = false,
+    this.automaticProxyFilterSupported = false,
+  });
 
   /// Optional scripted scenario that will run when scanning starts.
   final FakeMeshScenario? scenario;
+
+  /// Whether the fake reports reliable inbound source addresses.
+  final bool rxSourceAddressSupported;
+
+  /// Whether the fake reports inbound AppKey index metadata.
+  final bool rxAppKeyIndexSupported;
+
+  /// Whether the fake reports explicit Proxy Filter support.
+  final bool proxyFilterSupported;
+
+  /// Whether the fake reports automatic Proxy Filter management.
+  final bool automaticProxyFilterSupported;
 
   /// Artificial delay inserted before scripted scenario playback begins.
   Duration scanStartDelay = Duration.zero;
@@ -88,6 +107,8 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
 
   Object? nextImportNetworkError;
   Duration nextImportNetworkDelay = Duration.zero;
+
+  Duration nextProxyFilterDelay = Duration.zero;
 
   final StreamController<UnprovisionedDevice> _scanController =
       StreamController<UnprovisionedDevice>.broadcast();
@@ -144,6 +165,13 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
       '$elementAddress:$modelId';
 
   bool _proxyConnected = false;
+  bool _provisioningConnected = false;
+  MeshProxyFilterType _proxyFilterType = MeshProxyFilterType.whitelist;
+  final Set<int> _proxyFilterAddresses = <int>{};
+
+  MeshProxyFilterType get proxyFilterType => _proxyFilterType;
+  Set<int> get proxyFilterAddresses => Set<int>.unmodifiable(_proxyFilterAddresses);
+  final List<String> proxyFilterOperationLog = <String>[];
 
   @override
   Future<void> initialize() async {
@@ -706,17 +734,19 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
 
   @override
   Future<bool> connectProvisioning(String deviceId) async {
-    return false;
+    _provisioningConnected = true;
+    return true;
   }
 
   @override
   Future<bool> disconnectProvisioning() async {
-    return false;
+    _provisioningConnected = false;
+    return true;
   }
 
   @override
   Future<bool> isProvisioningConnected() async {
-    return false;
+    return _provisioningConnected;
   }
 
   @override
@@ -734,18 +764,56 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
 
   @override
   Future<bool> supportsRxSourceAddress() async {
-    // Fake bridge can always include an address in injected messages when desired.
-    return true;
+    return rxSourceAddressSupported;
   }
 
   @override
   Future<bool> supportsRxAppKeyIndex() async {
-    return false;
+    return rxAppKeyIndexSupported;
   }
 
   @override
   Future<bool> supportsProxyFilter() async {
-    return false;
+    return proxyFilterSupported;
+  }
+
+  @override
+  Future<bool> supportsAutomaticProxyFilter() async {
+    return automaticProxyFilterSupported;
+  }
+
+  @override
+  Future<bool> setProxyFilterType(MeshProxyFilterType type) async {
+    if (!proxyFilterSupported) return false;
+    await _consumeProxyFilterDelay();
+    _proxyFilterType = type;
+    proxyFilterOperationLog.add('set:${type.name}');
+    return true;
+  }
+
+  @override
+  Future<bool> addProxyFilterAddresses(List<int> addresses) async {
+    if (!proxyFilterSupported) return false;
+    await _consumeProxyFilterDelay();
+    _proxyFilterAddresses.addAll(addresses);
+    proxyFilterOperationLog.add('add:${addresses.join(',')}');
+    return true;
+  }
+
+  @override
+  Future<bool> removeProxyFilterAddresses(List<int> addresses) async {
+    if (!proxyFilterSupported) return false;
+    await _consumeProxyFilterDelay();
+    _proxyFilterAddresses.removeAll(addresses);
+    proxyFilterOperationLog.add('remove:${addresses.join(',')}');
+    return true;
+  }
+
+  Future<void> _consumeProxyFilterDelay() async {
+    if (nextProxyFilterDelay == Duration.zero) return;
+    final delay = nextProxyFilterDelay;
+    nextProxyFilterDelay = Duration.zero;
+    await Future<void>.delayed(delay);
   }
 
   @override

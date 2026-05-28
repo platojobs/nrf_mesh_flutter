@@ -31,6 +31,7 @@ import no.nordicsemi.kotlin.mesh.bearer.gatt.GattBearerImpl
 import no.nordicsemi.kotlin.mesh.bearer.gatt.utils.MeshProvisioningService
 import no.nordicsemi.kotlin.mesh.bearer.provisioning.ProvisioningBearer
 import no.nordicsemi.kotlin.mesh.core.MeshNetworkManager
+import no.nordicsemi.kotlin.mesh.core.ProxyFilterType
 import no.nordicsemi.kotlin.mesh.core.SecurePropertiesStorage
 import no.nordicsemi.kotlin.mesh.core.Storage
 import no.nordicsemi.kotlin.mesh.core.messages.MeshMessage as KmMeshMessage
@@ -61,6 +62,7 @@ import no.nordicsemi.kotlin.mesh.core.model.Group as KmGroup
 import no.nordicsemi.kotlin.mesh.core.model.GroupAddress
 import no.nordicsemi.kotlin.mesh.core.model.MeshAddress
 import no.nordicsemi.kotlin.mesh.core.model.Publish
+import no.nordicsemi.kotlin.mesh.core.model.ProxyFilterAddress
 import no.nordicsemi.kotlin.mesh.core.model.PublishPeriod
 import no.nordicsemi.kotlin.mesh.core.model.Retransmit
 import no.nordicsemi.kotlin.mesh.core.model.Model as KmModel
@@ -1782,6 +1784,15 @@ class PlatoJobsMeshPlugin :
             }
             true
         } catch (_: Throwable) {
+            try {
+                runBlocking {
+                    bearer?.close()
+                }
+            } catch (_: Throwable) {
+                // Ignore cleanup failures after connect failure.
+            }
+            manager.meshBearer = null
+            bearer = null
             proxyConnected = false
             false
         }
@@ -1792,6 +1803,7 @@ class PlatoJobsMeshPlugin :
             runBlocking {
                 bearer?.close()
             }
+            kotlinMeshManager?.meshBearer = null
             bearer = null
             proxyConnected = false
             true
@@ -1827,6 +1839,13 @@ class PlatoJobsMeshPlugin :
             }
             true
         } catch (_: Throwable) {
+            try {
+                runBlocking {
+                    provisioningBearer?.close()
+                }
+            } catch (_: Throwable) {
+                // Ignore cleanup failures after connect failure.
+            }
             provisioningConnected = false
             provisioningBearer = null
             false
@@ -1878,7 +1897,70 @@ class PlatoJobsMeshPlugin :
 
     override fun supportsRxAppKeyIndex(): Boolean = false
 
-    override fun supportsProxyFilter(): Boolean = false
+    override fun supportsProxyFilter(): Boolean = true
+
+    override fun supportsAutomaticProxyFilter(): Boolean = false
+
+    override fun setProxyFilterType(type: Long): Boolean =
+        try {
+            val km = kotlinMeshManager
+            if (proxyConnected) {
+                requireNotNull(km) { "Kotlin Mesh manager is not initialized" }
+                require(km.export() != null) { "Mesh DB is not loaded (importNetwork first)" }
+                val filterType = when (type.toInt()) {
+                    0 -> ProxyFilterType.ACCEPT_LIST
+                    1 -> ProxyFilterType.REJECT_LIST
+                    else -> throw IllegalArgumentException("Invalid proxy filter type: $type")
+                }
+                runBlocking {
+                    km.proxyFilter.setType(type = filterType)
+                }
+                true
+            } else {
+                false
+            }
+        } catch (t: Throwable) {
+            if (proxyConnected) throw t
+            false
+        }
+
+    override fun addProxyFilterAddresses(addresses: List<Long>): Boolean =
+        try {
+            val km = kotlinMeshManager
+            if (proxyConnected) {
+                requireNotNull(km) { "Kotlin Mesh manager is not initialized" }
+                require(km.export() != null) { "Mesh DB is not loaded (importNetwork first)" }
+                val filterAddresses = addresses.map(::toProxyFilterAddress)
+                runBlocking {
+                    km.proxyFilter.add(addresses = filterAddresses)
+                }
+                true
+            } else {
+                false
+            }
+        } catch (t: Throwable) {
+            if (proxyConnected) throw t
+            false
+        }
+
+    override fun removeProxyFilterAddresses(addresses: List<Long>): Boolean =
+        try {
+            val km = kotlinMeshManager
+            if (proxyConnected) {
+                requireNotNull(km) { "Kotlin Mesh manager is not initialized" }
+                require(km.export() != null) { "Mesh DB is not loaded (importNetwork first)" }
+                val filterAddresses = addresses.map(::toProxyFilterAddress)
+                runBlocking {
+                    km.proxyFilter.remove(addresses = filterAddresses)
+                }
+                true
+            } else {
+                false
+            }
+        } catch (t: Throwable) {
+            if (proxyConnected) throw t
+            false
+        }
 
     override fun clearSecureStorage() {
         secureStorage?.clearAll()
@@ -1914,6 +1996,14 @@ private fun hexToBytes(hex: String): ByteArray {
         i += 2
     }
     return out
+}
+
+private fun toProxyFilterAddress(address: Long): ProxyFilterAddress {
+    val meshAddress = MeshAddress.create(address.toInt())
+    return meshAddress as? ProxyFilterAddress
+        ?: throw IllegalArgumentException(
+            "Address 0x${address.toString(16)} is not valid for proxy filter"
+        )
 }
 
 private fun bytesToHex(bytes: ByteArray): String {
@@ -2707,4 +2797,3 @@ class MeshManager {
         }
     }
 }
-

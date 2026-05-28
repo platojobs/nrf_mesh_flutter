@@ -1,3 +1,20 @@
+## 6.10.0
+
+### Features
+- **Phase 3.1**: add `MeshBearerSnapshot` / `MeshBearerPhase` connecting states (`proxyConnecting`, `provisioningConnecting`) with Dart-side in-flight tracking.
+- **Phase 3.2**: add `MeshCapabilities`, `MeshProxyFilterCapability`, and explicit Proxy Filter Dart APIs: `setProxyFilterType`, `addProxyFilterAddresses`, `removeProxyFilterAddresses`.
+- **Android**: bridge Nordic Kotlin Mesh explicit Proxy Filter control through `MeshNetworkManager.proxyFilter`.
+
+### Improvements
+- Queue bearer transitions (`connectProxy` / `disconnectProxy` / `connectProvisioning` / `disconnectProvisioning`) and explicit Proxy Filter mutations through the shared command queue for more stable sequencing.
+- Clean up Android/iOS proxy and provisioning connection failure paths so half-open bearers are closed before retry.
+- Flush the latest debounced mesh-network update before stream close.
+- Example app: surface aggregated capability snapshot instead of only a boolean Proxy Filter probe.
+
+### Documentation
+- README now documents capability aggregation, Android explicit Proxy Filter support, and the verified iOS `automaticOnly` SDK boundary for Proxy Filter.
+- README install snippet and CocoaPods podspec aligned with **6.10.0**.
+
 ## 6.9.7
 
 ### Fixes

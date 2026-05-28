@@ -9,6 +9,8 @@ import '../models/mesh_message.dart' as msg_models;
 import '../models/mesh_group.dart' as group_models;
 import '../models/rx_access_message.dart' as rx_models;
 import '../models/mesh_bearer_snapshot.dart';
+import '../models/mesh_capabilities.dart';
+import '../models/mesh_proxy_filter.dart';
 import 'command_queue.dart';
 import 'mesh_exceptions.dart';
 import '../platform_interface/platojobs_mesh_platform.dart' as platform;
@@ -18,6 +20,9 @@ class MeshManagerApi {
   platform.PlatoJobsMeshBridge get _platform =>
       platform.PlatoJobsMeshBridge.instance;
   final PlatoJobsMeshCommandQueue _commandQueue = PlatoJobsMeshCommandQueue();
+  static const Duration _bearerTransitionTimeout = Duration(seconds: 15);
+  bool _proxyConnecting = false;
+  bool _provisioningConnecting = false;
 
   Future<T> _guard<T>(Future<T> Function() call) async {
     try {
@@ -133,9 +138,76 @@ class MeshManagerApi {
     return await _guard(() => _platform.supportsRxAppKeyIndex());
   }
 
-  /// Phase **3.2** capability probe — currently **false** (stack defaults only).
+  /// Phase **3.2** capability probe — **Android** exposes explicit controls; **iOS** remains automatic-only on the current official SDK surface.
   Future<bool> supportsProxyFilter() async {
     return await _guard(() => _platform.supportsProxyFilter());
+  }
+
+  /// Whether the native SDK already manages Proxy Filter automatically.
+  Future<bool> supportsAutomaticProxyFilter() async {
+    return await _guard(() => _platform.supportsAutomaticProxyFilter());
+  }
+
+  /// Aggregated capability snapshot for current bridge feature support.
+  Future<MeshCapabilities> getCapabilities() async {
+    final rxSourceAddress = await supportsRxSourceAddress();
+    final rxAppKeyIndex = await supportsRxAppKeyIndex();
+    final proxyFilter = await supportsProxyFilter();
+    final automaticProxyFilter = await supportsAutomaticProxyFilter();
+    return MeshCapabilities.fromSupportFlags(
+      rxSourceAddress: rxSourceAddress,
+      rxAppKeyIndex: rxAppKeyIndex,
+      supportsProxyFilter: proxyFilter,
+      supportsAutomaticProxyFilter: automaticProxyFilter,
+    );
+  }
+
+  Future<bool> setProxyFilterType(MeshProxyFilterType type) async {
+    return _guard(
+      () => _commandQueue.enqueue(
+        () => _platform.setProxyFilterType(type),
+        debugLabel: 'setProxyFilterType(${type.name})',
+      ),
+    );
+  }
+
+  Future<bool> addProxyFilterAddresses(List<int> addresses) async {
+    _validateProxyFilterAddresses(addresses);
+    return _guard(
+      () => _commandQueue.enqueue(
+        () => _platform.addProxyFilterAddresses(addresses),
+        debugLabel: 'addProxyFilterAddresses(${addresses.length})',
+      ),
+    );
+  }
+
+  Future<bool> removeProxyFilterAddresses(List<int> addresses) async {
+    _validateProxyFilterAddresses(addresses);
+    return _guard(
+      () => _commandQueue.enqueue(
+        () => _platform.removeProxyFilterAddresses(addresses),
+        debugLabel: 'removeProxyFilterAddresses(${addresses.length})',
+      ),
+    );
+  }
+
+  void _validateProxyFilterAddresses(List<int> addresses) {
+    if (addresses.isEmpty) {
+      throw ArgumentError.value(
+        addresses,
+        'addresses',
+        'Proxy Filter address list must not be empty',
+      );
+    }
+    for (final address in addresses) {
+      if (address < 0x0001 || address > 0xFFFF) {
+        throw ArgumentError.value(
+          address,
+          'addresses',
+          'Proxy Filter address must be in 0x0001..0xFFFF',
+        );
+      }
+    }
   }
 
   /// Clear persisted secure mesh state used for stable Access sending.
@@ -417,13 +489,33 @@ class MeshManagerApi {
 
   // Proxy (P1 real-transport prerequisite)
   Future<bool> connectProxy(String deviceId, int proxyUnicastAddress) async {
-    return await _guard(
-      () => _platform.connectProxy(deviceId, proxyUnicastAddress),
+    return _guard(
+      () => _commandQueue.enqueue(
+        () async {
+          _proxyConnecting = true;
+          try {
+            return await _platform.connectProxy(deviceId, proxyUnicastAddress);
+          } finally {
+            _proxyConnecting = false;
+          }
+        },
+        timeout: _bearerTransitionTimeout,
+        debugLabel: 'connectProxy($deviceId)',
+      ),
     );
   }
 
   Future<bool> disconnectProxy() async {
-    return await _guard(() => _platform.disconnectProxy());
+    return _guard(
+      () => _commandQueue.enqueue(
+        () async {
+          _proxyConnecting = false;
+          return await _platform.disconnectProxy();
+        },
+        timeout: _bearerTransitionTimeout,
+        debugLabel: 'disconnectProxy()',
+      ),
+    );
   }
 
   Future<bool> isProxyConnected() async {
@@ -431,11 +523,33 @@ class MeshManagerApi {
   }
 
   Future<bool> connectProvisioning(String deviceId) async {
-    return await _guard(() => _platform.connectProvisioning(deviceId));
+    return _guard(
+      () => _commandQueue.enqueue(
+        () async {
+          _provisioningConnecting = true;
+          try {
+            return await _platform.connectProvisioning(deviceId);
+          } finally {
+            _provisioningConnecting = false;
+          }
+        },
+        timeout: _bearerTransitionTimeout,
+        debugLabel: 'connectProvisioning($deviceId)',
+      ),
+    );
   }
 
   Future<bool> disconnectProvisioning() async {
-    return await _guard(() => _platform.disconnectProvisioning());
+    return _guard(
+      () => _commandQueue.enqueue(
+        () async {
+          _provisioningConnecting = false;
+          return await _platform.disconnectProvisioning();
+        },
+        timeout: _bearerTransitionTimeout,
+        debugLabel: 'disconnectProvisioning()',
+      ),
+    );
   }
 
   Future<bool> isProvisioningConnected() async {
@@ -450,6 +564,9 @@ class MeshManagerApi {
     return MeshBearerSnapshot.fromNativeFlags(
       proxyConnected: proxyConnected,
       provisioningConnected: provisioningConnected,
+      proxyConnecting: _proxyConnecting && !proxyConnected,
+      provisioningConnecting:
+          _provisioningConnecting && !provisioningConnected,
     );
   }
 }

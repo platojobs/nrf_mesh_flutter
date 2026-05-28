@@ -231,6 +231,24 @@ abstract class MeshApi {
   /// Currently **false** — Nordic bearer defaults apply; explicit Proxy Filter APIs are not wired yet.
   bool supportsProxyFilter();
 
+  /// Whether the native SDK already manages Proxy Filter automatically even
+  /// though Flutter cannot configure it directly.
+  ///
+  /// This maps to stacks such as iOS nRF Mesh where automatic proxy filter
+  /// management exists before explicit Proxy Configuration APIs are bridged.
+  bool supportsAutomaticProxyFilter();
+
+  /// Sets the explicit Proxy Filter type on the connected Proxy Node.
+  ///
+  /// [type] uses `0 = whitelist`, `1 = blacklist`.
+  bool setProxyFilterType(int type);
+
+  /// Adds addresses to the explicit Proxy Filter list on the connected Proxy Node.
+  bool addProxyFilterAddresses(List<int> addresses);
+
+  /// Removes addresses from the explicit Proxy Filter list on the connected Proxy Node.
+  bool removeProxyFilterAddresses(List<int> addresses);
+
   /// Clear persisted secure mesh state used for stable Access message sending.
   ///
   /// Intended for debugging and recovery (e.g. when switching Mesh DBs).

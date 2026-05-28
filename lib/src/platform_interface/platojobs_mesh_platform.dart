@@ -6,6 +6,7 @@ import 'dart:async';
 import '../models/mesh_group.dart' as group_models;
 import '../models/mesh_message.dart' as msg_models;
 import '../models/mesh_network.dart' as net_models;
+import '../models/mesh_proxy_filter.dart';
 import '../models/provisioned_node.dart' as node_models;
 import '../models/rx_access_message.dart' as rx_models;
 import '../models/unprovisioned_device.dart' as dev_models;
@@ -184,6 +185,18 @@ abstract class PlatoJobsMeshBridge {
 
   /// Phase **3.2**: whether Proxy Filter can be configured from Flutter.
   Future<bool> supportsProxyFilter();
+
+  /// Whether the native SDK already manages Proxy Filter automatically.
+  Future<bool> supportsAutomaticProxyFilter();
+
+  /// Sets explicit Proxy Filter type on the connected Proxy Node.
+  Future<bool> setProxyFilterType(MeshProxyFilterType type);
+
+  /// Adds addresses to the explicit Proxy Filter list.
+  Future<bool> addProxyFilterAddresses(List<int> addresses);
+
+  /// Removes addresses from the explicit Proxy Filter list.
+  Future<bool> removeProxyFilterAddresses(List<int> addresses);
 
   /// Clear persisted secure mesh state used for stable Access sending.
   Future<void> clearSecureStorage();
@@ -706,6 +719,26 @@ class PlatoJobsMeshBridgeImpl extends PlatoJobsMeshBridge {
   @override
   Future<bool> supportsProxyFilter() async {
     return await _meshApi.supportsProxyFilter();
+  }
+
+  @override
+  Future<bool> supportsAutomaticProxyFilter() async {
+    return await _meshApi.supportsAutomaticProxyFilter();
+  }
+
+  @override
+  Future<bool> setProxyFilterType(MeshProxyFilterType type) async {
+    return await _meshApi.setProxyFilterType(type.code);
+  }
+
+  @override
+  Future<bool> addProxyFilterAddresses(List<int> addresses) async {
+    return await _meshApi.addProxyFilterAddresses(addresses);
+  }
+
+  @override
+  Future<bool> removeProxyFilterAddresses(List<int> addresses) async {
+    return await _meshApi.removeProxyFilterAddresses(addresses);
   }
 
   @override
