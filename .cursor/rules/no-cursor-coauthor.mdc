@@ -1,0 +1,14 @@
+---
+description: Do not add Cursor co-author trailers to git commits
+alwaysApply: true
+---
+
+# Git commits — no Cursor attribution
+
+When creating git commits in this repository:
+
+- Never add `Co-authored-by: Cursor <cursoragent@cursor.com>` (or any Cursor co-author line).
+- Never add `Made-with: Cursor` (or similar Cursor attribution trailers).
+- Commit author should remain the human maintainer only.
+
+These trailers cause GitHub to list "Cursor Agent" as a repository contributor.
