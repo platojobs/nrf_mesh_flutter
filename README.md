@@ -532,7 +532,7 @@ try {
 ## Android 12+ / 14+ Notes
 
 - Android 12+ needs runtime permissions: `BLUETOOTH_SCAN` / `BLUETOOTH_CONNECT`.
-- Android 13+ 如果要在通知中提示连接状态，可能需要 `POST_NOTIFICATIONS`（由你的 App 决定是否需要）。
+- Android 13+ may require `POST_NOTIFICATIONS` if your app shows connection status in notifications (your app decides whether this is needed).
 - Android 14+ background scan/connection restrictions are stricter: keep provisioning/proxy connection in a user-visible flow, and implement retry + timeouts.
 
 ## iOS 13+ / 17+ Notes
