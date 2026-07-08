@@ -1,3 +1,9 @@
+## 6.10.1
+
+### Maintenance
+- Refresh package metadata and release notes for a patch publish after the **6.10.0** Proxy Filter and bearer-state rollout.
+- README install snippet and CocoaPods podspec aligned with **6.10.1**.
+
 ## 6.10.0
 
 ### Features
