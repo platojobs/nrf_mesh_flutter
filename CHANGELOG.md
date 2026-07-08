@@ -1,3 +1,16 @@
+## 6.10.2
+
+### Features
+- **Phase 3.3**: add Dart-side **`MeshProxyAutoReconnectPolicy`** with `setProxyAutoReconnectPolicy(...)` / `getProxyAutoReconnectPolicy()` for best-effort proxy bearer monitoring and reconnect retries after unexpected disconnects.
+- **Phase 3.2**: add `syncProxyFilter(...)` to reconcile Proxy Filter type + address list with a minimal diff after the first successful sync.
+
+### Improvements
+- Reset remembered explicit Proxy Filter state whenever a proxy session reconnects, disconnects, or local mesh state is cleared, keeping Dart-side filter diffs aligned with the remote Proxy node.
+- Fake bridge now supports scripted proxy reconnect outcomes for unit tests covering reconnect policies.
+
+### Documentation
+- README documents the new auto-reconnect policy, its best-effort polling model, and cautions around reconnect frequency / power use.
+
 ## 6.10.1
 
 ### Maintenance

@@ -109,6 +109,8 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
   Duration nextImportNetworkDelay = Duration.zero;
 
   Duration nextProxyFilterDelay = Duration.zero;
+  final List<bool> queuedProxyConnectResults = <bool>[];
+  int proxyConnectCallCount = 0;
 
   final StreamController<UnprovisionedDevice> _scanController =
       StreamController<UnprovisionedDevice>.broadcast();
@@ -170,7 +172,8 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
   final Set<int> _proxyFilterAddresses = <int>{};
 
   MeshProxyFilterType get proxyFilterType => _proxyFilterType;
-  Set<int> get proxyFilterAddresses => Set<int>.unmodifiable(_proxyFilterAddresses);
+  Set<int> get proxyFilterAddresses =>
+      Set<int>.unmodifiable(_proxyFilterAddresses);
   final List<String> proxyFilterOperationLog = <String>[];
 
   @override
@@ -719,6 +722,12 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
 
   @override
   Future<bool> connectProxy(String deviceId, int proxyUnicastAddress) async {
+    proxyConnectCallCount += 1;
+    if (queuedProxyConnectResults.isNotEmpty) {
+      final ok = queuedProxyConnectResults.removeAt(0);
+      _proxyConnected = ok;
+      return ok;
+    }
     _proxyConnected = true;
     return true;
   }
@@ -731,6 +740,11 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
 
   @override
   Future<bool> isProxyConnected() async => _proxyConnected;
+
+  /// Test helper to emulate bearer loss or recovery without going through connect APIs.
+  void setProxyConnectedForTesting(bool connected) {
+    _proxyConnected = connected;
+  }
 
   @override
   Future<bool> connectProvisioning(String deviceId) async {
@@ -787,6 +801,7 @@ class FakePlatoJobsMeshBridge extends PlatoJobsMeshBridge {
     if (!proxyFilterSupported) return false;
     await _consumeProxyFilterDelay();
     _proxyFilterType = type;
+    _proxyFilterAddresses.clear();
     proxyFilterOperationLog.add('set:${type.name}');
     return true;
   }

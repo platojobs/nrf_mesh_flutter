@@ -4,6 +4,7 @@ import 'src/core/mesh_manager_api.dart';
 import 'src/models/mesh_bearer_snapshot.dart';
 import 'src/models/mesh_capabilities.dart';
 import 'src/models/mesh_proxy_filter.dart';
+import 'src/models/mesh_proxy_auto_reconnect.dart';
 import 'src/models/mesh_network.dart' as net_models;
 import 'src/models/provisioned_node.dart' as node_models;
 import 'src/models/unprovisioned_device.dart' as dev_models;
@@ -27,6 +28,8 @@ export 'src/models/mesh_bearer_snapshot.dart'
 export 'src/models/mesh_capabilities.dart'
     show MeshCapabilities, MeshProxyFilterCapability;
 export 'src/models/mesh_proxy_filter.dart' show MeshProxyFilterType;
+export 'src/models/mesh_proxy_auto_reconnect.dart'
+    show MeshProxyAutoReconnectPolicy;
 export 'src/models/mesh_message.dart'
     show
         MeshMessage,
@@ -330,7 +333,7 @@ class PlatoJobsNrfMeshManager {
     return await _meshManagerApi.supportsRxAppKeyIndex();
   }
 
-  /// Phase **3.2**: whether **Proxy Filter** can be configured from Dart (**false** today).
+  /// Phase **3.2**: whether **Proxy Filter** can be configured from Dart.
   Future<bool> supportsProxyFilter() async {
     return await _meshManagerApi.supportsProxyFilter();
   }
@@ -346,6 +349,16 @@ class PlatoJobsNrfMeshManager {
     return await _meshManagerApi.getCapabilities();
   }
 
+  /// Returns the current Dart-side proxy auto-reconnect policy.
+  MeshProxyAutoReconnectPolicy getProxyAutoReconnectPolicy() {
+    return _meshManagerApi.getProxyAutoReconnectPolicy();
+  }
+
+  /// Configures best-effort proxy auto-reconnect in Dart space.
+  void setProxyAutoReconnectPolicy(MeshProxyAutoReconnectPolicy policy) {
+    _meshManagerApi.setProxyAutoReconnectPolicy(policy);
+  }
+
   /// Sets explicit Proxy Filter type on the connected Proxy Node.
   Future<bool> setProxyFilterType(MeshProxyFilterType type) async {
     return await _meshManagerApi.setProxyFilterType(type);
@@ -359,6 +372,18 @@ class PlatoJobsNrfMeshManager {
   /// Removes addresses from the explicit Proxy Filter list on the connected Proxy Node.
   Future<bool> removeProxyFilterAddresses(List<int> addresses) async {
     return await _meshManagerApi.removeProxyFilterAddresses(addresses);
+  }
+
+  /// Reconciles the explicit Proxy Filter with the desired [type] and [addresses].
+  ///
+  /// On the first successful call in a proxy session, this resets the remote filter
+  /// type if needed and then applies the full desired address set. Later calls only
+  /// send the minimal add/remove diff based on the last successful explicit update.
+  Future<bool> syncProxyFilter(
+    MeshProxyFilterType type,
+    List<int> addresses,
+  ) async {
+    return await _meshManagerApi.syncProxyFilter(type, addresses);
   }
 
   /// Clear persisted secure mesh state used for stable Access sending.

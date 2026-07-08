@@ -25,7 +25,7 @@ Add `nrf_mesh_flutter` to your `pubspec.yaml`:
 dependencies:
   flutter:
     sdk: flutter
-  nrf_mesh_flutter: ^6.10.1
+  nrf_mesh_flutter: ^6.10.2
 ```
 
 ## Release notes language
@@ -162,6 +162,8 @@ Product parity work is tracked **by phase 0–5** below (not by release tags). T
 **3.2** — **Android** now reports explicit Proxy Filter support through **`supportsProxyFilter()`** / **`getCapabilities()`** (`MeshProxyFilterCapability.explicitControl`), while **iOS** continues to report **automatic** Proxy Filter management through **`supportsAutomaticProxyFilter()`** / **`getCapabilities()`** (`MeshProxyFilterCapability.automaticOnly`).
 
 On **iOS 4.8.0**, the official library source includes `ProxyFilter`, `SetFilterType`, `AddAddressesToFilter`, and `RemoveAddressesFromFilter`, but the mutation entry points are not public across the `NordicMesh` module boundary. In practice this plugin can reliably expose **automatic-only** Proxy Filter behavior on iOS unless the upstream SDK surface changes.
+
+**3.3** — Dart now exposes **`MeshProxyAutoReconnectPolicy`** plus **`setProxyAutoReconnectPolicy(...)`** / **`getProxyAutoReconnectPolicy()`**. This is a best-effort layer above the native SDKs: when enabled, Flutter remembers the last Proxy target, polls bearer health, and retries `connectProxy(...)` after unexpected disconnects. Manual `disconnectProxy()` still cancels the policy immediately to avoid surprise reconnects.
 
 #### Phase 4 — Provisioning parity (Mesh 1.1 / enhanced) (~2–4 weeks, business-driven)
 
@@ -409,6 +411,8 @@ PlatoJobsNrfMeshManager.instance
 | `setProxyFilterType(type)` | Phase **3.2**: set explicit Proxy Filter type (`whitelist` / `blacklist`) |
 | `addProxyFilterAddresses(addresses)` | Phase **3.2**: add addresses to the explicit Proxy Filter list |
 | `removeProxyFilterAddresses(addresses)` | Phase **3.2**: remove addresses from the explicit Proxy Filter list |
+| `syncProxyFilter(type, addresses)` | Phase **3.2**: reconcile Proxy Filter type + list in one call using a minimal diff after the first successful sync |
+| `setProxyAutoReconnectPolicy(policy)` / `getProxyAutoReconnectPolicy()` | Phase **3.3**: Dart-side best-effort proxy health polling + reconnect policy for unexpected bearer loss |
 | `getCapabilities()` | Aggregated feature snapshot: RX source, RX AppKey index, and Proxy Filter support level (`unsupported` / `automaticOnly` / `explicitControl`) |
 
 **Properties:**
@@ -419,6 +423,27 @@ PlatoJobsNrfMeshManager.instance
 | `meshNetworkUpdatedStream` | `Stream<int>` | Hint when native mesh DB may have changed (refresh topology caches) |
 
 ### Data Models
+
+#### `MeshProxyAutoReconnectPolicy` (Phase 3.3)
+
+Use **`MeshProxyAutoReconnectPolicy`** to enable a conservative Dart-side reconnect loop without changing the native SDKs. The policy is **disabled by default** so existing apps keep manual bearer control.
+
+```dart
+mesh.setProxyAutoReconnectPolicy(
+  const MeshProxyAutoReconnectPolicy(
+    enabled: true,
+    maxAttempts: 3,
+    retryDelay: Duration(seconds: 2),
+    healthCheckInterval: Duration(seconds: 5),
+  ),
+);
+```
+
+Notes:
+
+- This is **best effort**: the plugin polls `isProxyConnected()`; it does not receive a universal native disconnect callback today.
+- `disconnectProxy()` cancels the remembered target and pending retries immediately.
+- Short polling intervals can increase BLE / app wakeups; keep them conservative for production.
 
 #### `MeshBearerSnapshot` / `MeshBearerPhase` (Phase 3.1)
 

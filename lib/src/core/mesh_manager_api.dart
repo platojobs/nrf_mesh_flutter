@@ -11,6 +11,7 @@ import '../models/rx_access_message.dart' as rx_models;
 import '../models/mesh_bearer_snapshot.dart';
 import '../models/mesh_capabilities.dart';
 import '../models/mesh_proxy_filter.dart';
+import '../models/mesh_proxy_auto_reconnect.dart';
 import 'command_queue.dart';
 import 'mesh_exceptions.dart';
 import '../platform_interface/platojobs_mesh_platform.dart' as platform;
@@ -23,6 +24,17 @@ class MeshManagerApi {
   static const Duration _bearerTransitionTimeout = Duration(seconds: 15);
   bool _proxyConnecting = false;
   bool _provisioningConnecting = false;
+  MeshProxyAutoReconnectPolicy _proxyAutoReconnectPolicy =
+      MeshProxyAutoReconnectPolicy.disabled;
+  Timer? _proxyHealthCheckTimer;
+  Timer? _proxyReconnectTimer;
+  bool _proxyReconnectInProgress = false;
+  int _proxyReconnectAttempt = 0;
+  String? _lastProxyDeviceId;
+  int? _lastProxyUnicastAddress;
+  bool _explicitProxyFilterStateKnown = false;
+  MeshProxyFilterType _explicitProxyFilterType = MeshProxyFilterType.whitelist;
+  final Set<int> _explicitProxyFilterAddresses = <int>{};
 
   Future<T> _guard<T>(Future<T> Function() call) async {
     try {
@@ -34,6 +46,8 @@ class MeshManagerApi {
 
   /// Initialize the mesh manager API
   Future<void> initialize() async {
+    _resetExplicitProxyFilterState();
+    _stopProxyAutoReconnect(clearTarget: true);
     await _guard(() => _platform.initialize());
   }
 
@@ -162,33 +176,115 @@ class MeshManagerApi {
     );
   }
 
+  MeshProxyAutoReconnectPolicy getProxyAutoReconnectPolicy() {
+    return _proxyAutoReconnectPolicy;
+  }
+
+  void setProxyAutoReconnectPolicy(MeshProxyAutoReconnectPolicy policy) {
+    _proxyAutoReconnectPolicy = policy;
+    if (!policy.enabled) {
+      _stopProxyAutoReconnect(clearTarget: false);
+      return;
+    }
+
+    _proxyHealthCheckTimer?.cancel();
+    _proxyReconnectTimer?.cancel();
+    if (_lastProxyDeviceId != null && _lastProxyUnicastAddress != null) {
+      _startProxyHealthCheck();
+    }
+  }
+
   Future<bool> setProxyFilterType(MeshProxyFilterType type) async {
     return _guard(
-      () => _commandQueue.enqueue(
-        () => _platform.setProxyFilterType(type),
-        debugLabel: 'setProxyFilterType(${type.name})',
-      ),
+      () => _commandQueue.enqueue(() async {
+        final ok = await _platform.setProxyFilterType(type);
+        if (ok) {
+          _explicitProxyFilterStateKnown = true;
+          _explicitProxyFilterType = type;
+          _explicitProxyFilterAddresses.clear();
+        }
+        return ok;
+      }, debugLabel: 'setProxyFilterType(${type.name})'),
     );
   }
 
   Future<bool> addProxyFilterAddresses(List<int> addresses) async {
     _validateProxyFilterAddresses(addresses);
+    final normalized = _normalizeProxyFilterAddresses(addresses);
     return _guard(
-      () => _commandQueue.enqueue(
-        () => _platform.addProxyFilterAddresses(addresses),
-        debugLabel: 'addProxyFilterAddresses(${addresses.length})',
-      ),
+      () => _commandQueue.enqueue(() async {
+        final ok = await _platform.addProxyFilterAddresses(normalized);
+        if (ok && _explicitProxyFilterStateKnown) {
+          _explicitProxyFilterAddresses.addAll(normalized);
+        }
+        return ok;
+      }, debugLabel: 'addProxyFilterAddresses(${normalized.length})'),
     );
   }
 
   Future<bool> removeProxyFilterAddresses(List<int> addresses) async {
     _validateProxyFilterAddresses(addresses);
+    final normalized = _normalizeProxyFilterAddresses(addresses);
     return _guard(
-      () => _commandQueue.enqueue(
-        () => _platform.removeProxyFilterAddresses(addresses),
-        debugLabel: 'removeProxyFilterAddresses(${addresses.length})',
-      ),
+      () => _commandQueue.enqueue(() async {
+        final ok = await _platform.removeProxyFilterAddresses(normalized);
+        if (ok && _explicitProxyFilterStateKnown) {
+          _explicitProxyFilterAddresses.removeAll(normalized);
+        }
+        return ok;
+      }, debugLabel: 'removeProxyFilterAddresses(${normalized.length})'),
     );
+  }
+
+  Future<bool> syncProxyFilter(
+    MeshProxyFilterType type,
+    List<int> addresses,
+  ) async {
+    _validateProxyFilterAddressRange(addresses);
+    final desired = _normalizeProxyFilterAddresses(addresses);
+    return _guard(
+      () => _commandQueue.enqueue(() async {
+        if (!_explicitProxyFilterStateKnown ||
+            _explicitProxyFilterType != type) {
+          final setOk = await _platform.setProxyFilterType(type);
+          if (!setOk) {
+            return false;
+          }
+          _explicitProxyFilterStateKnown = true;
+          _explicitProxyFilterType = type;
+          _explicitProxyFilterAddresses.clear();
+        }
+
+        final desiredSet = desired.toSet();
+        final toRemove =
+            _explicitProxyFilterAddresses.difference(desiredSet).toList()
+              ..sort();
+        if (toRemove.isNotEmpty) {
+          final removeOk = await _platform.removeProxyFilterAddresses(toRemove);
+          if (!removeOk) {
+            return false;
+          }
+          _explicitProxyFilterAddresses.removeAll(toRemove);
+        }
+
+        final toAdd =
+            desiredSet.difference(_explicitProxyFilterAddresses).toList()
+              ..sort();
+        if (toAdd.isNotEmpty) {
+          final addOk = await _platform.addProxyFilterAddresses(toAdd);
+          if (!addOk) {
+            return false;
+          }
+          _explicitProxyFilterAddresses.addAll(toAdd);
+        }
+        return true;
+      }, debugLabel: 'syncProxyFilter(${type.name}, ${desired.length})'),
+    );
+  }
+
+  List<int> _normalizeProxyFilterAddresses(List<int> addresses) {
+    final normalized = addresses.toSet().toList()..sort();
+    return List<int>.unmodifiable(normalized);
   }
 
   void _validateProxyFilterAddresses(List<int> addresses) {
@@ -199,6 +295,10 @@ class MeshManagerApi {
         'Proxy Filter address list must not be empty',
       );
     }
+    _validateProxyFilterAddressRange(addresses);
+  }
+
+  void _validateProxyFilterAddressRange(List<int> addresses) {
     for (final address in addresses) {
       if (address < 0x0001 || address > 0xFFFF) {
         throw ArgumentError.value(
@@ -207,6 +307,112 @@ class MeshManagerApi {
           'Proxy Filter address must be in 0x0001..0xFFFF',
         );
       }
+    }
+  }
+
+  void _resetExplicitProxyFilterState() {
+    _explicitProxyFilterStateKnown = false;
+    _explicitProxyFilterType = MeshProxyFilterType.whitelist;
+    _explicitProxyFilterAddresses.clear();
+  }
+
+  void _rememberProxyTarget(String deviceId, int proxyUnicastAddress) {
+    _lastProxyDeviceId = deviceId;
+    _lastProxyUnicastAddress = proxyUnicastAddress;
+  }
+
+  void _stopProxyAutoReconnect({required bool clearTarget}) {
+    _proxyHealthCheckTimer?.cancel();
+    _proxyHealthCheckTimer = null;
+    _proxyReconnectTimer?.cancel();
+    _proxyReconnectTimer = null;
+    _proxyReconnectInProgress = false;
+    _proxyReconnectAttempt = 0;
+    if (clearTarget) {
+      _lastProxyDeviceId = null;
+      _lastProxyUnicastAddress = null;
+    }
+  }
+
+  void _startProxyHealthCheck() {
+    if (!_proxyAutoReconnectPolicy.enabled ||
+        _lastProxyDeviceId == null ||
+        _lastProxyUnicastAddress == null) {
+      return;
+    }
+
+    _proxyHealthCheckTimer?.cancel();
+    _proxyHealthCheckTimer = Timer.periodic(
+      _proxyAutoReconnectPolicy.healthCheckInterval,
+      (_) => unawaited(_checkProxyHealth()),
+    );
+  }
+
+  Future<void> _checkProxyHealth() async {
+    if (!_proxyAutoReconnectPolicy.enabled ||
+        _proxyReconnectInProgress ||
+        _proxyConnecting ||
+        _lastProxyDeviceId == null ||
+        _lastProxyUnicastAddress == null) {
+      return;
+    }
+
+    bool connected;
+    try {
+      connected = await isProxyConnected();
+    } catch (_) {
+      return;
+    }
+    if (connected) {
+      _proxyReconnectAttempt = 0;
+      return;
+    }
+
+    _scheduleProxyReconnect();
+  }
+
+  void _scheduleProxyReconnect() {
+    if (!_proxyAutoReconnectPolicy.enabled ||
+        _proxyReconnectInProgress ||
+        _proxyReconnectTimer != null ||
+        _lastProxyDeviceId == null ||
+        _lastProxyUnicastAddress == null ||
+        _proxyReconnectAttempt >= _proxyAutoReconnectPolicy.maxAttempts) {
+      return;
+    }
+
+    _proxyReconnectTimer = Timer(_proxyAutoReconnectPolicy.retryDelay, () {
+      _proxyReconnectTimer = null;
+      unawaited(_runProxyReconnectAttempt());
+    });
+  }
+
+  Future<void> _runProxyReconnectAttempt() async {
+    final deviceId = _lastProxyDeviceId;
+    final unicast = _lastProxyUnicastAddress;
+    if (!_proxyAutoReconnectPolicy.enabled ||
+        _proxyReconnectInProgress ||
+        _proxyConnecting ||
+        deviceId == null ||
+        unicast == null) {
+      return;
+    }
+
+    _proxyReconnectInProgress = true;
+    _proxyReconnectAttempt += 1;
+    var shouldRetry = false;
+    try {
+      final ok = await connectProxy(deviceId, unicast);
+      shouldRetry = !ok;
+    } catch (_) {
+      shouldRetry = true;
+    } finally {
+      _proxyReconnectInProgress = false;
+    }
+
+    if (shouldRetry &&
+        _proxyReconnectAttempt < _proxyAutoReconnectPolicy.maxAttempts) {
+      _scheduleProxyReconnect();
     }
   }
 
@@ -420,7 +626,14 @@ class MeshManagerApi {
   }
 
   Future<bool> resetLocalMeshState() async {
-    return await _guard(() => _platform.resetLocalMeshState());
+    return await _guard(() async {
+      final ok = await _platform.resetLocalMeshState();
+      if (ok) {
+        _resetExplicitProxyFilterState();
+        _stopProxyAutoReconnect(clearTarget: true);
+      }
+      return ok;
+    });
   }
 
   /// Add a node to a group
@@ -489,12 +702,29 @@ class MeshManagerApi {
 
   // Proxy (P1 real-transport prerequisite)
   Future<bool> connectProxy(String deviceId, int proxyUnicastAddress) async {
+    _rememberProxyTarget(deviceId, proxyUnicastAddress);
+    _proxyReconnectTimer?.cancel();
+    _proxyReconnectTimer = null;
     return _guard(
       () => _commandQueue.enqueue(
         () async {
           _proxyConnecting = true;
+          _resetExplicitProxyFilterState();
           try {
-            return await _platform.connectProxy(deviceId, proxyUnicastAddress);
+            final ok = await _platform.connectProxy(
+              deviceId,
+              proxyUnicastAddress,
+            );
+            if (ok) {
+              _proxyReconnectAttempt = 0;
+              if (_proxyAutoReconnectPolicy.enabled) {
+                _startProxyHealthCheck();
+              }
+            } else if (_proxyAutoReconnectPolicy.enabled &&
+                !_proxyReconnectInProgress) {
+              _scheduleProxyReconnect();
+            }
+            return ok;
           } finally {
             _proxyConnecting = false;
           }
@@ -506,10 +736,12 @@ class MeshManagerApi {
   }
 
   Future<bool> disconnectProxy() async {
+    _stopProxyAutoReconnect(clearTarget: true);
     return _guard(
       () => _commandQueue.enqueue(
         () async {
           _proxyConnecting = false;
+          _resetExplicitProxyFilterState();
           return await _platform.disconnectProxy();
         },
         timeout: _bearerTransitionTimeout,
@@ -565,8 +797,7 @@ class MeshManagerApi {
       proxyConnected: proxyConnected,
       provisioningConnected: provisioningConnected,
       proxyConnecting: _proxyConnecting && !proxyConnected,
-      provisioningConnecting:
-          _provisioningConnecting && !provisioningConnected,
+      provisioningConnecting: _provisioningConnecting && !provisioningConnected,
     );
   }
 }
